@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:health_compass/screens/forgotpass_page.dart';
 import 'package:health_compass/screens/signup_page.dart';
 import 'package:health_compass/widgets/custom_button.dart';
 import 'package:health_compass/widgets/custom_textfild.dart';
@@ -118,7 +119,15 @@ class _login_pageState extends State<login_page> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             TextButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        ForgotPasswordScreen(),
+                                  ),
+                                );
+                              },
                               child: Text(
                                 "نسيت كلمة المرور؟",
                                 style: GoogleFonts.cairo(
