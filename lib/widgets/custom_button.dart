@@ -2,14 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class custom_button extends StatelessWidget {
-  const custom_button({super.key, required this.buttonText, this.onPressed});
+  const custom_button({
+    super.key,
+    required this.buttonText,
+    this.onPressed,
+    this.width,
+  });
   final String buttonText;
   final void Function()? onPressed;
-
+  final double? width;
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
+      width: width ?? double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         gradient: const LinearGradient(

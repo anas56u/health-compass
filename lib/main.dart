@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:health_compass/screens/login_page.dart';
+import 'package:health_compass/screens/register_page.dart';
+import 'package:health_compass/screens/splash_screens.dart';
 import 'package:health_compass/widgets/custom_button.dart';
 import 'package:health_compass/widgets/custom_textfild.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -17,6 +19,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(debugShowCheckedModeBanner: false, home: login_page());
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: register_page(),
+    );
   }
 }
