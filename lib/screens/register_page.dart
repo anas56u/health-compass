@@ -33,7 +33,7 @@ class _register_pageState extends State<register_page> {
 
       inAsyncCall: isloading,
       child: Scaffold(
-        backgroundColor: const Color(0xFF41BFAA),
+        backgroundColor: const Color.fromARGB(255, 218, 218, 218),
         body: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -100,172 +100,98 @@ class _register_pageState extends State<register_page> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            "البريد الالكتروني ",
-                            style: GoogleFonts.tajawal(
-                              fontSize: 10,
-                              color: const Color(0xFF000000),
-                              fontWeight: FontWeight.w800,
-                            ),
+                        const SizedBox(height: 18),
+                        Container(
+                          width: 300,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: Colors.blueGrey.shade50,
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ),
-                        const SizedBox(height: 5),
-                        CustomTextfild(
-                          hinttext: "ادخل البريد الالكتروني",
-                          onChanged: (value) {
-                            email = value;
-                          },
-                        ),
-                        const SizedBox(height: 17),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            "كلمة المرور",
-                            style: GoogleFonts.tajawal(
-                              fontSize: 10,
-                              color: const Color(0xFF000000),
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        CustomTextfild(
-                          hinttext: "ادخل كلمة المرور",
-                          onChanged: (value) {
-                            password = value;
-                          },
-                        ),
-                        const SizedBox(height: 17),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            "تاكيد كلمه المرور ",
-                            style: GoogleFonts.tajawal(
-                              fontSize: 10,
-                              color: const Color(0xFF000000),
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 5),
-                        CustomTextfild(
-                          hinttext: "تاكيد كلمه المرور   ",
-                          onChanged: (value) {
-                            confirmPassword = value;
-                          },
-                        ),
-                        const SizedBox(height: 24),
-
-                        custom_button(
-                          buttonText: "انشاء حساب",
-                          onPressed: () async {
-                            if (confirmPassword == password) {
-                              if (formkey.currentState != null &&
-                                  formkey.currentState!.validate()) {
-                                isloading = true;
-                                setState(() {});
-                                try {
-                                  await regester();
-                                  showsnackbar(context, massage: "regesterd");
-                                } on FirebaseAuthException catch (e) {
-                                  if (e.code == "weak-password") {
-                                    showsnackbar(
-                                      context,
-                                      massage:
-                                          "The password provided is too weak.",
-                                    );
-                                  } else if (e.code == "email-already-in-use") {
-                                    showsnackbar(
-                                      context,
-                                      massage:
-                                          "The account already exists for that email.",
-                                    );
-                                  }
-
-                                  showsnackbar(context, massage: e.code);
-                                }
-                                isloading = false;
-                                setState(() {});
-                              }
-                            } else {
-                              showsnackbar(
-                                context,
-                                massage: "كلمة المرور غير متطابقة",
-                              );
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.black,
-                            minimumSize: const Size(double.infinity, 50),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: const BorderSide(
-                                color: Colors.grey,
-                                width: 0.8,
-                              ),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          child: Column(
                             children: [
-                              Image.asset(
-                                "assets/images/google.png",
-                                height: 24,
-                              ),
-                              const SizedBox(width: 10),
+                              const SizedBox(height: 25),
+                              Icon(Icons.personal_injury),
                               Text(
-                                "Google تابع باستخدام ",
+                                "مريض",
                                 style: GoogleFonts.tajawal(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              Text(
+                                "تتبع صحتي وإدارة الأدوية",
+                                style: GoogleFonts.tajawal(
+                                  fontSize: 12,
+                                  color: Colors.grey[700],
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        SizedBox(height: 17),
-                        Divider(
-                          color: Colors.grey,
-                          thickness: 0.5,
-                          height: 40,
-                          indent: 20,
-                          endIndent: 20,
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => login_page(),
-                                  ),
-                                );
-                              },
-                              child: Text(
-                                "سجّل الدخول الآن",
-                                style: GoogleFonts.cairo(
-                                  color: Colors.teal,
+                        const SizedBox(height: 15),
+                        Container(
+                          width: 300,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: Colors.blueGrey.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 25),
+                              Icon(Icons.person_3),
+                              Text(
+                                'طبيب',
+                                style: GoogleFonts.tajawal(
+                                  fontSize: 12,
                                   fontWeight: FontWeight.bold,
+                                  color: Colors.black,
                                 ),
                               ),
-                            ),
-                            Text(
-                              "هل لديك حساب؟",
-                              style: GoogleFonts.cairo(color: Colors.grey[700]),
-                            ),
-                          ],
+                              Text(
+                                'مراقبة المريض وتقديم الرعاية',
+                                style: GoogleFonts.tajawal(
+                                  fontSize: 12,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(height: 15),
+                        Container(
+                          width: 300,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: Colors.blueGrey.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 25),
+                              Icon(Icons.family_restroom_rounded),
+                              Text(
+                                'فرد من العائلة',
+                                style: GoogleFonts.tajawal(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              Text(
+                                'تابع تقدم صحتك مع من تحب',
+                                style: GoogleFonts.tajawal(
+                                  fontSize: 12,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 35),
+                        custom_button(buttonText: 'متابعة', width: 200),
                       ],
                     ),
                   ),
