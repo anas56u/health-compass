@@ -15,33 +15,43 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Future<void> _resetPassword() async {
     try {
       await _auth.sendPasswordResetEmail(email: _emailController.text);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني'),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+
+          
+
+
+          content: Text(
+            'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني',
+          ),
+        ),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('حدث خطأ: ${e.toString()}'),
-      ));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('حدث خطأ: ${e.toString()}')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-           CustomTextfild(
+            CustomTextfild(
               hinttext: 'أدخل بريدك الإلكتروني',
               onChanged: (value) {
                 _emailController.text = value;
               },
             ),
             SizedBox(height: 20),
-           custom_button(buttonText:  'إعادة تعيين كلمة المرور', onPressed: _resetPassword),
+            custom_button(
+              buttonText: 'إعادة تعيين كلمة المرور',
+              onPressed: _resetPassword,
+            ),
           ],
         ),
       ),
