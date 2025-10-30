@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:health_compass/screens/login_page.dart';
 import 'package:health_compass/widgets/custom_button.dart';
 
 class WhiteScreen extends StatefulWidget {
@@ -76,7 +77,7 @@ class _FirstScreenState extends State<FirstScreen> {
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          skipButton(),
+          skipButton(context),
           Padding(
             padding: const EdgeInsets.only(top: 60, bottom: 150),
             child: Center(
@@ -120,7 +121,7 @@ class _SecondScreenState extends State<SecondScreen> {
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          skipButton(),
+          skipButton(context),
           Padding(
             padding: const EdgeInsets.only(top: 60, bottom: 150),
             child: Center(
@@ -172,7 +173,7 @@ class _ThirdScreenState extends State<ThirdScreen> {
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          skipButton(),
+          skipButton( context),
           Padding(
             padding: const EdgeInsets.only(top: 60, bottom: 150),
             child: Center(
@@ -202,22 +203,25 @@ class _ThirdScreenState extends State<ThirdScreen> {
             ),
           ),
           const SizedBox(height: 25, width: 150),
-          custom_button(buttonText: 'التالي', width: 150),
+          custom_button(buttonText: 'التالي', width: 150 ),
         ],
       ),
     );
   }
 }
 
-Padding skipButton() {
+Padding skipButton(BuildContext context) { 
   return Padding(
     padding: const EdgeInsets.only(top: 55),
     child: Row(
       children: [
-        SizedBox(width: 320),
+        SizedBox(width: 320), 
         GestureDetector(
           onTap: () {
-            print('sucess');
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => login_page()), 
+            );
           },
           child: Text(
             'تخطي',
