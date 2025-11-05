@@ -9,7 +9,6 @@ final FontWeight? weight;
   const CustomText({super.key, required this.text, required this.size , this.weight});
   @override
   Widget build(BuildContext context) {
-
     return Align(
       alignment: Alignment.centerRight,
       child: Text(
@@ -17,7 +16,7 @@ final FontWeight? weight;
         style: GoogleFonts.tajawal(
           fontSize: size,
           color: const Color(0xFF000000),
-          fontWeight: weight ?? FontWeight.normal,
+          fontWeight: weight ?? FontWeight.w800,
         ),
       ),
     );

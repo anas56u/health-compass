@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:health_compass/screens/forgotpass_page.dart';
 import 'package:health_compass/screens/signup_page.dart';
 import 'package:health_compass/widgets/custom_button.dart';
+import 'package:health_compass/widgets/custom_text.dart';
 import 'package:health_compass/widgets/custom_textfild.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 
@@ -77,16 +78,9 @@ class _login_pageState extends State<login_page> {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            "البريد الالكتروني ",
-                            style: GoogleFonts.tajawal(
-                              fontSize: 10,
-                              color: const Color(0xFF000000),
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
+                        CustomText(
+                          text: "البريد الالكتروني",
+                          size: 10,
                         ),
                         const SizedBox(height: 5),
                         CustomTextfild(
@@ -96,16 +90,9 @@ class _login_pageState extends State<login_page> {
                           },
                         ),
                         const SizedBox(height: 38),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            "كلمة المرور",
-                            style: GoogleFonts.tajawal(
-                              fontSize: 10,
-                              color: const Color(0xFF000000),
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
+                        CustomText(
+                          text: "كلمه المرور",
+                          size: 10,
                         ),
                         const SizedBox(height: 5),
                         CustomTextfild(
