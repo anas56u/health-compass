@@ -17,10 +17,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       await _auth.sendPasswordResetEmail(email: _emailController.text);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-
-          
-
-
           content: Text(
             'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني',
           ),
