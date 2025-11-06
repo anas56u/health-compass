@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:health_compass/screens/PatientView_body.dart';
 import 'package:health_compass/screens/doctor_info.dart';
 import 'package:health_compass/screens/login_page.dart';
 import 'package:health_compass/screens/patient_info.dart';
@@ -23,7 +24,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: DoctorInfoScreen(),
+      home: Patientview_body(),
     );
   }
 }

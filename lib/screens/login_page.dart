@@ -78,10 +78,7 @@ class _login_pageState extends State<login_page> {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        CustomText(
-                          text: "البريد الالكتروني",
-                          size: 10,
-                        ),
+                        CustomText(text: "البريد الالكتروني", size: 10),
                         const SizedBox(height: 5),
                         CustomTextfild(
                           hinttext: "ادخل البريد الالكتروني",
@@ -90,10 +87,7 @@ class _login_pageState extends State<login_page> {
                           },
                         ),
                         const SizedBox(height: 38),
-                        CustomText(
-                          text: "كلمه المرور",
-                          size: 10,
-                        ),
+                        CustomText(text: "كلمه المرور", size: 10),
                         const SizedBox(height: 5),
                         CustomTextfild(
                           hinttext: "ادخل كلمة المرور",
