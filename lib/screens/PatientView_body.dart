@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:health_compass/widgets/Accessibility_facilities.dart';
 import 'package:health_compass/widgets/Taskitem_buider.dart';
 import 'package:health_compass/widgets/HealthStatus_Card.dart';
 import 'package:health_compass/widgets/custom_text.dart';
@@ -14,7 +15,12 @@ class Patientview_body extends StatelessWidget {
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(
-          children: [header_patientview(), SizedBox(height: 20), DailyTasks()],
+          children: [
+            header_patientview(),
+            SizedBox(height: 20),
+            DailyTasks(),
+            AccessibilityFacilities(),
+          ],
         ),
       ),
     );
