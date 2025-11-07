@@ -1,12 +1,9 @@
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:health_compass/widgets/HealthStatus_Card.dart';
 
 class header_patientview extends StatelessWidget {
-  const header_patientview({
-    super.key,
-  });
+  const header_patientview({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -18,10 +15,10 @@ class header_patientview extends StatelessWidget {
             top: 0,
             left: 0,
             right: 0,
-            bottom: 0, 
+            bottom: 0,
             child: Container(
               decoration: const BoxDecoration(
-                color: Color(0xFF0D9488), 
+                color: Color(0xFF0D9488),
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(50),
                   bottomRight: Radius.circular(50),
@@ -49,7 +46,7 @@ class header_patientview extends StatelessWidget {
                       const CircleAvatar(
                         radius: 20,
                         backgroundColor: Colors.white,
-    
+
                         child: Icon(Icons.person, color: Color(0xFF00796B)),
                       ),
                       const Icon(
@@ -60,7 +57,7 @@ class header_patientview extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 30),
-    
+
                   Text(
                     '.. اهلاً بعودتك يا حليم',
                     textAlign: TextAlign.right,
@@ -84,11 +81,11 @@ class header_patientview extends StatelessWidget {
             ),
           ),
           Positioned(
-          left: 15,
-          right: 15,
-          bottom: 40,
-          child: HealthStatusCard() ,
-        ),
+            left: 15,
+            right: 15,
+            bottom: 40,
+            child: HealthStatusCard(),
+          ),
         ],
       ),
     );

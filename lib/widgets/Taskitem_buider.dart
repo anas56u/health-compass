@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:health_compass/models/taskitem_model.dart';
 
 class Taskitem_buider extends StatelessWidget {
-
   final Taskitem_Model task;
 
   const Taskitem_buider({super.key, required this.task});
