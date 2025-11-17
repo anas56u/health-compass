@@ -40,6 +40,9 @@ dependencies:
   modal_progress_hud_nsn: ^0.5.1
   google_sign_in: ^7.2.0
   intl_phone_field: ^3.2.0
+  flutter_bloc: ^9.1.1
+  health: ^13.2.1
+  permission_handler: ^12.0.1
   
   
 
