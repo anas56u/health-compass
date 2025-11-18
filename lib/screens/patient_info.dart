@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:health_compass/screens/family_member_info.dart';
+import 'package:health_compass/screens/user_type.dart';
 import 'package:health_compass/widgets/custom_button.dart';
 import 'package:health_compass/widgets/custom_textfild.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
@@ -15,7 +17,7 @@ class PatientInfoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF41BFAA),
+      backgroundColor: const Color(0xFFE0E7EC),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -38,6 +40,19 @@ class PatientInfoScreen extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 280),
+                        child: BackButton(
+                          onPressed: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => UserType(),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                       Text(
                         "تسجيل مريض جديد",
                         style: GoogleFonts.tajawal(
@@ -49,7 +64,10 @@ class PatientInfoScreen extends StatelessWidget {
                       const SizedBox(height: 7),
                       GestureDetector(
                         onTap: () {
-                          showsnackbar(context, massage: "this feutere coming soon");
+                          showsnackbar(
+                            context,
+                            massage: "this feutere coming soon",
+                          );
                         },
                         child: CircleAvatar(
                           radius: 50,
@@ -108,7 +126,7 @@ class PatientInfoScreen extends StatelessWidget {
                       IntlPhoneField(
                         decoration: InputDecoration(
                           filled: true,
-                          fillColor: Colors.grey[100],
+                          fillColor: Color(0xFFF5F9FC),
                           hintText: "ادخل رقم الهاتف",
                           hintStyle: const TextStyle(
                             color: Colors.grey,
@@ -149,10 +167,52 @@ class PatientInfoScreen extends StatelessWidget {
                         },
                       ),
                       const SizedBox(height: 17),
-                      Row(
-                        children: [
-                          Text('       '),
-                          DropdownButton<String>(
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          "نوع المرض",
+                          style: GoogleFonts.tajawal(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500, // Medium weight
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8), // Space between label and box
+                      // 2. The Styled Box
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(
+                            0xFFF5F9FC,
+                          ), // The very light blue/grey background
+                          borderRadius: BorderRadius.circular(
+                            15,
+                          ), // Slight rounded corners
+                          border: Border.all(
+                            color: const Color(
+                              0xFFDAE3EA,
+                            ), // The light blue/grey border color
+                            width: 1.5,
+                          ),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            isExpanded:
+                                true, // Ensures the text takes up the space
+                            icon: const Icon(
+                              Icons.keyboard_arrow_down,
+                              color: Colors.black,
+                            ),
+                            hint: Text(
+                              "اختيار نوع المرض",
+                              style: GoogleFonts.tajawal(
+                                color: Colors
+                                    .grey[700], // Darker grey for hint text
+                                fontSize: 14,
+                              ),
+                            ),
                             items:
                                 <String>[
                                   'الضغط',
@@ -162,12 +222,47 @@ class PatientInfoScreen extends StatelessWidget {
                                 ].map((String value) {
                                   return DropdownMenuItem<String>(
                                     value: value,
-                                    child: Text(value),
+                                    child: Text(
+                                      value,
+                                      style: GoogleFonts.tajawal(
+                                        color: Colors.black,
+                                      ),
+                                    ),
                                   );
                                 }).toList(),
                             onChanged: (_) {},
                           ),
-                        ],
+                        ),
+                      ),
+                      const SizedBox(height: 17),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          "هل تقوم بأخذ اي ادوية",
+                          style: GoogleFonts.tajawal(
+                            fontSize: 10,
+                            color: const Color(0xFF000000),
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 156),
+                        child: Row(
+                          children: [
+                            Text(
+                              "لا",
+                              style: GoogleFonts.tajawal(fontSize: 13),
+                            ),
+                            Radio(value: true),
+                            const SizedBox(width: 25),
+                            Text(
+                              "نعم",
+                              style: GoogleFonts.tajawal(fontSize: 13),
+                            ),
+                            Radio(value: false),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 17),
                       Align(
@@ -203,9 +298,40 @@ class PatientInfoScreen extends StatelessWidget {
                       ),
                       SizedBox(height: 5),
                       CustomTextfild(
+                        hinttext: "اذكرها",
                         onChanged: (value) {
                           fullName = value;
                         },
+                      ),
+                      const SizedBox(height: 17),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          "هل تعاني من مشكلات صحيه أخرى",
+                          style: GoogleFonts.tajawal(
+                            fontSize: 10,
+                            color: const Color(0xFF000000),
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 156),
+                        child: Row(
+                          children: [
+                            Text(
+                              "لا",
+                              style: GoogleFonts.tajawal(fontSize: 13),
+                            ),
+                            Radio(value: true),
+                            const SizedBox(width: 25),
+                            Text(
+                              "نعم",
+                              style: GoogleFonts.tajawal(fontSize: 13),
+                            ),
+                            Radio(value: false),
+                          ],
+                        ),
                       ),
                       SizedBox(height: 30),
                       GestureDetector(
@@ -226,9 +352,12 @@ class PatientInfoScreen extends StatelessWidget {
                                 specialization == null ||
                                 licenseNumber == null ||
                                 experienceYears == null) {
-                              showsnackbar(
+                              Navigator.pushReplacement(
                                 context,
-                                massage: "يرجى تعبئة جميع الحقول قبل المتابعة",
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      FamilyMemberInfoScreen(),
+                                ),
                               );
                             } else {
                               showsnackbar(

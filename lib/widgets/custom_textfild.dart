@@ -20,7 +20,7 @@ class CustomTextfild extends StatelessWidget {
       onChanged: onChanged,
       decoration: InputDecoration(
         filled: true,
-        fillColor: Colors.grey[100],
+        fillColor: Color(0xFFF5F9FC),
         hint: Directionality(
           textDirection: TextDirection.rtl,
           child: Text(

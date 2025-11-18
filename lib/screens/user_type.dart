@@ -21,15 +21,12 @@ class _UserTypeState extends State<UserType> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 218, 218, 218),
+      backgroundColor: const Color(0xFFE0E7EC),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 28,
-                vertical: 65,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 65),
               child: Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
@@ -93,7 +90,7 @@ class _UserTypeState extends State<UserType> {
                           selectedUserType = "مريض";
                         });
                       },
-    
+
                       child: Container(
                         width: 300,
                         height: 100,
@@ -305,8 +302,7 @@ class _UserTypeState extends State<UserType> {
                                     builder: (context) => DoctorInfoScreen(),
                                   ),
                                 );
-                              } else if (selectedUserType ==
-                                  "فرد من العائلة") {
+                              } else if (selectedUserType == "فرد من العائلة") {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -327,5 +323,4 @@ class _UserTypeState extends State<UserType> {
       ),
     );
   }
-
 }

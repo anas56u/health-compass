@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:health_compass/screens/user_type.dart';
 import 'package:health_compass/widgets/custom_button.dart';
 import 'package:health_compass/widgets/custom_textfild.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
@@ -23,15 +24,12 @@ class DoctorInfoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF41BFAA),
+      backgroundColor: const Color(0xFFE0E7EC),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 28,
-                vertical: 65,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 65),
               child: Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
@@ -49,6 +47,19 @@ class DoctorInfoScreen extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 280),
+                        child: BackButton(
+                          onPressed: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => UserType(),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                       Text(
                         "تسجيل طبيب جديد",
                         style: GoogleFonts.tajawal(
@@ -60,7 +71,10 @@ class DoctorInfoScreen extends StatelessWidget {
                       const SizedBox(height: 7),
                       GestureDetector(
                         onTap: () {
-                        showsnackbar(context, massage: "this feutere coming soon");
+                          showsnackbar(
+                            context,
+                            massage: "this feutere coming soon",
+                          );
                         },
                         child: CircleAvatar(
                           radius: 50,
@@ -83,7 +97,7 @@ class DoctorInfoScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 20),
-    
+
                       const SizedBox(height: 20),
                       Align(
                         alignment: Alignment.centerRight,
@@ -119,7 +133,7 @@ class DoctorInfoScreen extends StatelessWidget {
                       IntlPhoneField(
                         decoration: InputDecoration(
                           filled: true,
-                          fillColor: Colors.grey[100],
+                          fillColor: Color(0xFFF5F9FC),
                           hintText: "ادخل رقم الهاتف",
                           hintStyle: const TextStyle(
                             color: Colors.grey,
@@ -154,9 +168,7 @@ class DoctorInfoScreen extends StatelessWidget {
                         initialCountryCode: 'JO',
                         textAlign: TextAlign.left,
                         style: const TextStyle(color: Colors.black),
-                        dropdownTextStyle: const TextStyle(
-                          color: Colors.black,
-                        ),
+                        dropdownTextStyle: const TextStyle(color: Colors.black),
                         onChanged: (phone) {
                           phoneNumber = phone.completeNumber;
                         },
@@ -180,7 +192,7 @@ class DoctorInfoScreen extends StatelessWidget {
                           fullName = value;
                         },
                       ),
-    
+
                       const SizedBox(height: 24),
                       Align(
                         alignment: Alignment.centerRight,
@@ -200,7 +212,7 @@ class DoctorInfoScreen extends StatelessWidget {
                           fullName = value;
                         },
                       ),
-    
+
                       const SizedBox(height: 20),
                       Align(
                         alignment: Alignment.centerRight,
@@ -220,7 +232,7 @@ class DoctorInfoScreen extends StatelessWidget {
                           fullName = value;
                         },
                       ),
-    
+
                       SizedBox(height: 20),
                       Align(
                         alignment: Alignment.centerRight,
@@ -280,8 +292,7 @@ class DoctorInfoScreen extends StatelessWidget {
                                 experienceYears == null) {
                               showsnackbar(
                                 context,
-                                massage:
-                                    "يرجى تعبئة جميع الحقول قبل المتابعة",
+                                massage: "يرجى تعبئة جميع الحقول قبل المتابعة",
                               );
                             } else {
                               showsnackbar(
