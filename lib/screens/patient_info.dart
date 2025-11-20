@@ -238,7 +238,7 @@ class PatientInfoScreen extends StatelessWidget {
                       Align(
                         alignment: Alignment.centerRight,
                         child: Text(
-                          "هل تقوم بأخذ اي ادوية",
+                          "هل تقوم بأخذ اي ادوية؟",
                           style: GoogleFonts.tajawal(
                             fontSize: 10,
                             color: const Color(0xFF000000),
@@ -247,7 +247,7 @@ class PatientInfoScreen extends StatelessWidget {
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.only(left: 156),
+                        padding: const EdgeInsets.only(left: 100),
                         child: Row(
                           children: [
                             Text(
@@ -307,7 +307,7 @@ class PatientInfoScreen extends StatelessWidget {
                       Align(
                         alignment: Alignment.centerRight,
                         child: Text(
-                          "هل تعاني من مشكلات صحيه أخرى",
+                          "هل تعاني من مشكلات صحيه أخرى؟",
                           style: GoogleFonts.tajawal(
                             fontSize: 10,
                             color: const Color(0xFF000000),
@@ -316,7 +316,7 @@ class PatientInfoScreen extends StatelessWidget {
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.only(left: 156),
+                        padding: const EdgeInsets.only(left: 100),
                         child: Row(
                           children: [
                             Text(
