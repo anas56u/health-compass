@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:health_compass/cubits/SimpleBlocObserver.dart';
 import 'package:health_compass/cubits/health_cubit/health_cubit.dart';
 import 'package:health_compass/screens/PatientView_body.dart';
+import 'package:health_compass/screens/achievements_page.dart';
 import 'package:health_compass/screens/doctor_info.dart';
 import 'package:health_compass/screens/family_member_info.dart';
 import 'package:health_compass/screens/login_page.dart';
@@ -32,7 +33,7 @@ class MyApp extends StatelessWidget {
       create: (context) => HealthCubit(),
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: FamilyMemberInfoScreen(),
+        home: AchievementsPage(),
       ),
     );
   }
