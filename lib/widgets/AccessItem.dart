@@ -15,7 +15,7 @@ class Accessitem extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell( 
     onTap: () {
-      print('تم الضغط على: $label');
+      print('تم الضغط على: $label'); 
     },
     child: SizedBox(
       width: (MediaQuery.of(context).size.width - 70) / 2, 
