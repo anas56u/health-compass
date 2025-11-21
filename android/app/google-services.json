@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "156019165379",
+    "project_id": "health-compass-12e1c",
+    "storage_bucket": "health-compass-12e1c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:156019165379:android:a8057619ddd099a189fa76",
+        "android_client_info": {
+          "package_name": "com.example.health_compass"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "156019165379-cd2uqd1mieaaear8ucmt4h2ars4fjq69.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.health_compass",
+            "certificate_hash": "47e8b055cc60aaebf2db8e06f30352319e7ad1c7"
+          }
+        },
+        {
+          "client_id": "156019165379-2q9chf1c5d568pqk8sejo2pm24324kd4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAPxFjafXAh7Lin147jSNW_e5Xj1eUrkoA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "156019165379-2q9chf1c5d568pqk8sejo2pm24324kd4.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "156019165379-3kco1p4g8stjuvpda4b4stinnbpqv7a3.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.healthCompass"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
