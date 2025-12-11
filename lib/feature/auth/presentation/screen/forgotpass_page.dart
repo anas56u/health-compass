@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:health_compass/widgets/custom_button.dart';
+import 'package:health_compass/core/widgets/custom_button.dart';
 import 'package:health_compass/core/widgets/custom_textfild.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {

@@ -1,9 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:health_compass/core/widgets/custom_button.dart';
+import 'package:health_compass/core/widgets/custom_text.dart';
 import 'package:health_compass/feature/auth/presentation/screen/login_page.dart';
-import 'package:health_compass/widgets/custom_button.dart';
-import 'package:health_compass/widgets/custom_text.dart';
 import 'package:health_compass/core/widgets/custom_textfild.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 

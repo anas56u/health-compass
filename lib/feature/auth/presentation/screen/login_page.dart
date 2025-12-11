@@ -3,13 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:health_compass/core/core.dart';
 import 'package:health_compass/core/themes/font_weight_helper.dart';
+import 'package:health_compass/core/widgets/custom_button.dart';
 import 'package:health_compass/core/widgets/custom_scaffold.dart';
+import 'package:health_compass/core/widgets/custom_text.dart';
 import 'package:health_compass/feature/auth/di/auth_di.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/login_cubit.dart';
-import 'package:health_compass/screens/PatientView_body.dart';
-import 'package:health_compass/screens/signup_page.dart';
-import 'package:health_compass/widgets/custom_button.dart';
-import 'package:health_compass/widgets/custom_text.dart';
+import 'package:health_compass/feature/home/presentation/PatientView_body.dart';
+import 'package:health_compass/feature/auth/presentation/screen/signup_page.dart';
 import 'package:health_compass/core/widgets/custom_textfild.dart';
 
 class LoginPage extends StatelessWidget {
@@ -147,7 +147,7 @@ class _LoginViewState extends State<LoginView> {
                               onPressed: () {
                                 Navigator.pushNamed(
                                   context,
-                                  AppRoutes.forgetPasswordView,
+                                  AppRoutes.forgetPassword,
                                 );
                               },
                               child: Text(
@@ -196,7 +196,7 @@ class _LoginViewState extends State<LoginView> {
                                         );
                                       }
                                     },
-                            );
+                            );  
                           },
                         ),
                         const SizedBox(height: 20),

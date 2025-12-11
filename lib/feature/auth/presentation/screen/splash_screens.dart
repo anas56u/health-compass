@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:health_compass/core/widgets/custom_button.dart';
 import 'package:health_compass/feature/auth/presentation/screen/login_page.dart';
-import 'package:health_compass/widgets/custom_button.dart';
 
 class SplashScreens extends StatefulWidget {
   const SplashScreens({super.key});

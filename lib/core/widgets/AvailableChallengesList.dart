@@ -1,6 +1,6 @@
  import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:health_compass/widgets/ChallengeCard.dart';
+import 'package:health_compass/core/widgets/ChallengeCard.dart';
 
 Widget AvailableChallengesList() {
     return Padding(

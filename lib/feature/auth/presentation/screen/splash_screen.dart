@@ -3,7 +3,8 @@ import 'package:health_compass/core/cache/shared_pref_helper.dart';
 import 'package:health_compass/core/core.dart';
 import 'package:health_compass/core/themes/app_gradient.dart';
 import 'package:health_compass/feature/auth/presentation/screen/login_page.dart';
-import 'package:health_compass/screens/PatientView_body.dart';
+import 'package:health_compass/feature/home/presentation/PatientView_body.dart';
+import 'package:health_compass/feature/auth/presentation/screen/splash_screens.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -94,7 +95,7 @@ class _SplashScreenState extends State<SplashScreen>
       // User is not logged in, navigate to login
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
+        MaterialPageRoute(builder: (context) => SplashScreens()),
       );
     }
   }

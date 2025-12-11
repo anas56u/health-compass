@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:health/health.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:health_compass/cubits/health_cubit/HealthState.dart';
+import 'package:health_compass/feature/health_tracking/presentation/cubits/health_cubit/HealthState.dart';
 
 class HealthCubit extends Cubit<HealthState> {
   final Health health = Health();

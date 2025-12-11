@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:health_compass/cubits/health_cubit/HealthState.dart';
-import '../../cubits/health_cubit/health_cubit.dart'; 
-import 'package:health_compass/widgets/Metric_Item.dart';
+import 'package:health_compass/feature/health_tracking/presentation/cubits/health_cubit/HealthState.dart';
+import 'cubits/health_cubit/health_cubit.dart'; 
+import 'package:health_compass/feature/health_tracking/presentation/Metric_Item.dart';
 
 class HealthStatusCard extends StatelessWidget {
   const HealthStatusCard({super.key});

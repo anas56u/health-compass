@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:health_compass/core/widgets/Taskitem_buider.dart';
 import 'package:health_compass/models/taskitem_model.dart';
-import 'package:health_compass/widgets/Taskitem_buider.dart';
 
 class DailyTasks extends StatelessWidget {
   List<Taskitem_Model> tasks = [

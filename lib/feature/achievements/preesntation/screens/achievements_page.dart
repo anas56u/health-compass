@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:health_compass/core/constants/size_config.dart';
-import 'package:health_compass/widgets/AchievementsHeader_Card.dart';
-import 'package:health_compass/widgets/AvailableChallengesList.dart';
-import 'package:health_compass/widgets/ChallengeCard.dart';
-import 'package:health_compass/widgets/CustomAppBar.dart';
-import 'package:health_compass/widgets/Custom_Clipper.dart';
+import 'package:health_compass/core/widgets/AchievementsHeader_Card.dart';
+import 'package:health_compass/core/widgets/AvailableChallengesList.dart';
+import 'package:health_compass/core/widgets/CustomAppBar.dart';
+import 'package:health_compass/core/widgets/Custom_Clipper.dart';
+
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:google_fonts/google_fonts.dart';
 

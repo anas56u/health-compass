@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:health_compass/widgets/HealthStatus_Card.dart';
+import 'package:health_compass/feature/health_tracking/presentation/HealthStatus_Card.dart';
 
 class header_patientview extends StatelessWidget {
   const header_patientview({super.key});

@@ -33,7 +33,7 @@ export './utils/validators_utils.dart';
 export './themes/cubit/theme_cubit.dart';
 // widgets
 export './widgets/bottom_nav_bar.dart';
-export './widgets/custom_button.dart';
+export 'widgets/custom_button2.dart';
 export './widgets/custom_rich_text.dart';
 export './widgets/custom_scaffold.dart';
 export './widgets/custom_text_form_field.dart';

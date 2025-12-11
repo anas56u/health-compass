@@ -1,21 +1,108 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:health_compass/core/routes/routes.dart';
-import 'package:health_compass/feature/auth/presentation/screen/login_page.dart';
-import 'package:health_compass/screens/PatientView_body.dart';
-import 'package:health_compass/screens/forgotpass_page.dart';
 
-class Routers {
+// --- استيراد ملفات Auth حسب المسارات الحالية في مشروعك ---
+import 'package:health_compass/feature/auth/presentation/screen/splash_screen.dart'; //
+import 'package:health_compass/feature/auth/presentation/screen/splash_screens.dart'; //
+import 'package:health_compass/feature/auth/presentation/screen/login_page.dart'; //
+import 'package:health_compass/feature/auth/presentation/screen/signup_page.dart'; //
+import 'package:health_compass/feature/auth/presentation/screen/forgotpass_page.dart'; //
+import 'package:health_compass/feature/auth/presentation/screen/user_type.dart'; //
+import 'package:health_compass/feature/auth/presentation/screen/patient_info.dart'; //
+import 'package:health_compass/feature/auth/presentation/screen/doctor_info.dart'; //
+import 'package:health_compass/feature/auth/presentation/screen/family_member_info.dart'; //
+
+// --- استيراد ملفات Home ---
+import 'package:health_compass/feature/home/presentation/PatientView_body.dart'; //
+
+// --- استيراد ملفات Achievements ---
+// ملاحظة: المسار يحتوي على كلمة 'preesntation' كما هو في ملفاتك
+import 'package:health_compass/feature/achievements/preesntation/screens/achievements_page.dart'; //
+
+// --- استيراد الكيوبت والـ DI ---
+import 'package:health_compass/feature/auth/presentation/cubit/cubit/login_cubit.dart'; //
+import 'package:health_compass/feature/auth/di/auth_di.dart'; //
+
+class AppRouter {
   Route? generateRoute(RouteSettings settings) {
+    // استقبال البيانات الممررة (إن وجدت)
     final arguments = settings.arguments;
 
     switch (settings.name) {
-      case AppRoutes.loginView:
-        return MaterialPageRoute(builder: (_) => LoginPage());
-      case AppRoutes.forgetPasswordView:
-        return MaterialPageRoute(builder: (_) => ForgotPasswordScreen());
-      case AppRoutes.patientView:
-        return MaterialPageRoute(builder: (_) => Patientview_body());
+      // 1. شاشات البداية
+      case AppRoutes.splash:
+        return MaterialPageRoute(
+          builder: (_) => const SplashScreen(),
+        );
+
+      case AppRoutes.onBoarding:
+        // FirstScreen موجودة داخل ملف splash_screens.dart
+        return MaterialPageRoute(
+          builder: (_) => FirstScreen(), 
+        );
+
+      // 2. المصادقة واختيار المستخدم
+      case AppRoutes.userType:
+        return MaterialPageRoute(
+          builder: (_) => const UserType(),
+        );
+
+      case AppRoutes.login:
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider(
+            create: (context) => AuthDI.loginCubit,
+            child: const LoginPage(),
+          ),
+        );
+
+      case AppRoutes.signup:
+        return MaterialPageRoute(
+          builder: (_) => const signup_page(),
+        );
+
+      case AppRoutes.forgetPassword:
+        return MaterialPageRoute(
+          builder: (_) => ForgotPasswordScreen(),
+        );
+
+      // 3. استكمال البيانات
+      case AppRoutes.patientInfo:
+        return MaterialPageRoute(
+          builder: (_) => PatientInfoScreen(),
+        );
+
+      case AppRoutes.doctorInfo:
+        return MaterialPageRoute(
+          builder: (_) => DoctorInfoScreen(),
+        );
+
+      case AppRoutes.familyMemberInfo:
+        return MaterialPageRoute(
+          builder: (_) => FamilyMemberInfoScreen(),
+        );
+
+      // 4. الشاشة الرئيسية (Home)
+      case AppRoutes.patientHome: // أو AppRoutes.home حسب المسمى في routes.dart
+        return MaterialPageRoute(
+          builder: (_) => const Patientview_body(),
+        );
+
+      // 5. الإنجازات
+      case AppRoutes.achievements:
+        return MaterialPageRoute(
+          builder: (_) => const AchievementsPage(),
+        );
+
+      // المسار الافتراضي عند الخطأ
+      default:
+        return MaterialPageRoute(
+          builder: (_) => Scaffold(
+            body: Center(
+              child: Text('No route defined for ${settings.name}'),
+            ),
+          ),
+        );
     }
-    return null;
   }
 }

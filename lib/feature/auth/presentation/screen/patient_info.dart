@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:health_compass/screens/family_member_info.dart';
-import 'package:health_compass/screens/user_type.dart';
-import 'package:health_compass/widgets/custom_button.dart';
+import 'package:health_compass/core/widgets/custom_button.dart';
+import 'package:health_compass/feature/auth/presentation/screen/family_member_info.dart';
+import 'package:health_compass/feature/auth/presentation/screen/user_type.dart';
 import 'package:health_compass/core/widgets/custom_textfild.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 

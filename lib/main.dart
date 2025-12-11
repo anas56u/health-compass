@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:health_compass/cubits/SimpleBlocObserver.dart';
-import 'package:health_compass/cubits/health_cubit/health_cubit.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:health_compass/core/core.dart';
+import 'package:health_compass/feature/health_tracking/presentation/cubits/SimpleBlocObserver.dart';
+import 'package:health_compass/feature/health_tracking/presentation/cubits/health_cubit/health_cubit.dart';
 import 'package:health_compass/feature/auth/presentation/screen/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -19,12 +21,20 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => HealthCubit(),
-      child: const MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: SplashScreen(), // Start with SplashScreen for auth check
-      ),
+    return ScreenUtilInit(
+      designSize: const Size(375, 812), 
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, child) {
+        return BlocProvider(
+          create: (context) => HealthCubit(),
+          child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            initialRoute: AppRoutes.splash,
+            onGenerateRoute: AppRouter().generateRoute,
+          ),
+        );
+      },
     );
   }
 }

@@ -1,5 +1,5 @@
  import 'package:flutter/material.dart';
-import 'package:health_compass/widgets/AccessItem.dart';
+import 'package:health_compass/core/widgets/AccessItem.dart';
 
 class AccessibilityFacilities extends StatelessWidget {
    @override

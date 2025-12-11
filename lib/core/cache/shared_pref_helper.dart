@@ -202,7 +202,7 @@ class SharedPrefHelper {
     return await getSecuredString(_userIdKey);
   }
 
-  /// Clear login data (for logout)
+  /// Clear login data (for logout) 
   static Future<void> clearLoginData() async {
     await setData(_isLoggedInKey, false);
     await removeSecuredString(_userEmailKey);

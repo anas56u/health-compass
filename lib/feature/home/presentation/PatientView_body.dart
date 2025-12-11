@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:health_compass/core/cache/shared_pref_helper.dart';
+import 'package:health_compass/core/widgets/Accessibility_facilities.dart';
+import 'package:health_compass/core/widgets/WeeklyChallenge.dart';
+import 'package:health_compass/core/widgets/bottom_nav_bar.dart';
+import 'package:health_compass/core/widgets/daily_tasks.dart';
+import 'package:health_compass/core/widgets/header_patientview.dart';
 import 'package:health_compass/feature/auth/presentation/screen/login_page.dart';
-import 'package:health_compass/widgets/Accessibility_facilities.dart';
-import 'package:health_compass/widgets/Taskitem_buider.dart';
-import 'package:health_compass/widgets/HealthStatus_Card.dart';
-import 'package:health_compass/widgets/WeeklyChallenge.dart';
-import 'package:health_compass/widgets/custom_text.dart';
-import 'package:health_compass/widgets/daily_tasks.dart';
-import 'package:health_compass/widgets/header_patientview.dart';
+import 'package:health_compass/feature/health_tracking/presentation/HealthStatus_Card.dart';
 
 class Patientview_body extends StatefulWidget {
   const Patientview_body({super.key});
@@ -28,7 +27,6 @@ class _Patientview_bodyState extends State<Patientview_body> {
   }
 
   Future<void> _handleLogout() async {
-    // Show confirmation dialog
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -51,10 +49,8 @@ class _Patientview_bodyState extends State<Patientview_body> {
     );
 
     if (shouldLogout == true && mounted) {
-      // Clear login data
       await SharedPrefHelper.clearLoginData();
 
-      // Navigate to login page
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -65,6 +61,8 @@ class _Patientview_bodyState extends State<Patientview_body> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      
+      extendBody: true,
       appBar: AppBar(
         title: const Text('الصفحة الرئيسية'),
         backgroundColor: const Color(0xFF0D9488),
@@ -77,44 +75,11 @@ class _Patientview_bodyState extends State<Patientview_body> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-
-        selectedItemColor: _activeColor,
-        unselectedItemColor: _inactiveColor,
-
-        selectedLabelStyle: TextStyle(
-          fontWeight: FontWeight.bold,
-          color: _activeColor,
-          fontSize: 11,
-        ),
-        unselectedLabelStyle: TextStyle(
-          fontWeight: FontWeight.normal,
-          color: _inactiveColor,
-          fontSize: 11,
-        ),
-
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'الرئيسية'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.medication_liquid_outlined),
-            label: 'الادوية',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.group), label: 'العائلة'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.mic),
-            label: 'المساعد الصوتي',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.emoji_events_outlined),
-            label: 'الإنجازات',
-          ),
-        ],
-      ),
+      bottomNavigationBar: 
+      BottomNavBar(
+      currentIndex: _selectedIndex,
+      onTap: _onItemTapped,
+    ),
       body: SingleChildScrollView(
         child: Column(
           children: [
