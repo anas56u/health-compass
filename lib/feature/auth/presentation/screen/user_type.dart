@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:health_compass/core/core.dart';
 import 'package:health_compass/core/widgets/custom_button.dart';
 import 'package:health_compass/feature/auth/presentation/screen/doctor_info.dart';
 import 'package:health_compass/feature/auth/presentation/screen/family_member_info.dart';
@@ -20,7 +21,7 @@ class _UserTypeState extends State<UserType> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return CustomScaffold(
       backgroundColor: const Color(0xFFE0E7EC),
       body: SafeArea(
         child: Center(

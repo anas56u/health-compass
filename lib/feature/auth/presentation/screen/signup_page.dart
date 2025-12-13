@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:health_compass/core/core.dart';
 import 'package:health_compass/core/widgets/custom_button.dart';
 import 'package:health_compass/core/widgets/custom_text.dart';
 import 'package:health_compass/feature/auth/presentation/screen/login_page.dart';
@@ -33,7 +34,7 @@ class _signup_pageState extends State<signup_page> {
       ),
 
       inAsyncCall: isloading,
-      child: Scaffold(
+      child: CustomScaffold(
         backgroundColor: const Color(0xFF41BFAA),
         body: SafeArea(
           child: Center(
