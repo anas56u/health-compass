@@ -181,6 +181,7 @@ class _BottomNavBarState extends State<BottomNavBar>
       label: 'الإنجازات',
       isSelected: widget.currentIndex == 4,
       isDark: isDark,
+      
     ),
   ],
 )

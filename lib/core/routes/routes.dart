@@ -12,4 +12,5 @@ class AppRoutes {
   
   static const String patientHome = '/patient_home'; // استخدم هذا الاسم في AppRouter
   static const String achievements = '/achievements';
+  static const String appointmentBooking = '/AppointmentBookingScreen';
 }

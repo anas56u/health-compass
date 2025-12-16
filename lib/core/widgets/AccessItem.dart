@@ -4,17 +4,23 @@ class Accessitem extends StatelessWidget {
  final IconData icon;
  final String label;
  final BuildContext context;
-
+final void Function()? onTap;
   const Accessitem({
       super.key,
       required this.icon,
       required this.label,
-      required this.context,
+      required this.context,this.onTap
     });
   @override
   Widget build(BuildContext context) {
     return InkWell( 
     onTap: () {
+      if(onTap != null){
+        onTap!();
+        print('تم التنقل إلى شاشة حجز المواعيد');
+        return;
+      }
+      
       print('تم الضغط على: $label'); 
     },
     child: SizedBox(

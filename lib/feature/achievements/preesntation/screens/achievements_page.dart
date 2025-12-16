@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:health_compass/core/constants/size_config.dart';
 import 'package:health_compass/core/widgets/AchievementsHeader_Card.dart';
 import 'package:health_compass/core/widgets/AvailableChallengesList.dart';
-import 'package:health_compass/core/widgets/CustomAppBar.dart';
 import 'package:health_compass/core/widgets/Custom_Clipper.dart';
+import 'package:health_compass/core/widgets/custom_app_bar.dart';
 
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -15,6 +15,8 @@ class AchievementsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     SizeConfig().init(context);
     return Scaffold(
+     
+      
       backgroundColor: const Color(0xFFF0F2F5),
 
       body: SingleChildScrollView(
@@ -32,7 +34,7 @@ class AchievementsPage extends StatelessWidget {
             SafeArea(
               child: Column(
                 children: [
-                  CustomAppBar(context),
+              
 
                   const AchievementsHeaderCard(),
 
