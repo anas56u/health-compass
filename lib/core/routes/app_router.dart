@@ -28,7 +28,7 @@ import 'package:health_compass/feature/auth/di/auth_di.dart'; //
 class AppRouter {
   Route? generateRoute(RouteSettings settings) {
     // استقبال البيانات الممررة (إن وجدت)
-    final arguments = settings.arguments;
+    final args = settings.arguments as Map<String, dynamic>? ?? {};
 
     switch (settings.name) {
       // 1. شاشات البداية
@@ -46,7 +46,10 @@ class AppRouter {
       // 2. المصادقة واختيار المستخدم
       case AppRoutes.userType:
         return MaterialPageRoute(
-          builder: (_) => const UserType(),
+          builder: (_) => UserType(
+            email: args['email'],
+            password: args['password'],
+          ),
         );
 
       case AppRoutes.login:
@@ -70,12 +73,16 @@ class AppRouter {
       // 3. استكمال البيانات
       case AppRoutes.patientInfo:
         return MaterialPageRoute(
-          builder: (_) => PatientInfoScreen(),
+          builder: (_) => PatientInfoScreen( email: args['email'],
+            password: args['password'],),
         );
 
       case AppRoutes.doctorInfo:
         return MaterialPageRoute(
-          builder: (_) => DoctorInfoScreen(),
+          builder: (_) => DoctorInfoScreen(
+            email: args['email'],
+            password: args['password'],
+          ),
         );
 
       case AppRoutes.familyMemberInfo:

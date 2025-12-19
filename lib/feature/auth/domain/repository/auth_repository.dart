@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:health_compass/feature/auth/data/model/user_model.dart';
 
 abstract class AuthRepository {
   Future<UserCredential> login({
@@ -6,8 +7,8 @@ abstract class AuthRepository {
     required String password,
   });
 
-  Future<UserCredential> register({
-    required String email,
+ Future<void> registerUser({
+    required UserModel user,
     required String password,
   });
 

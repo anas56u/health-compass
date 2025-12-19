@@ -8,7 +8,9 @@ import 'package:health_compass/feature/auth/presentation/screen/patient_info.dar
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 
 class UserType extends StatefulWidget {
-  const UserType({super.key});
+  final String email;
+  final String password;
+  const UserType({super.key, required this.email, required this.password});
 
   @override
   State<UserType> createState() => _UserTypeState();
@@ -290,26 +292,31 @@ class _UserTypeState extends State<UserType> {
                       onPressed: selectedUserType != null
                           ? () {
                               if (selectedUserType == "مريض") {
-                                Navigator.push(
+                                Navigator.pushNamed(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (context) => PatientInfoScreen(),
-                                  ),
+                                  AppRoutes.patientInfo,
+                                  arguments: {
+                                    'email': widget.email,
+                                    'password': widget.password,
+                                  },
                                 );
                               } else if (selectedUserType == "طبيب") {
-                                Navigator.push(
+                                Navigator.pushNamed(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (context) => DoctorInfoScreen(),
-                                  ),
+                                  AppRoutes.doctorInfo,
+                                  arguments: {
+                                    'email': widget.email,
+                                    'password': widget.password,
+                                  },
                                 );
                               } else if (selectedUserType == "فرد من العائلة") {
-                                Navigator.push(
+                                Navigator.pushNamed(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        FamilyMemberInfoScreen(),
-                                  ),
+                                  AppRoutes.familyMemberInfo,
+                                  arguments: {
+                                    'email': widget.email,
+                                    'password': widget.password,
+                                  },
                                 );
                               }
                             }

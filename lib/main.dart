@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:health_compass/core/core.dart';
+import 'package:health_compass/feature/auth/data/datasource/auth_remote_datasource.dart';
+import 'package:health_compass/feature/auth/data/repository/auth_repository_impl.dart';
+import 'package:health_compass/feature/auth/presentation/cubit/cubit/signup_cubit.dart';
 import 'package:health_compass/feature/auth/presentation/screen/AppointmentBooking.dart';
 import 'package:health_compass/feature/health_tracking/presentation/cubits/SimpleBlocObserver.dart';
 import 'package:health_compass/feature/health_tracking/presentation/cubits/health_cubit/health_cubit.dart';
@@ -23,12 +26,22 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ScreenUtilInit(
-      designSize: const Size(375, 812), 
+      designSize: const Size(375, 812),
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
-        return BlocProvider(
-          create: (context) => HealthCubit(),
+      return  MultiBlocProvider(
+          providers: [
+            BlocProvider(create: (context) => HealthCubit()),
+
+            BlocProvider(
+              create: (context) => SignupCubit(
+                AuthRepositoryImpl(
+                  remoteDataSource: AuthRemoteDataSourceImpl(),
+                ),
+              ),
+            ),
+          ],
           child: MaterialApp(
             debugShowCheckedModeBanner: false,
             initialRoute: AppRoutes.splash,

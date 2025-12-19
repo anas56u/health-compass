@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:health_compass/feature/auth/data/model/user_model.dart';
 
 abstract class AuthRemoteDataSource {
   Future<UserCredential> login({
@@ -6,8 +8,8 @@ abstract class AuthRemoteDataSource {
     required String password,
   });
 
-  Future<UserCredential> register({
-    required String email,
+ Future<void> registerUser({
+    required UserModel userModel,
     required String password,
   });
 
@@ -20,9 +22,11 @@ abstract class AuthRemoteDataSource {
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final FirebaseAuth _firebaseAuth;
+  final FirebaseFirestore _firestore;
 
-  AuthRemoteDataSourceImpl({FirebaseAuth? firebaseAuth})
-    : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance;
+  AuthRemoteDataSourceImpl({FirebaseAuth? firebaseAuth, FirebaseFirestore? firestore})
+    : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
+      _firestore = firestore ?? FirebaseFirestore.instance;
 
   @override
   Future<UserCredential> login({
@@ -42,19 +46,27 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<UserCredential> register({
-    required String email,
+  Future<void> registerUser({
+    required UserModel userModel,
     required String password,
   }) async {
     try {
-      return await _firebaseAuth.createUserWithEmailAndPassword(
-        email: email,
+      final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+        email: userModel.email,
         password: password,
       );
+
+      final String uid = userCredential.user!.uid;
+
+      final Map<String, dynamic> userData = userModel.toMap();
+      userData['uid'] = uid; 
+
+      await _firestore.collection('users').doc(uid).set(userData);
+
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     } catch (e) {
-      throw Exception('حدث خطأ غير متوقع');
+      throw Exception('حدث خطأ غير متوقع أثناء التسجيل: $e');
     }
   }
 

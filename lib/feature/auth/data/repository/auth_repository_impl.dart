@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:health_compass/feature/auth/data/datasource/auth_remote_datasource.dart';
+import 'package:health_compass/feature/auth/data/model/user_model.dart';
 import 'package:health_compass/feature/auth/domain/repository/auth_repository.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -16,11 +17,14 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<UserCredential> register({
-    required String email,
+  Future<void> registerUser({
+    required UserModel user,
     required String password,
   }) async {
-    return await remoteDataSource.register(email: email, password: password);
+    return await remoteDataSource.registerUser(
+      userModel: user,
+      password: password,
+    );
   }
 
   @override

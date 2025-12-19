@@ -116,12 +116,8 @@ class _FamilyMemberInfoScreenState extends State<FamilyMemberInfoScreen> {
                           children: [
                             BackButton(
                               onPressed: () {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => UserType(),
-                                  ),
-                                );
+                                      Navigator.pop(context);
+
                               },
                             ),
                             skipButton(context),

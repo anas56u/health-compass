@@ -115,36 +115,11 @@ class _signup_pageState extends State<signup_page> {
                             if (confirmPassword == password) {
                               if (formkey.currentState != null &&
                                   formkey.currentState!.validate()) {
-                                isloading = true;
-                                setState(() {});
-                                try {
-                                  await regester();
-                                  showsnackbar(context, massage: "regesterd");
-                                } on FirebaseAuthException catch (e) {
-                                  if (e.code == "weak-password") {
-                                    showsnackbar(
-                                      context,
-                                      massage:
-                                          "The password provided is too weak.",
-                                    );
-                                  } else if (e.code == "email-already-in-use") {
-                                    showsnackbar(
-                                      context,
-                                      massage:
-                                          "The account already exists for that email.",
-                                    );
-                                  }
-
-                                  showsnackbar(context, massage: e.code);
-                                }
-                                isloading = false;
-                                setState(() {});
+                                Navigator.pushNamed(context, AppRoutes.userType,arguments: {
+                                  'email': email,
+                                  'password': password,
+                                });
                               }
-                            } else {
-                              showsnackbar(
-                                context,
-                                massage: "كلمة المرور غير متطابقة",
-                              );
                             }
                           },
                         ),
