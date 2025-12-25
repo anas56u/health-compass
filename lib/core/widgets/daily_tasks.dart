@@ -1,108 +1,75 @@
-import 'package:flutter/material.dart';
-import 'package:health_compass/core/widgets/Taskitem_buider.dart';
-import 'package:health_compass/feature/auth/data/model/taskitem_model.dart';
+// lib/core/widgets/daily_tasks.dart
 
-class DailyTasks extends StatelessWidget {
-  List<Taskitem_Model> tasks = [
-    Taskitem_Model(
-      title: 'الجرعه الصباحيه',
-      subtitle: 'تم اخذها الساعه 8:00ص - Metformin 500mg',
-      leadingIcon: Icons.medication,
-      iconColor: Colors.teal,
-      isCompleted: true,
-    ),
-    Taskitem_Model(
-      title: 'قياس نسبة السكر',
-      subtitle: 'قبل تناول وجبه الافطار',
-      leadingIcon: Icons.restaurant,
-      iconColor: Colors.blue,
-      isCompleted: true,
-    ),
-    Taskitem_Model(
-      title: 'المشي صباحاً',
-      subtitle: '15 دقيقه من وقتك',
-      leadingIcon: Icons.directions_walk,
-      iconColor: Colors.green,
-      isCompleted: true,
-    ),
-    Taskitem_Model(
-      title: 'قياس نبضات القلب',
-      subtitle: 'القراءه الصباحيه الساعه 10:00 ص',
-      leadingIcon: Icons.favorite,
-      iconColor: Colors.red,
-      isCompleted: false,
-    ),
-    Taskitem_Model(
-      title: 'دواء بعد الظهر',
-      subtitle: 'تأخذ الجرعه الساعه 2:00م',
-      leadingIcon: Icons.local_pharmacy,
-      iconColor: Colors.brown,
-      isCompleted: false,
-    ),
-  ];
-  int totalTasks = 5;
-  int completedTasks = 3;
-  late final double progress = completedTasks / totalTasks;
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:health_compass/feature/achievements/preesntation/cubits/hometask_cubit.dart';
+
+class DailyTasksList extends StatelessWidget {
+  final Map<String, bool> tasksStatus;
+
+  const DailyTasksList({super.key, required this.tasksStatus});
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 20.0),
-      child: Container(
-        padding: const EdgeInsets.all(15.0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(25),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 2,
-              blurRadius: 5,
-              offset: const Offset(0, 3),
+    final List<Map<String, dynamic>> tasks = [
+      {
+        'id': 'medication',
+        'title': 'أخذ الدواء',
+        'icon': Icons.medication,
+        'color': Colors.blue,
+      },
+      {
+        'id': 'water',
+        'title': 'شرب الماء',
+        'icon': Icons.water_drop,
+        'color': Colors.cyan,
+      },
+      {
+        'id': 'sleep',
+        'title': 'نوم 8 ساعات',
+        'icon': Icons.bed,
+        'color': Colors.indigo,
+      },
+    ];
+
+    return Column(
+      children: tasks.map((task) {
+        final taskId = task['id'];
+        final isCompleted = tasksStatus[taskId] ?? false; 
+
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          child: ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: task['color'].withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(task['icon'], color: task['color']),
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            const Text(
-              ":مهام اليوم",
+            title: Text(
+              task['title'],
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                decoration: isCompleted ? TextDecoration.lineThrough : null,
+                color: isCompleted ? Colors.grey : Colors.black,
               ),
             ),
-            const SizedBox(height: 15),
-            Row(
-              textDirection: TextDirection.rtl,
-              children: [
-                Expanded(
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 8,
-                    backgroundColor: Colors.grey.shade300,
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      Color(0xFF00796B),
-                    ),
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  '$completedTasks\\$totalTasks',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                ),
-              ],
+            trailing: Checkbox(
+              value: isCompleted,
+              activeColor: const Color(0xFF009688),
+              onChanged: (val) {
+               
+                context.read<HometaskCubit>().toggleTask(
+                  taskId,
+                  val ?? false,
+                  100, 
+                );
+              },
             ),
-            const SizedBox(height: 20),
-            Taskitem_buider(task: tasks[0]),
-            Taskitem_buider(task: tasks[1]),
-            Taskitem_buider(task: tasks[2]),
-            Taskitem_buider(task: tasks[3]),
-            Taskitem_buider(task: tasks[4]),
-          ],
-        ),
-      ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

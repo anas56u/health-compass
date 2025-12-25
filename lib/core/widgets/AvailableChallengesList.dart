@@ -1,20 +1,32 @@
- import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:health_compass/core/widgets/ChallengeCard.dart';
+// تأكد أن المسار صحيح للنموذج الذي أنشأناه سابقاً
+import 'package:health_compass/feature/achievements/data/model/challenge_model.dart';
 
-Widget AvailableChallengesList() {
+class AvailableChallengesList extends StatelessWidget {
+  final List<ChallengeModel> challenges;
+
+  const AvailableChallengesList({
+    super.key,
+    required this.challenges,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
+          // --- قسم العنوان ---
           Padding(
             padding: const EdgeInsets.only(bottom: 15.0, top: 10.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '3 متاحة',
+                  '${challenges.length} متاحة', // الرقم يتغير ديناميكياً
                   style: GoogleFonts.tajawal(
                     color: const Color(0xFF009688),
                     fontWeight: FontWeight.bold,
@@ -32,46 +44,72 @@ Widget AvailableChallengesList() {
             ),
           ),
 
-          const ChallengeCard(
-            title: 'الالتزام بالادوية',
-            subtitle: 'التزم بأخذ ادويتك لمدة 7 ايام متتالية',
-            badgeText: 'أسبوعياً',
-            badgeColor: Color(0xFFD1C4E9),
-            badgeTextColor: Color(0xFF5E35B1),
-            timeText: 'متبقي يومان',
-            progressText: "من الايام التي تم انجازها 7/5",
-            points: 'نقطة 500+',
-            percent: 0.7,
-            primaryColor: Color(0xFF006994),
-            icon: Icons.medication,
-          ),
-
-          const ChallengeCard(
-            title: 'الالتزام بالمشي',
-            subtitle: 'امشي 3000 خطوة اليوم',
-            badgeText: 'يومياً',
-            badgeColor: Color(0xFFC8E6C9),
-            badgeTextColor: Color(0xFF2E7D32),
-            timeText: 'متبقي 5 ساعات',
-            progressText: '1500/3000 خطوة',
-            points: 'نقطة 100+',
-            percent: 0.5,
-            primaryColor: Color(0xFF43A047),
-            icon: Icons.directions_walk,
-          ), const ChallengeCard(
-            title: 'الالتزام بقراءة افضل',
-            subtitle: 'حافظ على قراءة بمعدل ال %80',
-            badgeText: 'شهرياً',
-            badgeColor: Color(0xFFFFCCBC),
-            badgeTextColor: Color(0xFFD84315),
-            timeText: 'متبقي 18 يوم',
-            progressText: '12/30 من الايام تم انجازها',
-            points: 'نقطة 500+',
-            percent: 0.4, 
-            primaryColor: Color(0xFFFF7043),
-            icon: Icons.insights,
-          ),
+          // --- قسم توليد البطاقات ديناميكياً ---
+          // نقوم بالمرور على كل تحدي في القائمة وتحويله لبطاقة
+          ...challenges.map((challenge) {
+            return Column(
+              children: [
+                ChallengeCard(
+                  title: challenge.title,
+                  subtitle: challenge.subtitle,
+                  // نستخدم دوال مساعدة لتحديد الألوان والنصوص بناءً على النوع
+                  badgeText: _getBadgeText(challenge.type),
+                  badgeColor: _getBadgeColor(challenge.type),
+                  badgeTextColor: _getBadgeTextColor(challenge.type),
+                  
+                  // حسابات بسيطة للعرض
+                  timeText: 'مستمر', // يمكنك إضافة منطق للوقت لاحقاً
+                  progressText: '${challenge.currentSteps}/${challenge.totalSteps} من الخطوات',
+                  points: 'نقطة ${challenge.points}+',
+                  
+                  // النسبة المئوية (تأكدنا في الموديل أنها بين 0 و 1)
+                  percent: challenge.progressPercent,
+                  
+                  primaryColor: challenge.color,
+                  icon: challenge.icon,
+                ),
+                const SizedBox(height: 15), // مسافة بين كل بطاقة والأخرى
+              ],
+            );
+          }).toList(),
         ],
       ),
     );
   }
+
+  // --- دوال مساعدة (Helper Methods) لترتيب الكود ---
+  // الهدف: فصل منطق التصميم (الألوان) عن منطق البيانات
+
+  String _getBadgeText(ChallengeType type) {
+    switch (type) {
+      case ChallengeType.daily:
+        return 'يومياً';
+      case ChallengeType.weekly:
+        return 'أسبوعياً';
+      case ChallengeType.monthly:
+        return 'شهرياً';
+    }
+  }
+
+  Color _getBadgeColor(ChallengeType type) {
+    switch (type) {
+      case ChallengeType.daily:
+        return const Color(0xFFC8E6C9); // أخضر فاتح
+      case ChallengeType.weekly:
+        return const Color(0xFFD1C4E9); // بنفسجي فاتح
+      case ChallengeType.monthly:
+        return const Color(0xFFFFCCBC); // برتقالي فاتح
+    }
+  }
+
+  Color _getBadgeTextColor(ChallengeType type) {
+    switch (type) {
+      case ChallengeType.daily:
+        return const Color(0xFF2E7D32); // أخضر غامق
+      case ChallengeType.weekly:
+        return const Color(0xFF5E35B1); // بنفسجي غامق
+      case ChallengeType.monthly:
+        return const Color(0xFFD84315); // برتقالي غامق
+    }
+  }
+}

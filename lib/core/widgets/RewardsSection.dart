@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
+// تذكر استيراد الموديل الذي أنشأناه
+import 'package:health_compass/feature/achievements/data/model/reward_model.dart';
 
 class RewardsSection extends StatelessWidget {
-  const RewardsSection({super.key});
+  final int userPoints; // نقاط المستخدم الحالية
+  final List<RewardModel> rewards; // قائمة المكافآت
+
+  const RewardsSection({
+    super.key,
+    required this.userPoints,
+    required this.rewards,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -11,6 +20,7 @@ class RewardsSection extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
         child: Column(
           children: [
+            // --- رأس القسم (العنوان والنقاط) ---
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -22,12 +32,13 @@ class RewardsSection extends StatelessWidget {
                     color: Colors.black87,
                   ),
                 ),
+                // عرض النقاط ديناميكياً
                 Text(
-                  "مجموع النقاط 3750",
-                  style: TextStyle(
+                  "مجموع النقاط $userPoints", 
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF009688),
+                    color: Color(0xFF009688),
                   ),
                 ),
               ],
@@ -35,21 +46,25 @@ class RewardsSection extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            const RewardCard(
-              title: "هديه مجانيه",
-              subtitle: "15 دقيقه مجانيه لتجري بها مكالمه فيديو مع طبيبك",
-              points: "1,000",
-              icon: Icons.card_giftcard,
-            ),
-
-            const SizedBox(height: 15),
-
-            const RewardCard(
-              title: "عرض حصري",
-              subtitle: "خصم 50% من قيمه فاتورتك من الصيدلايات المعتمدة",
-              points: "1,000",
-              icon: Icons.fitness_center,
-            ),
+            // --- عرض القائمة أو حالة الفراغ ---
+            if (rewards.isEmpty)
+              _buildEmptyState()
+            else
+              ...rewards.map((reward) {
+                return Column(
+                  children: [
+                    RewardTile(
+                      title: reward.title,
+                      subtitle: reward.subtitle,
+                      pointsCost: reward.pointsCost,
+                      icon: reward.icon,
+                      // يمكنك هنا إضافة منطق: هل يستطيع المستخدم الشراء؟
+                      canAfford: userPoints >= reward.pointsCost, 
+                    ),
+                    const SizedBox(height: 15),
+                  ],
+                );
+              }).toList(),
 
             const SizedBox(height: 30),
           ],
@@ -57,20 +72,33 @@ class RewardsSection extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      child: Text(
+        "لا توجد مكافآت متاحة حالياً",
+        style: TextStyle(color: Colors.grey.shade500),
+      ),
+    );
+  }
 }
 
-class RewardCard extends StatelessWidget {
+// --- الويدجت الفرعي (Tile) ---
+class RewardTile extends StatelessWidget {
   final String title;
   final String subtitle;
-  final String points;
+  final int pointsCost;
   final IconData icon;
+  final bool canAfford; // إضافة جميلة لتمييز المكافآت المتاحة للشراء
 
-  const RewardCard({
+  const RewardTile({
     super.key,
     required this.title,
     required this.subtitle,
-    required this.points,
+    required this.pointsCost,
     required this.icon,
+    this.canAfford = true,
   });
 
   @override
@@ -90,27 +118,31 @@ class RewardCard extends StatelessWidget {
       ),
       child: Row(
         children: [
+          // أيقونة المكافأة
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Color(0xFF1565C0),
+              // تغيير لون الخلفية إذا كان الرصيد غير كافٍ (اختياري)
+              color: canAfford ? const Color(0xFF1565C0) : Colors.grey,
             ),
             child: Icon(icon, color: Colors.white, size: 24),
           ),
 
           const SizedBox(width: 15),
 
+          // النصوص
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    // تغيير لون النص إذا لم يكن متاحاً
+                    color: canAfford ? Colors.black87 : Colors.grey,
                   ),
                 ),
                 const SizedBox(height: 5),
@@ -130,10 +162,12 @@ class RewardCard extends StatelessWidget {
 
           const SizedBox(width: 10),
 
+          // زر/شارة النقاط
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFFFF8F00),
+              // لون برتقالي إذا متاح، رمادي إذا غير متاح
+              color: canAfford ? const Color(0xFFFF8F00) : Colors.grey.shade400,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -141,7 +175,7 @@ class RewardCard extends StatelessWidget {
                 const Icon(Icons.star, color: Colors.white, size: 16),
                 const SizedBox(width: 4),
                 Text(
-                  points,
+                  _formatPoints(pointsCost), // دالة لتنسيق الرقم
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -154,5 +188,16 @@ class RewardCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  // دالة بسيطة لإضافة الفواصل للأرقام (1000 -> 1,000)
+  // في المشاريع الحقيقية نستخدم مكتبة intl
+  String _formatPoints(int points) {
+    if (points >= 1000) {
+      // هذه طريقة بسيطة جداً، يمكنك تحسينها لاحقاً
+      final s = points.toString();
+      return "${s.substring(0, s.length - 3)},${s.substring(s.length - 3)}";
+    }
+    return points.toString();
   }
 }

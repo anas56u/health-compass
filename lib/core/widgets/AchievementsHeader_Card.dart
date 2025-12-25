@@ -3,8 +3,17 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
 
 class AchievementsHeaderCard extends StatelessWidget {
-  const AchievementsHeaderCard({super.key});
 
+final int points;
+  final int level;
+  final double progress;
+
+  const AchievementsHeaderCard({
+    super.key,
+    required this.points,
+    required this.level,
+    required this.progress,
+  });
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -39,7 +48,7 @@ class AchievementsHeaderCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'المستوى 8',
+                     'المستوى $level',
                       style: GoogleFonts.tajawal(
                         color: Colors.white,
                         fontSize: 10,
@@ -81,7 +90,7 @@ class AchievementsHeaderCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      '75%',
+                      '$points',
                       style: GoogleFonts.tajawal(
                         color: Colors.black87,
                         fontSize: 18,

@@ -1,9 +1,16 @@
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
+// تأكد من استدعاء الموديل الخاص بك
+import 'package:health_compass/feature/achievements/data/model/challenge_model.dart';
 
 class CompletedChallengesSection extends StatelessWidget {
-  const CompletedChallengesSection({super.key});
+  // 1. تحديد نوع البيانات بدقة
+  final List<ChallengeModel> challenges;
+
+  const CompletedChallengesSection({
+    super.key, 
+    required this.challenges
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,46 +31,50 @@ class CompletedChallengesSection extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            const ChallengeCard(
-              title: "متابعة حالتك الصحية",
-              subtitle: "متابعة قياساتك لمدة 30 يوم متتالية",
-              points: "300+",
-              icon: Icons.monitor_heart,
-              iconColor: Color(0xFFD32F2F),
-              isCompleted: true,
-            ),
-
-            const SizedBox(height: 15),
-
-            const ChallengeCard(
-              title: "7-ايام متتالية",
-              subtitle: "اكمل التحديات اليومية لمدة 7 ايام متتالية",
-              points: "250+",
-              icon: Icons.emoji_events,
-              iconColor: Color(0xFFFFA000),
-              isCompleted: true,
-            ),
-
-            const SizedBox(height: 15),
-
-            const ChallengeCard(
-              title: "الشهر المثالي",
-              subtitle: "اكمل كل التحديات المطلوبة لمدة شهر",
-              points: "500+",
-              icon: Icons.lock,
-              iconColor: Colors.grey,
-              isCompleted: false,
-            ),
-
+            // 2. التحقق من وجود بيانات قبل العرض
+            if (challenges.isEmpty)
+              _buildEmptyState()
+            else
+              // 3. تحويل القائمة إلى ويدجت
+              ...challenges.map((challenge) {
+                return Column(
+                  children: [
+                    CompletedChallengeTile(
+                      title: challenge.title,
+                      subtitle: challenge.subtitle,
+                      points: "${challenge.points}+", // تحويل الرقم لنص
+                      icon: challenge.icon,
+                      iconColor: challenge.color,
+                      isCompleted: challenge.isCompleted,
+                    ),
+                    const SizedBox(height: 15),
+                  ],
+                );
+              }).toList(),
+              
             const SizedBox(height: 30),
           ],
         ),
       ),
     );
   }
+
+  // ويدجت بسيط يظهر في حال لم يكمل المستخدم أي تحدي بعد
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Text(
+          "لم تقم بإتمام أي تحدي بعد، ابدأ الآن!",
+          style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+        ),
+      ),
+    );
+  }
 }
 
-class ChallengeCard extends StatelessWidget {
+// 4. قمنا بتغيير الاسم ليكون أكثر دقة ومنعاً للتضارب مع الكارد الرئيسية
+class CompletedChallengeTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final String points;
@@ -71,7 +82,7 @@ class ChallengeCard extends StatelessWidget {
   final Color iconColor;
   final bool isCompleted;
 
-  const ChallengeCard({
+  const CompletedChallengeTile({
     super.key,
     required this.title,
     required this.subtitle,
@@ -102,6 +113,7 @@ class ChallengeCard extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
+              // تغيير اللون بناءً على حالة الاكتمال
               color: isCompleted ? iconColor : Colors.grey.shade200,
             ),
             child: Icon(

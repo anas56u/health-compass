@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:health_compass/core/cache/shared_pref_helper.dart';
 import 'package:health_compass/core/widgets/Accessibility_facilities.dart';
@@ -6,6 +7,8 @@ import 'package:health_compass/core/widgets/WeeklyChallenge.dart';
 import 'package:health_compass/core/widgets/bottom_nav_bar.dart';
 import 'package:health_compass/core/widgets/daily_tasks.dart';
 import 'package:health_compass/core/widgets/header_patientview.dart';
+import 'package:health_compass/feature/achievements/preesntation/cubits/hometask_cubit.dart';
+import 'package:health_compass/feature/achievements/preesntation/cubits/hometask_state.dart';
 import 'package:health_compass/feature/achievements/preesntation/screens/achievements_page.dart';
 import 'package:health_compass/feature/auth/presentation/screen/login_page.dart';
 import 'package:health_compass/feature/health_tracking/presentation/HealthStatus_Card.dart';
@@ -22,14 +25,11 @@ class _Patientview_bodyState extends State<Patientview_body> {
   final Color _activeColor = const Color(0xFF0D9488);
   final Color _inactiveColor = Colors.grey.shade600;
   final List<Widget> _pages = [
-    const HomeContent(),         
-    const Center(child: Text("صفحه الادويه")), 
+    const HomeContent(),
+    const Center(child: Text("صفحه الادويه")),
     const Center(child: Text("صفحه العائله")),
     const Center(child: Text("صفحه الذكاء الصناعي")),
     const AchievementsPage(),
-        
-
-
   ];
   void _onItemTapped(int index) {
     setState(() {
@@ -72,7 +72,6 @@ class _Patientview_bodyState extends State<Patientview_body> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
       extendBody: true,
       appBar: AppBar(
         title: const Text('الصفحة الرئيسية'),
@@ -86,29 +85,45 @@ class _Patientview_bodyState extends State<Patientview_body> {
           ),
         ],
       ),
-      bottomNavigationBar: 
-      BottomNavBar(
-      currentIndex: _selectedIndex,
-      onTap: _onItemTapped,
-    ),
+      bottomNavigationBar: BottomNavBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+      ),
       body: _pages[_selectedIndex],
     );
   }
 }
+
 class HomeContent extends StatelessWidget {
   const HomeContent({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-         children: [
+    return BlocProvider(
+      create: (context) => HometaskCubit()..startTracking(),
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
             header_patientview(),
             SizedBox(height: 20),
-            DailyTasks(),
+            BlocBuilder<HometaskCubit, HometaskState>(
+              builder: (context, state) {
+                if (state is HomeLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (state is HomeLoaded) {
+                  return DailyTasksList(
+                    tasksStatus: state.dailyData.tasksStatus,
+                  );
+                } else if (state is HomeError) {
+                  return Center(child: Text("حدث خطأ: ${state.message}"));
+                }
+                return const SizedBox();
+              },
+            ),
             AccessibilityFacilities(),
             buildWeeklyChallenges(),
           ],
+        ),
       ),
     );
   }
