@@ -116,8 +116,8 @@ class _signup_pageState extends State<signup_page> {
                               if (formkey.currentState != null &&
                                   formkey.currentState!.validate()) {
                                 Navigator.pushNamed(context, AppRoutes.userType,arguments: {
-                                  'email': email,
-                                  'password': password,
+                                  'email': email.trim(),
+                                  'password': password.trim(),
                                 });
                               }
                             }

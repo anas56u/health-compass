@@ -20,7 +20,6 @@ class LoginCubit extends Cubit<LoginState> {
         password: password,
       );
 
-      // Save login state to SharedPreferences
       await SharedPrefHelper.saveLoginState(
         isLoggedIn: true,
         email: userCredential.user?.email,
