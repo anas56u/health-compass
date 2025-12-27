@@ -63,7 +63,7 @@ class DailyTasksList extends StatelessWidget {
                 context.read<HometaskCubit>().toggleTask(
                   taskId,
                   val ?? false,
-                  100, 
+                   
                 );
               },
             ),
