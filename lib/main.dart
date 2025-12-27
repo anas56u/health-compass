@@ -5,7 +5,6 @@ import 'package:health_compass/core/core.dart';
 import 'package:health_compass/feature/auth/data/datasource/auth_remote_datasource.dart';
 import 'package:health_compass/feature/auth/data/repository/auth_repository_impl.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/signup_cubit.dart';
-import 'package:health_compass/feature/auth/presentation/screen/AppointmentBooking.dart';
 import 'package:health_compass/feature/health_tracking/presentation/cubits/SimpleBlocObserver.dart';
 import 'package:health_compass/feature/health_tracking/presentation/cubits/health_cubit/health_cubit.dart';
 import 'package:firebase_core/firebase_core.dart';

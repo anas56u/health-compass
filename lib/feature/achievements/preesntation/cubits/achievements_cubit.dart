@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +11,7 @@ import 'package:health_compass/feature/achievements/preesntation/cubits/achievem
 class AchievementsCubit extends Cubit<AchievementsState> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  StreamSubscription? _userSubscription;
   AchievementsCubit() : super(AchievementsInitial());
   final List<RewardModel> _fixedRewards = [
     RewardModel(
@@ -71,11 +74,13 @@ class AchievementsCubit extends Cubit<AchievementsState> {
  void subscribeToUserData() {
     final userId = _auth.currentUser?.uid;
     if (userId == null) return;
+    _userSubscription?.cancel();
 
     emit(ahievementloading()); // حالة تحميل مبدئية
 
     // نستمع للتغيرات في وثيقة المستخدم
-    _firestore.collection('users').doc(userId).snapshots().listen((snapshot) {
+    _userSubscription=_firestore.collection('users').doc(userId).snapshots().listen((snapshot) {
+      if (isClosed) return;
       if (snapshot.exists) {
         final data = snapshot.data();
         
@@ -133,5 +138,10 @@ class AchievementsCubit extends Cubit<AchievementsState> {
         rewards: _fixedRewards,
       ),
     );
+  }
+  @override
+  Future<void> close() {
+    _userSubscription?.cancel(); // قطع الاتصال بالفايربيس
+    return super.close();
   }
 }
