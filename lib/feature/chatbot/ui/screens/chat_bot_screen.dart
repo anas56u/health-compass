@@ -3,13 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:health_compass/core/widgets/chat_bubble.dart';
 import 'package:health_compass/feature/chatbot/data/logic/cubit/chat_cubit.dart';
 import 'package:health_compass/feature/chatbot/data/logic/cubit/chat_state.dart';
+import 'package:health_compass/feature/chatbot/ui/screens/voice_assistant_screen.dart';
 
 class ChatBotScreen extends StatelessWidget {
   const ChatBotScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // توفير الـ Cubit للشاشة
+    // نقوم بإنشاء الكيوبت هنا
     return BlocProvider(
       create: (context) => ChatCubit(),
       child: const _ChatView(),
@@ -28,7 +29,6 @@ class _ChatViewState extends State<_ChatView> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  // ألوان الثيم (نفس ألوان Health Compass)
   final Color _primaryColor = const Color(0xFF0D9488);
 
   void _scrollToBottom() {
@@ -43,6 +43,43 @@ class _ChatViewState extends State<_ChatView> {
     });
   }
 
+  // ✅ دالة عرض نافذة التنبيه عند تجاوز الحد (مثل الشات الصوتي تماماً)
+  void _showQuotaDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.hourglass_empty_rounded, color: Colors.orange, size: 30),
+            SizedBox(width: 10),
+            Text(
+              "استراحة قصيرة ",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: const Text(
+          "لقد تجاوزنا الحد المسموح من الأسئلة في الدقيقة.\n\nيرجى الانتظار دقيقة واحدة ثم المحاولة مجدداً.",
+          style: TextStyle(fontSize: 16, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              "حسناً",
+              style: TextStyle(
+                color: _primaryColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -55,10 +92,7 @@ class _ChatViewState extends State<_ChatView> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(
-          0xFFF5F7FA,
-        ), // خلفية رمادية فاتحة جداً ومريحة
-        // 1. الشريط العلوي (AppBar) بتصميم منحني
+        backgroundColor: const Color(0xFFF5F7FA),
         appBar: AppBar(
           backgroundColor: _primaryColor,
           elevation: 0,
@@ -78,16 +112,15 @@ class _ChatViewState extends State<_ChatView> {
                   backgroundColor: Colors.white,
                   radius: 20,
                   child: CircleAvatar(
-                    radius: 30, // Adjust size as needed
+                    radius: 30,
                     backgroundImage: AssetImage('assets/images/chatlogo.png'),
-                    // Optional: add a background color in case the image has transparency or fails to load
                   ),
                 ),
               ),
               const SizedBox(width: 12),
-              Column(
+              const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
                     'دليل',
                     style: TextStyle(
@@ -104,25 +137,64 @@ class _ChatViewState extends State<_ChatView> {
               ),
             ],
           ),
+          actions: [
+            IconButton(
+              onPressed: () {
+                // 💡 نقل المحادثة الحالية للشات الصوتي (ميزة احترافية)
+                // نمرر نفس الكيوبت للشاشة التالية
+                final chatCubit = context.read<ChatCubit>();
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => BlocProvider.value(
+                      value: chatCubit, // تمرير الحالة الحالية
+                      child: const VoiceAssistantScreen(),
+                    ),
+                  ),
+                );
+              },
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.mic, color: Colors.white, size: 25),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
         ),
 
-        // 2. جسم الشاشة
         body: Column(
           children: [
-            // قائمة الرسائل
             Expanded(
               child: BlocConsumer<ChatCubit, ChatState>(
                 listener: (context, state) {
-                  // إذا نجح الإرسال أو بدأ التحميل، انزل لأسفل الشاشة
                   if (state.status == ChatStatus.success ||
                       state.status == ChatStatus.loading) {
                     _scrollToBottom();
                   }
-                  // إذا حدث خطأ، اعرض رسالة منبثقة
+
+                  // 👇👇 معالجة الأخطاء الذكية 👇👇
                   if (state.status == ChatStatus.failure) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text(state.errorMessage)));
+                    bool isQuotaError =
+                        state.errorMessage.toLowerCase().contains("quota") ||
+                        state.errorMessage.contains("429") ||
+                        state.errorMessage.toLowerCase().contains("limit");
+
+                    if (isQuotaError) {
+                      _showQuotaDialog(context); // عرض النافذة
+                    } else {
+                      // خطأ عادي (انترنت مثلاً)
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(state.errorMessage),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                    }
                   }
                 },
                 builder: (context, state) {
@@ -135,7 +207,6 @@ class _ChatViewState extends State<_ChatView> {
                     itemCount: state.messages.length,
                     itemBuilder: (context, index) {
                       final msg = state.messages[index];
-                      // استدعاء ويدجت الفقاعة المفصول
                       return ChatBubble(
                         text: msg.text,
                         isBot: msg.isBot,
@@ -147,7 +218,7 @@ class _ChatViewState extends State<_ChatView> {
               ),
             ),
 
-            // مؤشر الكتابة (يظهر فقط عند التحميل)
+            // مؤشر الكتابة
             BlocBuilder<ChatCubit, ChatState>(
               builder: (context, state) {
                 if (state.status == ChatStatus.loading) {
@@ -183,7 +254,7 @@ class _ChatViewState extends State<_ChatView> {
               },
             ),
 
-            // 3. منطقة الكتابة العائمة (Floating Input)
+            // منطقة الإدخال
             Container(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
               child: Container(
