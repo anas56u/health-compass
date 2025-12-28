@@ -12,7 +12,7 @@ class AchievementsLoaded extends AchievementsState {
   final int totalPoints;
   final int currentLevel;
   final double levelProgress; 
-  final List<RewardModel> rewards; // <-- أضفنا هذه// نسبة التقدم للمستوى التالي
+  final List<RewardModel> rewards; 
 
   AchievementsLoaded({
     required this.allChallenges,

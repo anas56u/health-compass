@@ -13,22 +13,22 @@ class DailyTasksList extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<Map<String, dynamic>> tasks = [
       {
-        'id': 'medication',
+        'id': 'medication', // احتفظنا بالدواء
         'title': 'أخذ الدواء',
         'icon': Icons.medication,
         'color': Colors.blue,
       },
       {
-        'id': 'water',
-        'title': 'شرب الماء',
-        'icon': Icons.water_drop,
-        'color': Colors.cyan,
+        'id': 'vital_signs', // مهمة جديدة: القياسات الحيوية
+        'title': 'قياس الضغط والسكري',
+        'icon': Icons.monitor_heart,
+        'color': Colors.redAccent,
       },
       {
-        'id': 'sleep',
-        'title': 'نوم 8 ساعات',
-        'icon': Icons.bed,
-        'color': Colors.indigo,
+        'id': 'morning_walk', // مهمة جديدة: المشي الصباحي (بدل العداد)
+        'title': 'المشي صباحاً',
+        'icon': Icons.directions_walk,
+        'color': Colors.green,
       },
     ];
 

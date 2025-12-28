@@ -14,7 +14,6 @@ class AchievementsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Best Practice: توفير الـ Cubit في بداية الشجرة الخاصة بالشاشة
     return BlocProvider(
       create: (context) => AchievementsCubit()..subscribeToUserData(),
       child: Scaffold(
@@ -23,7 +22,6 @@ class AchievementsPage extends StatelessWidget {
           builder: (context, state) {
             if (state is AchievementsLoaded) {
               
-              // نفصل التحديات المكتملة عن غير المكتملة
               final activeChallenges = state.allChallenges.where((e) => !e.isCompleted).toList();
               final completedChallenges = state.allChallenges.where((e) => e.isCompleted).toList();
 
@@ -31,7 +29,6 @@ class AchievementsPage extends StatelessWidget {
                 physics: const BouncingScrollPhysics(),
                 child: Stack(
                   children: [
-                    // الخلفية الخضراء
                     ClipPath(
                       clipper: Custom_Clipper(),
                       child: Container(
@@ -42,7 +39,6 @@ class AchievementsPage extends StatelessWidget {
                     SafeArea(
                       child: Column(
                         children: [
-                          // نمرر البيانات للويدجت
                           AchievementsHeaderCard(
                             points: state.totalPoints,
                             level: state.currentLevel,
@@ -50,17 +46,14 @@ class AchievementsPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 35),
                           
-                          // قائمة التحديات المتاحة
                           AvailableChallengesList(challenges: activeChallenges),
                           
                           const SizedBox(height: 25),
                           
-                          // قائمة التحديات المكتملة
                           CompletedChallengesSection(challenges: completedChallenges),
                           
                           const SizedBox(height: 25),
                           
-                          // قسم المكافآت (يمكنك ربطه بالنقاط لاحقاً)
                           RewardsSection(userPoints: state.totalPoints, rewards: state.rewards,),
                         ],
                       ),
@@ -69,7 +62,6 @@ class AchievementsPage extends StatelessWidget {
                 ),
               );
             } else {
-              // حالة التحميل أو الخطأ
               return const Center(child: CircularProgressIndicator());
             }
           },

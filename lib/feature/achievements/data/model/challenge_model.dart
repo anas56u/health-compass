@@ -20,6 +20,29 @@ class ChallengeModel {
 
   // خاصية لحساب النسبة المئوية للإنجاز
   double get progressPercent => (currentSteps / totalSteps).clamp(0.0, 1.0);
+  ChallengeModel copyWith({
+    String? id,
+    String? title,
+    String? subtitle,
+    int? points,
+    ChallengeType? type,
+    int? totalSteps,
+    int? currentSteps,
+    IconData? icon,
+    Color? color,
+  }) {
+    return ChallengeModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      subtitle: subtitle ?? this.subtitle,
+      points: points ?? this.points,
+      type: type ?? this.type,
+      totalSteps: totalSteps ?? this.totalSteps,
+      currentSteps: currentSteps ?? this.currentSteps, // هنا التغيير المهم
+      icon: icon ?? this.icon,
+      color: color ?? this.color,
+    );
+  }
 
   const ChallengeModel({
     required this.id,

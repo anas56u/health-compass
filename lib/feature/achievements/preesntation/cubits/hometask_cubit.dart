@@ -23,7 +23,7 @@ class HometaskCubit extends Cubit<HometaskState> {
   // [ID, TargetSteps, RewardPoints]
   Map<String, dynamic>? _getChallengeConfig(String taskId) {
     // مثال: إذا كانت المهمة تحتوي على كلمة "medicine"
-    if (taskId.contains('medicine') || taskId == '1') { // تأكد من الـ taskId الفعلي لديك
+    if (taskId == 'medication') { // تأكد من الـ taskId الفعلي لديك
       return {
         'id': '1',           // معرف تحدي الأدوية
         'target': 7,         // الهدف: 7 أيام
@@ -31,18 +31,18 @@ class HometaskCubit extends Cubit<HometaskState> {
       };
     }
     // مثال: المشي
-    if (taskId.contains('walk') || taskId == '2') {
+    if (taskId == 'morning_walk') {
       return {
-        'id': '2',
-        'target': 3000,      // الهدف
-        'reward': 100,       // الجائزة
+        'id': '2',          // معرف تحدي المشي في achievements_cubit
+        'target': 7,        // الهدف: 7 أيام
+        'reward': 400,      // الجائزة
       };
     }
     // مثال: الصحة والضغط
-    if (taskId.contains('pressure') || taskId == '3') {
+   if (taskId == 'vital_signs') {
       return {
         'id': '3',
-        'target': 30,
+        'target': 7,        // الهدف: 7 أيام
         'reward': 300,
       };
     }
@@ -69,7 +69,7 @@ class HometaskCubit extends Cubit<HometaskState> {
           final data = DailyTrackingModel.fromJson(snapshot.data());
           emit(HomeLoaded(data));
         } else {
-          emit(HomeLoaded(DailyTrackingModel(steps: 0, tasksStatus: {})));
+          emit(HomeLoaded(DailyTrackingModel( tasksStatus: {})));
         }
       },
       onError: (e) {
@@ -79,11 +79,8 @@ class HometaskCubit extends Cubit<HometaskState> {
   }
 
   // --- 2. المنطق الجديد (Core Logic) ---
-  Future<void> toggleTask(
-    String taskId,
-    bool isCompleted,
-    // قمنا بإلغاء استخدام rewardPoints هنا لأن النقاط ستأتي من التحدي فقط
-  ) async {
+ // --- 2. المنطق الجديد (Core Logic) ---
+  Future<void> toggleTask(String taskId, bool isCompleted) async {
     final userId = _auth.currentUser?.uid;
     if (userId == null) return;
 
@@ -97,81 +94,102 @@ class HometaskCubit extends Cubit<HometaskState> {
 
     try {
       await _firestore.runTransaction((transaction) async {
-        final dailySnapshot = await transaction.get(dailyDocRef);
+        // ============================================================
+        // 1. مرحلة القراءة (READS PHASE)
+        // ============================================================
         
-        // أ. تحديث حالة المهمة اليومية (صح أو خطأ في الهوم بيج)
+        // أ. قراءة ملف اليوم (للتأكد من حالة الـ Checkbox)
+        final dailySnapshot = await transaction.get(dailyDocRef);
+
+        // ب. التحضير لقراءة التحدي
+        DocumentSnapshot? challengeSnapshot;
+        DocumentReference? challengeRef;
+        Map<String, dynamic>? config;
+
+        // نفحص هل هذه عملية "إتمام" مهمة (Check) وليست إلغاء (Uncheck)
+        if (isCompleted) {
+          config = _getChallengeConfig(taskId);
+          
+          if (config != null) {
+            final String challengeId = config['id'];
+            challengeRef = _firestore
+                .collection('users')
+                .doc(userId)
+                .collection('challenges_progress')
+                .doc(challengeId);
+
+            // نقرأ بيانات التحدي الحالية (كم يوم أنجز؟ ومتى كان آخر تحديث؟)
+            challengeSnapshot = await transaction.get(challengeRef);
+          }
+        }
+
+        // ============================================================
+        // 2. مرحلة الكتابة (WRITES PHASE)
+        // ============================================================
+
+        // أ. تحديث حالة المهمة اليومية (UI Checkbox) - يتم دائماً
         if (!dailySnapshot.exists) {
           transaction.set(dailyDocRef, {
             'tasks': {taskId: isCompleted},
-            'steps': 0,
           });
         } else {
           transaction.update(dailyDocRef, {'tasks.$taskId': isCompleted});
         }
 
-        // ب. منطق التحديات (هنا التغيير الجذري)
-        // 1. نجلب إعدادات التحدي المرتبط بهذه المهمة
-        final config = _getChallengeConfig(taskId);
-
-        // ننفذ فقط إذا كان هناك تحدي مرتبط وتم إنجاز المهمة (isCompleted == true)
-        if (config != null && isCompleted) {
-          final String challengeId = config['id'];
+        // ب. منطق التحديات الذكي (Smart Challenge Logic)
+        if (config != null && challengeRef != null) {
           final int targetSteps = config['target'];
           final int bigReward = config['reward'];
 
-          final challengeRef = _firestore
-              .collection('users')
-              .doc(userId)
-              .collection('challenges_progress')
-              .doc(challengeId);
+          int currentdays = 0;
+          Timestamp? lastUpdated;
 
-          final challengeSnapshot = await transaction.get(challengeRef);
-
-          // حساب التقدم الجديد
-          int currentSteps = 0;
-          if (challengeSnapshot.exists) {
-            currentSteps = challengeSnapshot.data()?['currentSteps'] ?? 0;
+          // استخراج البيانات إذا كانت موجودة
+          if (challengeSnapshot != null && challengeSnapshot.exists) {
+            final data = challengeSnapshot.data() as Map<String, dynamic>?;
+            currentdays= data?['currentSteps'] ?? 0;
+            lastUpdated = data?['lastUpdated'] as Timestamp?;
           }
-          int newSteps = currentSteps + 1;
 
-          // تحديث التقدم في التحدي دائماً
-          transaction.set(challengeRef, {
-            'currentSteps': newSteps,
-            'lastUpdated': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
+          // [Best Practice]: التحقق من "هل تم التحديث اليوم؟"
+          bool canIncrement = true;
+          
+          if (lastUpdated != null) {
+            final DateTime lastDate = lastUpdated.toDate();
+            final DateTime now = DateTime.now();
 
-          // ج. التحقق من لحظة الفوز (Winning Moment)
-          // هل التقدم الجديد يساوي الهدف بالضبط؟
-          if (newSteps == targetSteps) {
-            // مبروك! لقد أتممت التحدي، الآن فقط نعطيك النقاط
-            transaction.update(userRef, {
-              'totalPoints': FieldValue.increment(bigReward),
-            });
+            // مقارنة السنة والشهر واليوم فقط (تجاهل الوقت)
+            if (lastDate.year == now.year && 
+                lastDate.month == now.month && 
+                lastDate.day == now.day) {
+              canIncrement = false; // لقد قمت بالتحديث اليوم بالفعل!
+            }
           }
-          // ملاحظة: إذا كان newSteps > targetSteps لن نعطي نقاطاً إضافية
+
+          // الشرط الذهبي: نزيد العداد فقط إذا لم نحدث اليوم + لم نصل للهدف بعد
+          if (canIncrement && currentdays < targetSteps) {
+            int newSteps = currentdays + 1;
+
+            transaction.set(challengeRef, {
+              'currentSteps': newSteps,
+              'lastUpdated': FieldValue.serverTimestamp(), // نسجل وقت اللحظة الحالية
+            }, SetOptions(merge: true));
+
+            // التحقق من الفوز وإعطاء الجائزة الكبرى
+            if (newSteps == targetSteps) {
+              transaction.update(userRef, {
+                'totalPoints': FieldValue.increment(bigReward),
+              });
+            }
+          }
         }
-        
-        // لاحظ: قمنا بحذف الكود القديم الذي كان يعطي نقاطاً فورية خارج شرط التحدي
       });
-
     } catch (e) {
       debugPrint("Error triggering task: $e");
-      emit(HomeError("فشل تحديث المهمة"));
+      emit(HomeError("فشل تحديث المهمة: $e"));
     }
   }
-
-  // ... (updateSteps و close تبقى كما هي) ...
-   Future<void> updateSteps(int steps) async {
-    final userId = _auth.currentUser?.uid;
-    if (userId == null) return;
-
-    await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('daily_tracking')
-        .doc(_todayDocId)
-        .set({'steps': steps}, SetOptions(merge: true));
-  }
+  
 
   @override
   Future<void> close() {

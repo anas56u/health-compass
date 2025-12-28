@@ -12,6 +12,7 @@ class AchievementsCubit extends Cubit<AchievementsState> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   StreamSubscription? _userSubscription;
+  StreamSubscription? _challengesProgressSubscription; // [Best Practice]: فصل الاستماع للداتا
   AchievementsCubit() : super(AchievementsInitial());
   final List<RewardModel> _fixedRewards = [
     RewardModel(
@@ -47,101 +48,87 @@ class AchievementsCubit extends Cubit<AchievementsState> {
       icon: Icons.medication,
       color: const Color(0xFF006994),
     ),
+   // 2. تحديث تحدي المشي (تحويله من خطوات إلى أيام)
     ChallengeModel(
       id: '2',
-      title: 'الالتزام بالمشي',
-      subtitle: 'امشي 3000 خطوة اليوم',
-      points: 100,
-      type: ChallengeType.daily,
-      totalSteps: 3000,
-      currentSteps: 1500,
+      title: 'نشاط المشي الصباحي',
+      subtitle: 'قم بالمشي صباحاً لمدة 7 أيام', // تغير الوصف
+      points: 400, // يمكنك تعديل النقاط
+      type: ChallengeType.weekly, // أصبح أسبوعياً (تراكمي)
+      totalSteps: 7, // الهدف: 7 أيام بدلاً من 3000 خطوة
+      currentSteps: 0,
       icon: Icons.directions_walk,
       color: const Color(0xFF43A047),
     ),
-    ChallengeModel(
+   ChallengeModel(
       id: '3',
-      title: 'متابعة حالتك الصحية',
-      subtitle: 'متابعة قياساتك لمدة 30 يوم متتالية',
+      title: 'متابعة المؤشرات الحيوية',
+      subtitle: 'سجل قياساتك (ضغط/سكري) لمدة 7 أيام',
       points: 300,
-      type: ChallengeType.monthly,
-      totalSteps: 30,
-      currentSteps: 30, // مكتمل
+      type: ChallengeType.weekly,
+      totalSteps: 7, 
+      currentSteps: 0,
       icon: Icons.monitor_heart,
       color: const Color(0xFFD32F2F),
     ),
-    // يمكنك إضافة المزيد هنا...
   ];
  void subscribeToUserData() {
     final userId = _auth.currentUser?.uid;
     if (userId == null) return;
     _userSubscription?.cancel();
+    _challengesProgressSubscription?.cancel();
 
-    emit(ahievementloading()); // حالة تحميل مبدئية
-
-    // نستمع للتغيرات في وثيقة المستخدم
+    emit(ahievementloading());
     _userSubscription=_firestore.collection('users').doc(userId).snapshots().listen((snapshot) {
       if (isClosed) return;
-      if (snapshot.exists) {
-        final data = snapshot.data();
-        
-        // 1. جلب النقاط الحالية من الفايربيس (التي زادتها صفحة الهوم)
-        final int currentPoints = data?['totalPoints'] ?? 0;
-
-        // 2. حساب المستوى (لوجيك محلي)
-        // مثال: المستوى 1 يبدأ من 0، كل 1000 نقطة مستوى جديد
-        final int level = (currentPoints / 1000).floor() + 1;
-
-        // 3. حساب نسبة التقدم للمستوى القادم
-        final int pointsInCurrentLevel = currentPoints % 1000;
-        final double progress = pointsInCurrentLevel / 1000;
-
-        // 4. تحديث الواجهة فوراً
-        emit(AchievementsLoaded(
-          allChallenges: _fixedChallenges, // القائمة الثابتة
-          rewards: _fixedRewards,          // القائمة الثابتة
-          totalPoints: currentPoints,      // <--- هذا الرقم يأتي الآن من الفايربيس
-          currentLevel: level,
-          levelProgress: progress,
-        ));
-      }
+     _listenToChallengesProgress(userId, snapshot);
     }, onError: (e) {
-      // التعامل مع الأخطاء
       print("Error fetching user data: $e");
     });
   }
+  void _listenToChallengesProgress(String userId, DocumentSnapshot userSnapshot) {
+    _challengesProgressSubscription = _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('challenges_progress')
+        .snapshots()
+        .listen((progressSnapshot) {
+      
+      final userData = userSnapshot.data() as Map<String, dynamic>?;
+      final int currentPoints = userData?['totalPoints'] ?? 0;
+      final int level = (currentPoints / 1000).floor() + 1;
+      final double progress = (currentPoints % 1000) / 1000;
 
-  void loadAchievementsData() {
-    // 1. حساب مجموع النقاط للتحديات المكتملة فقط
-    int points = 0;
-    for (var challenge in _fixedChallenges) {
-      if (challenge.isCompleted) {
-        points += challenge.points;
+     
+      Map<String, int> serverProgressMap = {};
+      for (var doc in progressSnapshot.docs) {
+        serverProgressMap[doc.id] = doc.data()['currentSteps'] ?? 0;
       }
-    }
-    // ملاحظة: يمكنك إضافة نقاط أساسية للمستخدم إذا كان لديه رصيد سابق
 
-    // 2. حساب المستوى (مثال: كل 1000 نقطة = مستوى)
-    int level = (points / 1000).floor() + 1;
+     
+      List<ChallengeModel> updatedChallenges = _fixedChallenges.map((challenge) {
+        int serverSteps = serverProgressMap[challenge.id] ?? 0;
+        
+        return challenge.copyWith(currentSteps: serverSteps);
+      }).toList();
 
-    // 3. حساب التقدم للمستوى التالي
-    // مثال: إذا نقاطي 3250، باقي القسمة 250. الهدف 1000. النسبة 0.25
-    int pointsInCurrentLevel = points % 1000;
-    double progress = pointsInCurrentLevel / 1000;
-
-    // 4. إرسال الحالة للواجهة
-    emit(
-      AchievementsLoaded(
-        allChallenges: _fixedChallenges,
-        totalPoints: points,
+      emit(AchievementsLoaded(
+        allChallenges: updatedChallenges,
+        rewards: _fixedRewards,
+        totalPoints: currentPoints,
         currentLevel: level,
         levelProgress: progress,
-        rewards: _fixedRewards,
-      ),
-    );
+      ));
+    }, onError: (e) {
+      print("Error fetching challenges progress: $e");
+    });
   }
+
+ 
+
   @override
   Future<void> close() {
-    _userSubscription?.cancel(); // قطع الاتصال بالفايربيس
+    _userSubscription?.cancel(); 
     return super.close();
   }
 }
