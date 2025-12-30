@@ -6,6 +6,7 @@ import 'package:health_compass/feature/auth/data/datasource/auth_remote_datasour
 import 'package:health_compass/feature/auth/data/repository/auth_repository_impl.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/signup_cubit.dart';
 import 'package:health_compass/feature/chatbot/ui/screens/chat_bot_screen.dart';
+import 'package:health_compass/feature/family_invite/family_invite.dart';
 import 'package:health_compass/feature/health_tracking/presentation/cubits/SimpleBlocObserver.dart';
 import 'package:health_compass/feature/health_tracking/presentation/cubits/health_cubit/health_cubit.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -47,7 +48,7 @@ class MyApp extends StatelessWidget {
             // debugShowCheckedModeBanner: false,
             // initialRoute: AppRoutes.splash,
             // onGenerateRoute: AppRouter().generateRoute,
-            home: PatientProfilePage(),
+            home: FamilyInvitePage(),
           ),
         );
       },
