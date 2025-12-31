@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'dart:math' as math;
-import 'package:flutter_screenutil/flutter_screenutil.dart'; // <--- أضف هذا السطر المهم
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:health_compass/core/themes/app_text_styling.dart';
-
 
 class BottomNavBar extends StatefulWidget {
   final int currentIndex;
@@ -22,26 +21,32 @@ class BottomNavBar extends StatefulWidget {
 class _BottomNavBarState extends State<BottomNavBar>
     with TickerProviderStateMixin {
   late AnimationController _pulseController;
-  late AnimationController _waveController;
+  late AnimationController _shimmerController;
+
+  // ✅ تعريف ألوان الثيم لضمان التناسق
+  final Color _primaryTeal = const Color(0xFF0D9488);
+  final Color _secondaryCyan = const Color(0xFF06B6D4);
 
   @override
   void initState() {
     super.initState();
+    // أنيميشن النبض للخلفية المتوهجة
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(seconds: 3), // جعلتها أبطأ قليلاً لتبدو أهدأ
     )..repeat(reverse: true);
 
-    _waveController = AnimationController(
+    // أنيميشن للمعان الخفيف (Shimmer)
+    _shimmerController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3000),
+      duration: const Duration(seconds: 5),
     )..repeat();
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
-    _waveController.dispose();
+    _shimmerController.dispose();
     super.dispose();
   }
 
@@ -49,264 +54,200 @@ class _BottomNavBarState extends State<BottomNavBar>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-      color: Colors.transparent,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // Animated background glow
-          Positioned.fill(
-            child: AnimatedBuilder(
-              animation: _pulseController,
-              builder: (context, child) {
-                return Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(36.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(
-                          0xFF667eea,
-                        ).withOpacity(0.3 * _pulseController.value),
-                        blurRadius: 40 + (20 * _pulseController.value),
-                        spreadRadius: 5,
-                      ),
-                      BoxShadow(
-                        color: const Color(
-                          0xFFf093fb,
-                        ).withOpacity(0.2 * _pulseController.value),
-                        blurRadius: 60 + (30 * _pulseController.value),
-                        spreadRadius: 10,
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-          // Main navigation bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(36.r),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+    return Padding(
+      // ✅ ضبط الهوامش ليكون البار عائماً بشكل جميل
+      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 20.h),
+      child: SizedBox(
+        height: 75.h, // ارتفاع مناسب للأصابع
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            // 1. التوهج الخلفي (Glow) - تم تعديل الألوان لتناسب الثيم
+            Positioned(
+              bottom: 0,
+              left: 20.w,
+              right: 20.w,
+              height: 50.h,
               child: AnimatedBuilder(
-                animation: _waveController,
-                builder: (context, _) {
-                  final value = _waveController.value;
+                animation: _pulseController,
+                builder: (context, child) {
                   return Container(
-                    height: 80.h,
                     decoration: BoxDecoration(
-                     gradient: LinearGradient(
-  colors: [
-    Color.lerp(
-      const Color(0xFF0D9488), // Teal 600 - اللون الأساسي
-      const Color(0xFF14B8A6), // Teal 500 - أفتح شوي
-      math.sin(value * math.pi),
-    )!,
-    const Color(0xFF0F766E), // Teal 700 - أغمق
-    Color.lerp(
-      const Color(0xFF06B6D4), // Cyan 500 - أزرق مخضر
-      const Color(0xFF0891B2), // Cyan 600
-      math.cos(value * math.pi),
-    )!,
-  ],
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-),
-                      borderRadius: BorderRadius.circular(36.r),
-                      border: Border.all(
-                        width: 2,
-                        color: isDark
-                            ? Colors.white.withOpacity(0.2)
-                            : Colors.white.withOpacity(0.5),
-                      ),
+                      borderRadius: BorderRadius.circular(40.r),
                       boxShadow: [
-                        // Use a soft tinted glow instead of black to avoid a dark background feel
                         BoxShadow(
-                          color: (isDark
-                              ? const Color(0xFF667eea).withOpacity(0.28)
-                              : Colors.black.withOpacity(0.08)),
-                          blurRadius: 40,
-                          offset: const Offset(0, 15),
-                          spreadRadius: -8,
-                        ),
-                        if (isDark)
-                          BoxShadow(
-                            color: const Color(0xFFf093fb).withOpacity(0.22),
-                            blurRadius: 50,
-                            offset: const Offset(0, 18),
-                            spreadRadius: -10,
+                          color: _primaryTeal.withOpacity(
+                            0.3 * _pulseController.value,
                           ),
+                          blurRadius: 30,
+                          spreadRadius: 2,
+                          offset: const Offset(0, 10),
+                        ),
+                        BoxShadow(
+                          color: _secondaryCyan.withOpacity(
+                            0.2 * _pulseController.value,
+                          ),
+                          blurRadius: 40,
+                          spreadRadius: 5,
+                          offset: const Offset(0, 5),
+                        ),
                       ],
                     ),
-                    child: Row(
-  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-  children: [
-    _buildNavItem(
-      context: context,
-      index: 0,
-      icon: Icons.home_rounded,
-      label: 'الرئيسية',
-      isSelected: widget.currentIndex == 0,
-      isDark: isDark,
-    ),
-    _buildNavItem(
-      context: context,
-      index: 1,
-      icon: Icons.medication_liquid_outlined,
-      label: 'الأدوية',
-      isSelected: widget.currentIndex == 1,
-      isDark: isDark,
-    ),
-    _buildNavItem(
-      context: context,
-      index: 2,
-      icon: Icons.group,
-      label: 'العائلة',
-      isSelected: widget.currentIndex == 2,
-      isDark: isDark,
-    ),
-    _buildNavItem(
-      context: context,
-      index: 3,
-      icon: Icons.mic,
-      label: 'AI',
-      isSelected: widget.currentIndex == 3,
-      isDark: isDark,
-    ),
-    _buildNavItem(
-      context: context,
-      index: 4,
-      icon: Icons.emoji_events_outlined,
-      label: 'الإنجازات',
-      isSelected: widget.currentIndex == 4,
-      isDark: isDark,
-      
-    ),
-  ],
-)
-
                   );
                 },
               ),
             ),
-          ),
-        ],
+
+            // 2. جسم البار الزجاجي (Glassmorphism Body)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(32.r), // زوايا أكثر دائرية
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: AnimatedBuilder(
+                  animation: _shimmerController,
+                  builder: (context, _) {
+                    // تأثير تدرج لوني متحرك ببطء شديد
+                    final value = _shimmerController.value;
+                    return Container(
+                      decoration: BoxDecoration(
+                        // خلفية متدرجة تتماشى مع الثيم
+                        gradient: LinearGradient(
+                          colors: [
+                            _primaryTeal.withOpacity(0.9),
+                            Color.lerp(
+                              _primaryTeal,
+                              _secondaryCyan,
+                              0.5,
+                            )!.withOpacity(0.95),
+                            const Color(0xFF0F766E).withOpacity(0.9),
+                          ],
+                          begin: Alignment(-1.0 + value, -1.0),
+                          end: Alignment(1.0 - value, 1.0),
+                          transform: const GradientRotation(math.pi / 4),
+                        ),
+                        borderRadius: BorderRadius.circular(32.r),
+                        border: Border.all(
+                          width: 1.5,
+                          color: Colors.white.withOpacity(0.2), // حدود زجاجية
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildNavItem(0, Icons.home_rounded, 'الرئيسية'),
+                          _buildNavItem(
+                            1,
+                            Icons.medication_liquid_rounded,
+                            'الأدوية',
+                          ),
+                          _buildNavItem(
+                            2,
+                            Icons.family_restroom_rounded,
+                            'العائلة',
+                          ), // أيقونة أنسب للعائلة
+                          _buildNavItem(
+                            3,
+                            Icons.smart_toy_rounded,
+                            'مساعدك',
+                          ), // أيقونة ورسمية أفضل للـ AI
+                          _buildNavItem(
+                            4,
+                            Icons.emoji_events_rounded,
+                            'إنجازات',
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildNavItem({
-    required BuildContext context,
-    required int index,
-    required IconData icon,
-    required String label,
-    required bool isSelected,
-    required bool isDark,
-  }) {
+  // دالة بناء العنصر الواحد
+  Widget _buildNavItem(int index, IconData icon, String label) {
+    final isSelected = widget.currentIndex == index;
+
     return Expanded(
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => widget.onTap(index),
-          borderRadius: BorderRadius.circular(28.r),
-          splashColor: const Color(0xFF764ba2).withOpacity(0.2),
-          //    highlightColor: Colors.transparent,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            height: double.infinity,
-            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? Colors.white.withOpacity(isDark ? 0.08 : 0.06)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(24.r),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: const Color(0xFF667eea).withOpacity(0.25),
-                        blurRadius: 18,
-                        offset: const Offset(0, 8),
-                      ),
-                      BoxShadow(
-                        color: Colors.black.withOpacity(isDark ? 0.35 : 0.12),
-                        blurRadius: 18,
-                        offset: const Offset(0, 6),
-                        spreadRadius: -2,
-                      ),
-                    ]
-                  : [],
+      child: GestureDetector(
+        onTap: () => widget.onTap(index),
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // الأيقونة مع أنيميشن الحركة والتكبير
+            TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeOutBack, // حركة "نطاطة"
+              tween: Tween(begin: 0.0, end: isSelected ? 1.0 : 0.0),
+              builder: (context, animValue, child) {
+                return Transform.translate(
+                  offset: Offset(
+                    0,
+                    -5 * animValue,
+                  ), // الأيقونة ترتفع قليلاً عند التحديد
+                  child: Container(
+                    padding: EdgeInsets.all(8.r),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? Colors.white.withOpacity(0.2)
+                          : Colors.transparent, // خلفية خفيفة للأيقونة النشطة
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      icon,
+                      size: isSelected ? 26.sp : 24.sp,
+                      color: isSelected
+                          ? Colors.white
+                          : Colors.white.withOpacity(
+                              0.6,
+                            ), // لون غير النشط أبيض شفاف
+                    ),
+                  ),
+                );
+              },
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Icon with bounce animation (shadow aligns to item container)
-                TweenAnimationBuilder<double>(
-                  key: ValueKey('icon-$index-$isSelected'),
-                  tween: Tween<double>(begin: 0.8, end: 1.0),
-                  duration: const Duration(milliseconds: 600),
-                  curve: Curves.elasticOut,
-                  builder: (context, scale, child) {
-                    return Transform.scale(
-                      scale: isSelected ? scale : 0.88,
-                      child: Icon(
-                        icon,
-                        color: isSelected
-                            ? Colors.white
-                            : (isDark
-                                  ? Colors.white.withOpacity(0.45)
-                                  : const Color(0xFF6c757d)),
-                        size: isSelected ? 28.sp : 25.sp,
-                      ),
-                    );
-                  },
+
+            // النص (يظهر فقط عند التحديد أو يكون صغيراً جداً)
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              height: isSelected
+                  ? 20.h
+                  : 0, // إخفاء النص للعناصر غير النشطة لتوفير المساحة
+              curve: Curves.easeOut,
+              child: AnimatedOpacity(
+                opacity: isSelected ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 200),
+                child: Text(
+                  label,
+                  style: AppTextStyling.fontFamilySTCForward.copyWith(
+                    fontSize: 11.sp,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: 8.h),
-                // Label with scale animation
-                TweenAnimationBuilder<double>(
-                  key: ValueKey('label-$index-$isSelected'),
-                  tween: Tween<double>(begin: 0.8, end: 1.0),
-                  duration: const Duration(milliseconds: 400),
-                  curve: Curves.easeOutBack,
-                  builder: (context, scale, child) {
-                    return Transform.scale(
-                      scale: scale,
-                      child: AnimatedDefaultTextStyle(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOutCubic,
-                        style: AppTextStyling.fontFamilySTCForward.copyWith(
-                          fontSize: isSelected ? 12.5.sp : 11.sp,
-                          color: isSelected
-                              ? Colors.white
-                              : (isDark
-                                    ? Colors.white.withOpacity(0.45)
-                                    : const Color(0xFF6c757d)),
-                          fontWeight: isSelected
-                              ? FontWeight.w800
-                              : FontWeight.w600,
-                          letterSpacing: isSelected ? 0.8 : 0.3,
-                          shadows: isSelected
-                              ? [
-                                  Shadow(
-                                    color: Colors.black.withOpacity(0.3),
-                                    blurRadius: 6,
-                                  ),
-                                ]
-                              : null,
-                        ),
-                        child: Text(
-                          label,
-                          maxLines: 1,
-                          overflow:TextOverflow.ellipsis,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ],
+              ),
             ),
-          ),
+
+            // نقطة صغيرة أسفل العنصر النشط (اختياري، يضيف لمسة جمالية)
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: EdgeInsets.only(top: 2.h),
+              width: isSelected ? 4.w : 0,
+              height: isSelected ? 4.w : 0,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ],
         ),
       ),
     );

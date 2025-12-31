@@ -9,6 +9,7 @@ class AppointmentBookingScreen extends StatefulWidget {
 }
 
 class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
+  // تعريف الألوان لتكون متناسقة
   final Color primaryColor = const Color(0xFF2D9C96);
   final Color lightTealColor = const Color(0xFFE0F2F1);
   final Color backgroundColor = const Color(0xFFF5F9FC);
@@ -32,12 +33,11 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
     return Scaffold(
       backgroundColor: backgroundColor,
       body: Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: TextDirection.rtl, // ضمان الاتجاه العربي
         child: SafeArea(
           child: Column(
             children: [
               _buildHeaderSection(),
-
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -49,7 +49,6 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
                       const SizedBox(height: 30),
                       _buildCalendarGrid(),
                       const SizedBox(height: 30),
-
                       const Text(
                         "اختيار الوقت:",
                         style: TextStyle(
@@ -72,6 +71,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
     );
   }
 
+  // 1. تحسين الهيدر بإضافة ظل خفيف وتدرج
   Widget _buildHeaderSection() {
     return Stack(
       children: [
@@ -90,11 +90,33 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
           child: Container(
             margin: const EdgeInsets.symmetric(vertical: 20),
             height: 190,
-            child: Image.asset(
-              'assets/images/image 1.png',
-              fit: BoxFit.contain,
-              errorBuilder: (c, e, s) =>
-                  const Icon(Icons.image, size: 100, color: Colors.grey),
+            decoration: BoxDecoration(
+              // تدرج لوني خفيف خلف الصورة
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.white.withOpacity(0.0),
+                  Colors.white.withOpacity(0.5),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.asset(
+                'assets/images/image 1.png',
+                fit: BoxFit.contain,
+                errorBuilder: (c, e, s) =>
+                    const Icon(Icons.image, size: 100, color: Colors.grey),
+              ),
             ),
           ),
         ),
@@ -102,6 +124,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
     );
   }
 
+  // 2. تحسين قائمة اختيار الشهر
   Widget _buildMonthSelector() {
     return Center(
       child: Container(
@@ -109,11 +132,11 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
         width: 180,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: const Color(0xFFE8EEF5),
+          color: Colors.white, // جعل الخلفية بيضاء لتباين أفضل
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: primaryColor.withOpacity(0.1), // ظل ملون خفيف
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -122,12 +145,15 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
             value: selectedMonth,
-            icon: Icon(Icons.arrow_drop_down, color: Colors.grey[600]),
+            icon: Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: primaryColor,
+            ), // أيقونة أجمل
             isExpanded: true,
-            dropdownColor: const Color(0xFFE8EEF5),
+            dropdownColor: Colors.white,
             borderRadius: BorderRadius.circular(15),
             style: TextStyle(
-              color: Colors.grey[700],
+              color: textDarkColor,
               fontSize: 16,
               fontWeight: FontWeight.bold,
               fontFamily: 'Arial',
@@ -148,6 +174,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
     );
   }
 
+  // 3. تحسين شبكة التقويم
   Widget _buildCalendarGrid() {
     final weekDays = [
       'أحد',
@@ -180,7 +207,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: textDarkColor,
+                        color: Colors.grey[600], // لون أفتح قليلاً للأيام
                         fontSize: 14,
                       ),
                     ),
@@ -189,14 +216,13 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
                 .toList(),
           ),
         ),
-
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: days.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 7,
-            mainAxisSpacing: 15,
+            mainAxisSpacing: 10, // تقليل المسافات قليلاً
             crossAxisSpacing: 5,
             childAspectRatio: 1.0,
           ),
@@ -208,37 +234,38 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
             return InkWell(
               onTap: isBooked ? null : () => setState(() => selectedDay = day),
               customBorder: const CircleBorder(),
-              child: Stack(
+              child: Container(
+                decoration: BoxDecoration(
+                  // تغيير الخلفية عند التحديد لتكون ملونة بالكامل
+                  color: isSelected
+                      ? primaryColor
+                      : (isBooked ? Colors.grey[100] : Colors.white),
+                  shape: BoxShape.circle,
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: primaryColor.withOpacity(0.4),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : [],
+                ),
                 alignment: Alignment.center,
-                children: [
-                  if (isSelected)
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: primaryColor, width: 2),
-                      ),
-                    ),
-
-                  Text(
-                    "$day",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: isSelected
-                          ? FontWeight.w900
-                          : FontWeight.w500,
-                      color: textDarkColor,
-                    ),
+                child: Text(
+                  "$day",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    // النص أبيض عند التحديد
+                    color: isSelected
+                        ? Colors.white
+                        : (isBooked ? Colors.grey[400] : textDarkColor),
+                    decoration: isBooked ? TextDecoration.lineThrough : null,
                   ),
-
-                  if (isBooked)
-                    Icon(
-                      Icons.close,
-                      color: primaryColor.withOpacity(0.8), // شفافية بسيطة
-                      size: 24,
-                    ),
-                ],
+                ),
               ),
             );
           },
@@ -247,6 +274,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
     );
   }
 
+  // 4. تحسين خانات الوقت
   Widget _buildTimeSlots() {
     final times = [
       {'time': "10:00 ص", 'status': 'available'},
@@ -267,36 +295,55 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
 
         return InkWell(
           onTap: booked ? null : () => setState(() => selectedTime = time),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: booked
-                  ? lightTealColor
-                  : (selected ? Colors.transparent : const Color(0xFFEEF2F6)),
-              borderRadius: BorderRadius.circular(25),
+                  ? Colors.grey[100]
+                  : (selected
+                        ? primaryColor
+                        : Colors.white), // لون مميز عند التحديد
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: selected ? primaryColor : Colors.transparent,
-                width: 1.5,
+                color: selected ? primaryColor : Colors.grey[200]!,
+                width: 1,
               ),
+              boxShadow: selected
+                  ? [
+                      BoxShadow(
+                        color: primaryColor.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                  : [],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // نقطة الحالة (أخضر للمتاح، رمادي للمحجوز)
+                if (!booked)
+                  Container(
+                    width: 8,
+                    height: 8,
+                    margin: const EdgeInsets.only(left: 8),
+                    decoration: BoxDecoration(
+                      color: selected ? Colors.white : Colors.green,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                 Text(
                   time,
                   style: TextStyle(
                     fontSize: 14,
-                    decoration: booked ? TextDecoration.lineThrough : null,
-                    decorationColor: Colors.grey,
                     fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                    color: booked ? Colors.grey : textDarkColor,
+                    color: selected
+                        ? Colors.white
+                        : (booked ? Colors.grey : textDarkColor),
+                    decoration: booked ? TextDecoration.lineThrough : null,
                   ),
                 ),
-                if (booked) ...[
-                  const SizedBox(width: 5),
-                  const Icon(Icons.close, size: 16, color: Colors.grey),
-                ],
               ],
             ),
           ),
@@ -305,25 +352,55 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
     );
   }
 
+  // 5. تحسين الزر السفلي
   Widget _buildBottomButton() {
     return Container(
       padding: const EdgeInsets.all(24),
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: () {},
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFE0F2F1),
-          foregroundColor: textDarkColor,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: primaryColor, width: 1.5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
           ),
-        ),
-        child: const Text(
-          "حجز الموعد",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ],
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        height: 55,
+        child: ElevatedButton(
+          onPressed: () {},
+          style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            elevation: 5,
+            shadowColor: primaryColor.withOpacity(0.4),
+          ),
+          // استخدام Ink لقدرة التدرج اللوني
+          child: Ink(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [primaryColor, primaryColor.withOpacity(0.8)],
+                begin: Alignment.centerRight,
+                end: Alignment.centerLeft,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Container(
+              alignment: Alignment.center,
+              child: const Text(
+                "تأكيد الحجز",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

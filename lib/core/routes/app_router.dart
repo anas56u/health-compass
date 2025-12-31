@@ -33,23 +33,17 @@ class AppRouter {
     switch (settings.name) {
       // 1. شاشات البداية
       case AppRoutes.splash:
-        return MaterialPageRoute(
-          builder: (_) => const SplashScreen(),
-        );
+        return MaterialPageRoute(builder: (_) => const SplashScreen());
 
       case AppRoutes.onBoarding:
-        // FirstScreen موجودة داخل ملف splash_screens.dart
-        return MaterialPageRoute(
-          builder: (_) => FirstScreen(), 
-        );
+        // OnboardingPageView موجودة داخل ملف splash_screens.dart
+        return MaterialPageRoute(builder: (_) => const OnboardingPageView());
 
       // 2. المصادقة واختيار المستخدم
       case AppRoutes.userType:
         return MaterialPageRoute(
-          builder: (_) => UserType(
-            email: args['email'],
-            password: args['password'],
-          ),
+          builder: (_) =>
+              UserType(email: args['email'], password: args['password']),
         );
 
       case AppRoutes.login:
@@ -61,20 +55,18 @@ class AppRouter {
         );
 
       case AppRoutes.signup:
-        return MaterialPageRoute(
-          builder: (_) => const signup_page(),
-        );
+        return MaterialPageRoute(builder: (_) => const signup_page());
 
       case AppRoutes.forgetPassword:
-        return MaterialPageRoute(
-          builder: (_) => ForgotPasswordScreen(),
-        );
+        return MaterialPageRoute(builder: (_) => ForgotPasswordScreen());
 
       // 3. استكمال البيانات
       case AppRoutes.patientInfo:
         return MaterialPageRoute(
-          builder: (_) => PatientInfoScreen( email: args['email'],
-            password: args['password'],),
+          builder: (_) => PatientInfoScreen(
+            email: args['email'],
+            password: args['password'],
+          ),
         );
 
       case AppRoutes.doctorInfo:
@@ -86,21 +78,15 @@ class AppRouter {
         );
 
       case AppRoutes.familyMemberInfo:
-        return MaterialPageRoute(
-          builder: (_) => FamilyMemberInfoScreen(),
-        );
+        return MaterialPageRoute(builder: (_) => FamilyMemberInfoScreen());
 
       // 4. الشاشة الرئيسية (Home)
       case AppRoutes.patientHome: // أو AppRoutes.home حسب المسمى في routes.dart
-        return MaterialPageRoute(
-          builder: (_) => const Patientview_body(),
-        );
+        return MaterialPageRoute(builder: (_) => const Patientview_body());
 
       // 5. الإنجازات
       case AppRoutes.achievements:
-        return MaterialPageRoute(
-          builder: (_) => const AchievementsPage(),
-        );
+        return MaterialPageRoute(builder: (_) => const AchievementsPage());
       // 6. حجز المواعيد
       case AppRoutes.appointmentBooking:
         return MaterialPageRoute(
@@ -111,9 +97,7 @@ class AppRouter {
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(
-            body: Center(
-              child: Text('No route defined for ${settings.name}'),
-            ),
+            body: Center(child: Text('No route defined for ${settings.name}')),
           ),
         );
     }

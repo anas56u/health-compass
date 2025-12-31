@@ -11,7 +11,7 @@ import 'package:health_compass/feature/achievements/preesntation/cubits/hometask
 import 'package:health_compass/feature/achievements/preesntation/cubits/hometask_state.dart';
 import 'package:health_compass/feature/achievements/preesntation/screens/achievements_page.dart';
 import 'package:health_compass/feature/auth/presentation/screen/login_page.dart';
-import 'package:health_compass/feature/health_tracking/presentation/HealthStatus_Card.dart';
+import 'package:health_compass/feature/chatbot/ui/screens/chat_bot_screen.dart';
 
 class Patientview_body extends StatefulWidget {
   const Patientview_body({super.key});
@@ -22,15 +22,16 @@ class Patientview_body extends StatefulWidget {
 
 class _Patientview_bodyState extends State<Patientview_body> {
   int _selectedIndex = 0;
-  final Color _activeColor = const Color(0xFF0D9488);
-  final Color _inactiveColor = Colors.grey.shade600;
+  final Color _backgroundColor = const Color(0xFFF9FAFB); // خلفية فاتحة جداً
+
   final List<Widget> _pages = [
     const HomeContent(),
-    const Center(child: Text("صفحه الادويه")),
-    const Center(child: Text("صفحه العائله")),
-    const Center(child: Text("صفحه الذكاء الصناعي")),
+    const Center(child: Text("صفحة الأدوية")),
+    const Center(child: Text("صفحة العائلة")),
+    const SizedBox(),
     const AchievementsPage(),
   ];
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -40,28 +41,46 @@ class _Patientview_bodyState extends State<Patientview_body> {
   Future<void> _handleLogout() async {
     final shouldLogout = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('تسجيل الخروج'),
-        content: const Text('هل أنت متأكد من تسجيل الخروج؟'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'تسجيل الخروج',
-              style: TextStyle(color: Colors.red),
+          title: Text(
+            'تسجيل الخروج',
+            style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            'هل تريد تسجيل الخروج؟',
+            style: GoogleFonts.tajawal(color: Colors.grey[700]),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(
+                'إلغاء',
+                style: GoogleFonts.tajawal(color: Colors.grey),
+              ),
             ),
-          ),
-        ],
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(
+                'خروج',
+                style: GoogleFonts.tajawal(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
 
     if (shouldLogout == true && mounted) {
       await SharedPrefHelper.clearLoginData();
-
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -71,25 +90,44 @@ class _Patientview_bodyState extends State<Patientview_body> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBody: true,
-      appBar: AppBar(
-        title: const Text('الصفحة الرئيسية'),
-        backgroundColor: const Color(0xFF0D9488),
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'تسجيل الخروج',
-            onPressed: _handleLogout,
+    if (_selectedIndex == 3) {
+      return ChatBotScreen(onBack: () => setState(() => _selectedIndex = 0));
+    }
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: _backgroundColor,
+
+        // شريط علوي بسيط ونظيف
+        appBar: AppBar(
+          title: Text(
+            'الرئيسية',
+            style: GoogleFonts.tajawal(
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
           ),
-        ],
+          centerTitle: true,
+          backgroundColor: const Color(0xFF0D9488),
+          elevation: 0,
+          foregroundColor: Colors.white,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout),
+              tooltip: 'خروج',
+              onPressed: _handleLogout,
+            ),
+          ],
+        ),
+
+        bottomNavigationBar: BottomNavBar(
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+        ),
+
+        body: _pages[_selectedIndex],
       ),
-      bottomNavigationBar: BottomNavBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-      ),
-      body: _pages[_selectedIndex],
     );
   }
 }
@@ -102,26 +140,60 @@ class HomeContent extends StatelessWidget {
     return BlocProvider(
       create: (context) => HometaskCubit()..startTracking(),
       child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         child: Column(
           children: [
-            header_patientview(),
-            SizedBox(height: 20),
+            header_patientview(), // الهيدر الأصلي كما هو
+            const SizedBox(height: 20),
+
             BlocBuilder<HometaskCubit, HometaskState>(
               builder: (context, state) {
                 if (state is HomeLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Padding(
+                    padding: EdgeInsets.all(30.0),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF0D9488),
+                      ),
+                    ),
+                  );
                 } else if (state is HomeLoaded) {
                   return DailyTasksList(
                     tasksStatus: state.dailyData.tasksStatus,
                   );
                 } else if (state is HomeError) {
-                  return Center(child: Text("حدث خطأ: ${state.message}"));
+                  // رسالة خطأ بسيطة وواضحة
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            color: Colors.grey[400],
+                            size: 40,
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            state.message,
+                            style: GoogleFonts.tajawal(color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
                 }
                 return const SizedBox();
               },
             ),
+
+            const SizedBox(height: 10),
             AccessibilityFacilities(),
+            const SizedBox(height: 10),
             buildWeeklyChallenges(),
+
+            // مسافة للبار السفلي
+            const SizedBox(height: 100),
           ],
         ),
       ),

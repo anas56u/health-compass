@@ -1,25 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:health_compass/core/widgets/chat_bubble.dart';
+import 'package:health_compass/core/widgets/chat_drawer.dart';
 import 'package:health_compass/feature/chatbot/data/logic/cubit/chat_cubit.dart';
 import 'package:health_compass/feature/chatbot/data/logic/cubit/chat_state.dart';
+import 'package:health_compass/feature/chatbot/ui/screens/chat_history_screen.dart';
 import 'package:health_compass/feature/chatbot/ui/screens/voice_assistant_screen.dart';
 
 class ChatBotScreen extends StatelessWidget {
-  const ChatBotScreen({super.key});
+  final VoidCallback? onBack;
+
+  const ChatBotScreen({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
-    // نقوم بإنشاء الكيوبت هنا
     return BlocProvider(
       create: (context) => ChatCubit(),
-      child: const _ChatView(),
+      child: _ChatView(onBack: onBack),
     );
   }
 }
 
 class _ChatView extends StatefulWidget {
-  const _ChatView();
+  final VoidCallback? onBack;
+  const _ChatView({this.onBack});
 
   @override
   State<_ChatView> createState() => _ChatViewState();
@@ -30,6 +34,25 @@ class _ChatViewState extends State<_ChatView> {
   final ScrollController _scrollController = ScrollController();
 
   final Color _primaryColor = const Color(0xFF0D9488);
+  bool _isTyping = false; // ✅ متغير لمراقبة حالة الكتابة
+
+  final List<String> _suggestions = [
+    "ما هي أعراض السكري؟",
+    "نصائح لخفض الكوليسترول",
+    "كيف أحافظ على صحة قلبي؟",
+    "جدول غذائي لمرضى الضغط",
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    // ✅ مراقبة النص لتغيير لون زر الإرسال
+    _controller.addListener(() {
+      setState(() {
+        _isTyping = _controller.text.trim().isNotEmpty;
+      });
+    });
+  }
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -43,39 +66,37 @@ class _ChatViewState extends State<_ChatView> {
     });
   }
 
-  // ✅ دالة عرض نافذة التنبيه عند تجاوز الحد (مثل الشات الصوتي تماماً)
-  void _showQuotaDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.hourglass_empty_rounded, color: Colors.orange, size: 30),
-            SizedBox(width: 10),
-            Text(
-              "استراحة قصيرة ",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ],
+  void _handleSend([String? text]) {
+    final messageText = text ?? _controller.text.trim();
+    if (messageText.isEmpty) return;
+
+    context.read<ChatCubit>().sendMessage(messageText);
+    _controller.clear();
+    // ستعود حالة الكتابة تلقائياً لـ false بسبب الليسنر
+  }
+
+  void _openHistory(BuildContext context) {
+    final chatCubit = context.read<ChatCubit>();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BlocProvider.value(
+          value: chatCubit,
+          child: const ChatHistoryScreen(),
         ),
-        content: const Text(
-          "لقد تجاوزنا الحد المسموح من الأسئلة في الدقيقة.\n\nيرجى الانتظار دقيقة واحدة ثم المحاولة مجدداً.",
-          style: TextStyle(fontSize: 16, height: 1.5),
+      ),
+    );
+  }
+
+  void _openVoiceAssistant(BuildContext context) {
+    final chatCubit = context.read<ChatCubit>();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BlocProvider.value(
+          value: chatCubit,
+          child: const VoiceAssistantScreen(),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              "حسناً",
-              style: TextStyle(
-                color: _primaryColor,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -93,6 +114,9 @@ class _ChatViewState extends State<_ChatView> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: const Color(0xFFF5F7FA),
+        drawer: const ChatDrawer(),
+
+        // --- 1. الشريط العلوي ---
         appBar: AppBar(
           backgroundColor: _primaryColor,
           elevation: 0,
@@ -100,6 +124,24 @@ class _ChatViewState extends State<_ChatView> {
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(bottom: Radius.circular(25)),
           ),
+          leading: widget.onBack != null
+              ? IconButton(
+                  onPressed: widget.onBack,
+                  icon: const Icon(
+                    Icons.arrow_back_ios_rounded,
+                    color: Colors.white,
+                  ),
+                )
+              : Builder(
+                  builder: (context) => IconButton(
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                    icon: const Icon(
+                      Icons.menu_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                ),
           title: Row(
             children: [
               Container(
@@ -110,14 +152,14 @@ class _ChatViewState extends State<_ChatView> {
                 ),
                 child: const CircleAvatar(
                   backgroundColor: Colors.white,
-                  radius: 20,
+                  radius: 18,
                   child: CircleAvatar(
-                    radius: 30,
+                    radius: 16,
                     backgroundImage: AssetImage('assets/images/chatlogo.png'),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -125,12 +167,12 @@ class _ChatViewState extends State<_ChatView> {
                     'دليل',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 20,
+                      fontSize: 18,
                       color: Colors.white,
                     ),
                   ),
                   Text(
-                    'مساعدك الطبي الشخصي',
+                    'مساعدك الطبي',
                     style: TextStyle(fontSize: 12, color: Colors.white70),
                   ),
                 ],
@@ -139,31 +181,22 @@ class _ChatViewState extends State<_ChatView> {
           ),
           actions: [
             IconButton(
-              onPressed: () {
-                // 💡 نقل المحادثة الحالية للشات الصوتي (ميزة احترافية)
-                // نمرر نفس الكيوبت للشاشة التالية
-                final chatCubit = context.read<ChatCubit>();
-
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => BlocProvider.value(
-                      value: chatCubit, // تمرير الحالة الحالية
-                      child: const VoiceAssistantScreen(),
-                    ),
-                  ),
-                );
-              },
+              onPressed: () => _openHistory(context),
+              tooltip: "سجل المحادثات",
               icon: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.mic, color: Colors.white, size: 25),
+                child: const Icon(
+                  Icons.history_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
           ],
         ),
 
@@ -176,30 +209,17 @@ class _ChatViewState extends State<_ChatView> {
                       state.status == ChatStatus.loading) {
                     _scrollToBottom();
                   }
-
-                  // 👇👇 معالجة الأخطاء الذكية 👇👇
-                  if (state.status == ChatStatus.failure) {
-                    bool isQuotaError =
-                        state.errorMessage.toLowerCase().contains("quota") ||
-                        state.errorMessage.contains("429") ||
-                        state.errorMessage.toLowerCase().contains("limit");
-
-                    if (isQuotaError) {
-                      _showQuotaDialog(context); // عرض النافذة
-                    } else {
-                      // خطأ عادي (انترنت مثلاً)
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(state.errorMessage),
-                          backgroundColor: Colors.redAccent,
-                        ),
-                      );
-                    }
-                  }
                 },
                 builder: (context, state) {
+                  // --- 2. حالة الشاشة الفارغة ---
+                  if (state.messages.isEmpty) {
+                    return _buildEmptyState();
+                  }
+
                   return ListView.builder(
                     controller: _scrollController,
+                    // إضافة فيزياء للحركة الطبيعية
+                    physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 20,
@@ -254,64 +274,93 @@ class _ChatViewState extends State<_ChatView> {
               },
             ),
 
-            // منطقة الإدخال
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+            // --- 3. منطقة الإدخال ---
+            SafeArea(
               child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, -5),
                     ),
                   ],
                 ),
                 child: Row(
                   children: [
-                    const SizedBox(width: 16),
+                    // زر المحادثة الصوتية
+                    Container(
+                      decoration: BoxDecoration(
+                        color: _primaryColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        onPressed: () => _openVoiceAssistant(context),
+                        icon: Icon(
+                          Icons.mic_rounded,
+                          color: _primaryColor,
+                          size: 26,
+                        ),
+                        tooltip: "تحدث صوتياً",
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+
+                    // حقل الكتابة
                     Expanded(
-                      child: TextField(
-                        controller: _controller,
-                        onSubmitted: (value) {
-                          context.read<ChatCubit>().sendMessage(value);
-                          _controller.clear();
-                        },
-                        style: const TextStyle(fontSize: 15),
-                        decoration: InputDecoration(
-                          hintText: 'اسأل دليل عن صحتك...',
-                          hintStyle: TextStyle(color: Colors.grey.shade400),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 14,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F7FA),
+                          borderRadius: BorderRadius.circular(25),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: TextField(
+                          controller: _controller,
+                          onSubmitted: (_) => _handleSend(),
+                          textInputAction: TextInputAction.send,
+                          style: const TextStyle(fontSize: 15),
+                          decoration: InputDecoration(
+                            hintText: 'اكتب سؤالك هنا...',
+                            hintStyle: TextStyle(color: Colors.grey.shade400),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                    Container(
-                      margin: const EdgeInsets.all(6),
+
+                    const SizedBox(width: 10),
+
+                    // ✅ زر الإرسال التفاعلي
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [_primaryColor, const Color(0xFF14B8A6)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        // تغيير اللون بناءً على حالة الكتابة
+                        color: _isTyping ? _primaryColor : Colors.grey.shade300,
                         shape: BoxShape.circle,
+                        boxShadow: _isTyping
+                            ? [
+                                BoxShadow(
+                                  color: _primaryColor.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ]
+                            : [],
                       ),
                       child: IconButton(
                         icon: const Icon(
                           Icons.send_rounded,
                           color: Colors.white,
-                          size: 20,
+                          size: 22,
                         ),
-                        onPressed: () {
-                          context.read<ChatCubit>().sendMessage(
-                            _controller.text,
-                          );
-                          _controller.clear();
-                        },
+                        // تعطيل الزر إذا كان النص فارغاً
+                        onPressed: _isTyping ? () => _handleSend() : null,
                       ),
                     ),
                   ],
@@ -320,6 +369,79 @@ class _ChatViewState extends State<_ChatView> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ودجت الشاشة الفارغة
+  Widget _buildEmptyState() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(height: 40),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: _primaryColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.health_and_safety_rounded,
+              size: 60,
+              color: _primaryColor,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            "مرحباً بك في دليل!",
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[800],
+              fontFamily: 'Tajawal',
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "أنا هنا لمساعدتك في الإجابة على استفساراتك الطبية.\nيمكنك البدء بسؤال أو اختيار مما يلي:",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 30),
+
+          // الاقتراحات
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            alignment: WrapAlignment.center,
+            children: _suggestions.map((suggestion) {
+              return ActionChip(
+                elevation: 0,
+                backgroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  side: BorderSide(color: _primaryColor.withOpacity(0.3)),
+                ),
+                avatar: Icon(
+                  Icons.lightbulb_outline_rounded,
+                  size: 18,
+                  color: _primaryColor,
+                ),
+                label: Text(
+                  suggestion,
+                  style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                ),
+                onPressed: () => _handleSend(suggestion),
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }
