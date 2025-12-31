@@ -21,6 +21,10 @@ import 'package:health_compass/feature/home/presentation/PatientView_body.dart';
 // ملاحظة: المسار يحتوي على كلمة 'preesntation' كما هو في ملفاتك
 import 'package:health_compass/feature/achievements/preesntation/screens/achievements_page.dart'; //
 
+// --- استيراد ملفات Doctor ---
+import 'package:health_compass/feature/doctor/home/pages/doctor_home_page.dart';
+import 'package:health_compass/feature/doctor/appointment/pages/appointments_page.dart';
+
 // --- استيراد الكيوبت والـ DI ---
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/login_cubit.dart'; //
 import 'package:health_compass/feature/auth/di/auth_di.dart'; //
@@ -92,6 +96,13 @@ class AppRouter {
         return MaterialPageRoute(
           builder: (_) => const AppointmentBookingScreen(),
         );
+
+      // 7. الاطباء
+      case AppRoutes.doctorHome:
+        return MaterialPageRoute(builder: (_) => const DoctorHomePage());
+
+      case AppRoutes.appointments:
+        return MaterialPageRoute(builder: (_) => const AppointmentsPage());
 
       // المسار الافتراضي عند الخطأ
       default:

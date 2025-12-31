@@ -49,7 +49,7 @@ class MyApp extends StatelessWidget {
           ],
           child: MaterialApp(
             debugShowCheckedModeBanner: false,
-            initialRoute: AppRoutes.splash,
+            initialRoute: AppRoutes.doctorHome,
             onGenerateRoute: AppRouter().generateRoute,
           ),
         );
