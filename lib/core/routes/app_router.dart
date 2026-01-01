@@ -13,6 +13,7 @@ import 'package:health_compass/feature/auth/presentation/screen/user_type.dart';
 import 'package:health_compass/feature/auth/presentation/screen/patient_info.dart'; //
 import 'package:health_compass/feature/auth/presentation/screen/doctor_info.dart'; //
 import 'package:health_compass/feature/auth/presentation/screen/family_member_info.dart'; //
+import 'package:health_compass/feature/family_invite/family_invite.dart';
 
 // --- استيراد ملفات Home ---
 import 'package:health_compass/feature/home/presentation/PatientView_body.dart'; //
@@ -23,7 +24,8 @@ import 'package:health_compass/feature/achievements/preesntation/screens/achieve
 
 // --- استيراد الكيوبت والـ DI ---
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/login_cubit.dart'; //
-import 'package:health_compass/feature/auth/di/auth_di.dart'; //
+import 'package:health_compass/feature/auth/di/auth_di.dart';
+import 'package:health_compass/feature/profile/patient_profile.dart'; //
 
 class AppRouter {
   Route? generateRoute(RouteSettings settings) {
@@ -53,6 +55,7 @@ class AppRouter {
             child: const LoginPage(),
           ),
         );
+        
 
       case AppRoutes.signup:
         return MaterialPageRoute(builder: (_) => const signup_page());
@@ -92,8 +95,15 @@ class AppRouter {
         return MaterialPageRoute(
           builder: (_) => const AppointmentBookingScreen(),
         );
+        case AppRoutes.profileSettings:
+        return MaterialPageRoute(
+          builder: (_) => const PatientProfilePage(),
+        );
+        case AppRoutes.familyInvite:
+        return MaterialPageRoute(
+          builder: (_) => const FamilyInvitePage(),
+        );
 
-      // المسار الافتراضي عند الخطأ
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

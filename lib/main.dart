@@ -7,6 +7,7 @@ import 'package:health_compass/feature/auth/data/repository/auth_repository_impl
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/signup_cubit.dart';
 import 'package:health_compass/feature/auth/presentation/screen/family_member_info.dart';
 import 'package:health_compass/feature/chatbot/ui/screens/chat_bot_screen.dart';
+import 'package:health_compass/feature/doctor/doctor_main_screen.dart';
 import 'package:health_compass/feature/health_tracking/presentation/cubits/SimpleBlocObserver.dart';
 import 'package:health_compass/feature/health_tracking/presentation/cubits/health_cubit/health_cubit.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -48,9 +49,10 @@ class MyApp extends StatelessWidget {
             ),
           ],
           child: MaterialApp(
-            debugShowCheckedModeBanner: false,
-            initialRoute: AppRoutes.splash,
-            onGenerateRoute: AppRouter().generateRoute,
+            // debugShowCheckedModeBanner: false,
+            // initialRoute: AppRoutes.splash,
+            // onGenerateRoute: AppRouter().generateRoute,
+            home: DoctorMainScreen(),
           ),
         );
       },

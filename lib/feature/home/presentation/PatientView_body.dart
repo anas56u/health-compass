@@ -12,6 +12,7 @@ import 'package:health_compass/feature/achievements/preesntation/cubits/hometask
 import 'package:health_compass/feature/achievements/preesntation/screens/achievements_page.dart';
 import 'package:health_compass/feature/auth/presentation/screen/login_page.dart';
 import 'package:health_compass/feature/chatbot/ui/screens/chat_bot_screen.dart';
+import 'package:health_compass/feature/family_invite/family_invite.dart';
 
 class Patientview_body extends StatefulWidget {
   const Patientview_body({super.key});
@@ -27,7 +28,7 @@ class _Patientview_bodyState extends State<Patientview_body> {
   final List<Widget> _pages = [
     const HomeContent(),
     const Center(child: Text("صفحة الأدوية")),
-    const Center(child: Text("صفحة العائلة")),
+   const FamilyInvitePage(),
     const SizedBox(),
     const AchievementsPage(),
   ];
