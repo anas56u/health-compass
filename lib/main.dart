@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:health_compass/core/core.dart';
+import 'package:health_compass/feature/Reminders/preesntation/screens/Reminders_page.dart';
 import 'package:health_compass/feature/auth/data/datasource/auth_remote_datasource.dart';
 import 'package:health_compass/feature/auth/data/repository/auth_repository_impl.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/signup_cubit.dart';
@@ -49,10 +50,10 @@ class MyApp extends StatelessWidget {
             ),
           ],
           child: MaterialApp(
-            // debugShowCheckedModeBanner: false,
-            // initialRoute: AppRoutes.splash,
-            // onGenerateRoute: AppRouter().generateRoute,
-            home: DoctorMainScreen(),
+            debugShowCheckedModeBanner: false,
+            initialRoute: AppRoutes.splash,
+            onGenerateRoute: AppRouter().generateRoute,
+         
           ),
         );
       },

@@ -75,6 +75,9 @@ class AccessibilityFacilities extends StatelessWidget {
                       icon: Icons.alarm,
                       label: 'إضافة تذكير',
                       context: context,
+                      onTap: () {
+                        Navigator.pushNamed(context, AppRoutes.reamindersPage);
+                      },
                     ),
                   ],
                 ),

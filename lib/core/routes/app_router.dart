@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:health_compass/core/routes/routes.dart';
+import 'package:health_compass/feature/Reminders/preesntation/screens/Reminders_page.dart';
 import 'package:health_compass/feature/auth/presentation/screen/AppointmentBooking.dart';
 
 // --- استيراد ملفات Auth حسب المسارات الحالية في مشروعك ---
@@ -63,7 +64,6 @@ class AppRouter {
       case AppRoutes.forgetPassword:
         return MaterialPageRoute(builder: (_) => ForgotPasswordScreen());
 
-      // 3. استكمال البيانات
       case AppRoutes.patientInfo:
         return MaterialPageRoute(
           builder: (_) => PatientInfoScreen(
@@ -83,14 +83,11 @@ class AppRouter {
       case AppRoutes.familyMemberInfo:
         return MaterialPageRoute(builder: (_) => FamilyMemberInfoScreen());
 
-      // 4. الشاشة الرئيسية (Home)
-      case AppRoutes.patientHome: // أو AppRoutes.home حسب المسمى في routes.dart
+      case AppRoutes.patientHome:
         return MaterialPageRoute(builder: (_) => const Patientview_body());
 
-      // 5. الإنجازات
       case AppRoutes.achievements:
         return MaterialPageRoute(builder: (_) => const AchievementsPage());
-      // 6. حجز المواعيد
       case AppRoutes.appointmentBooking:
         return MaterialPageRoute(
           builder: (_) => const AppointmentBookingScreen(),
@@ -102,6 +99,10 @@ class AppRouter {
         case AppRoutes.familyInvite:
         return MaterialPageRoute(
           builder: (_) => const FamilyInvitePage(),
+        );
+        case AppRoutes.reamindersPage:
+        return MaterialPageRoute(
+          builder: (_) => const RemindersPage(),
         );
 
       default:

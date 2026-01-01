@@ -100,7 +100,6 @@ class _Patientview_bodyState extends State<Patientview_body> {
       child: Scaffold(
         backgroundColor: _backgroundColor,
 
-        // شريط علوي بسيط ونظيف
         appBar: AppBar(
           title: Text(
             'الرئيسية',
@@ -144,7 +143,7 @@ class HomeContent extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         child: Column(
           children: [
-            header_patientview(), // الهيدر الأصلي كما هو
+            header_patientview(),
             const SizedBox(height: 20),
 
             BlocBuilder<HometaskCubit, HometaskState>(

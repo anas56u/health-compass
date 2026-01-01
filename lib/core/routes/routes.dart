@@ -16,4 +16,5 @@ class AppRoutes {
   static const String chatBot = '/chat_bot';
   static const String familyInvite = '/family_invite';
   static const String profileSettings = '/profile_settings';
+  static const String reamindersPage = '/reminders_page';
 }
