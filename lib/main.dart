@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:health_compass/core/core.dart';
+import 'package:health_compass/feature/Reminders/preesntation/screens/Reminders_page.dart';
 import 'package:health_compass/feature/auth/data/datasource/auth_remote_datasource.dart';
 import 'package:health_compass/feature/auth/data/repository/auth_repository_impl.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/signup_cubit.dart';
 import 'package:health_compass/feature/auth/presentation/screen/family_member_info.dart';
 import 'package:health_compass/feature/chatbot/ui/screens/chat_bot_screen.dart';
+import 'package:health_compass/feature/doctor/doctor_main_screen.dart';
 import 'package:health_compass/feature/health_tracking/presentation/cubits/SimpleBlocObserver.dart';
 import 'package:health_compass/feature/health_tracking/presentation/cubits/health_cubit/health_cubit.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -51,6 +53,7 @@ class MyApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             initialRoute: AppRoutes.doctorHome,
             onGenerateRoute: AppRouter().generateRoute,
+         
           ),
         );
       },

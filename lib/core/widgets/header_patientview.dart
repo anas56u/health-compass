@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:health_compass/core/routes/routes.dart';
 import 'package:health_compass/feature/health_tracking/presentation/HealthStatus_Card.dart';
 
 class header_patientview extends StatelessWidget {
@@ -43,11 +44,13 @@ class header_patientview extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     textDirection: TextDirection.rtl,
                     children: [
-                      const CircleAvatar(
+                      CircleAvatar(
                         radius: 20,
                         backgroundColor: Colors.white,
 
-                        child: Icon(Icons.person, color: Color(0xFF00796B)),
+                        child: IconButton(  icon:  const Icon(Icons.person), color: const Color(0xFF00796B), onPressed:() {
+                          Navigator.pushNamed(context, AppRoutes.profileSettings);
+                        },),
                       ),
                       const Icon(
                         Icons.notifications_none,

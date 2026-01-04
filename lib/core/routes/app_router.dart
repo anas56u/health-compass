@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:health_compass/core/routes/routes.dart';
+import 'package:health_compass/feature/Reminders/preesntation/screens/Reminders_page.dart';
 import 'package:health_compass/feature/auth/presentation/screen/AppointmentBooking.dart';
 
 // --- استيراد ملفات Auth حسب المسارات الحالية في مشروعك ---
@@ -13,6 +14,7 @@ import 'package:health_compass/feature/auth/presentation/screen/user_type.dart';
 import 'package:health_compass/feature/auth/presentation/screen/patient_info.dart'; //
 import 'package:health_compass/feature/auth/presentation/screen/doctor_info.dart'; //
 import 'package:health_compass/feature/auth/presentation/screen/family_member_info.dart'; //
+import 'package:health_compass/feature/family_invite/family_invite.dart';
 
 // --- استيراد ملفات Home ---
 import 'package:health_compass/feature/home/presentation/PatientView_body.dart'; //
@@ -27,7 +29,8 @@ import 'package:health_compass/feature/doctor/appointment/pages/appointments_pag
 
 // --- استيراد الكيوبت والـ DI ---
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/login_cubit.dart'; //
-import 'package:health_compass/feature/auth/di/auth_di.dart'; //
+import 'package:health_compass/feature/auth/di/auth_di.dart';
+import 'package:health_compass/feature/profile/patient_profile.dart'; //
 
 class AppRouter {
   Route? generateRoute(RouteSettings settings) {
@@ -57,6 +60,7 @@ class AppRouter {
             child: const LoginPage(),
           ),
         );
+        
 
       case AppRoutes.signup:
         return MaterialPageRoute(builder: (_) => const signup_page());
@@ -64,7 +68,6 @@ class AppRouter {
       case AppRoutes.forgetPassword:
         return MaterialPageRoute(builder: (_) => ForgotPasswordScreen());
 
-      // 3. استكمال البيانات
       case AppRoutes.patientInfo:
         return MaterialPageRoute(
           builder: (_) => PatientInfoScreen(
@@ -84,17 +87,26 @@ class AppRouter {
       case AppRoutes.familyMemberInfo:
         return MaterialPageRoute(builder: (_) => FamilyMemberInfoScreen());
 
-      // 4. الشاشة الرئيسية (Home)
-      case AppRoutes.patientHome: // أو AppRoutes.home حسب المسمى في routes.dart
+      case AppRoutes.patientHome:
         return MaterialPageRoute(builder: (_) => const Patientview_body());
 
-      // 5. الإنجازات
       case AppRoutes.achievements:
         return MaterialPageRoute(builder: (_) => const AchievementsPage());
-      // 6. حجز المواعيد
       case AppRoutes.appointmentBooking:
         return MaterialPageRoute(
           builder: (_) => const AppointmentBookingScreen(),
+        );
+        case AppRoutes.profileSettings:
+        return MaterialPageRoute(
+          builder: (_) => const PatientProfilePage(),
+        );
+        case AppRoutes.familyInvite:
+        return MaterialPageRoute(
+          builder: (_) => const FamilyInvitePage(),
+        );
+        case AppRoutes.reamindersPage:
+        return MaterialPageRoute(
+          builder: (_) => const RemindersPage(),
         );
 
       // 7. الاطباء
