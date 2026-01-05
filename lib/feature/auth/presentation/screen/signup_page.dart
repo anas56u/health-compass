@@ -203,9 +203,6 @@ class _signup_pageState extends State<signup_page> {
                             ),
 
                             const SizedBox(height: 30),
-
-                            // زر إنشاء الحساب
-                            // تم استخدام Container لضمان العرض الكامل إذا لم يدعم الزر ذلك
                             SizedBox(
                               width: double.infinity,
                               child: custom_button(
@@ -331,7 +328,6 @@ class _signup_pageState extends State<signup_page> {
     );
   }
 
-  // 5. تحسين السناك بار ليكون عائماً
   void showsnackbar(BuildContext context, {required String massage}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -344,8 +340,5 @@ class _signup_pageState extends State<signup_page> {
     );
   }
 
-  Future<void> regester() async {
-    UserCredential user = await FirebaseAuth.instance
-        .createUserWithEmailAndPassword(email: email, password: password);
-  }
+ 
 }

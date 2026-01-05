@@ -9,6 +9,14 @@ abstract class UserModel {
   final String phoneNumber;
   final String userType;
   final DateTime createdAt;
+  final String? profileImage;
+  UserModel copyWith({
+    String? uid,
+    String? email,
+    String? fullName,
+    String? phoneNumber,
+    String? profileImage,
+  });
 
   UserModel({
     required this.uid,
@@ -16,7 +24,7 @@ abstract class UserModel {
     required this.fullName,
     required this.phoneNumber,
     required this.userType,
-    required this.createdAt,
+    required this.createdAt, this.profileImage,
   });
 
   Map<String, dynamic> toMap();

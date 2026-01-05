@@ -1,16 +1,22 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:health_compass/feature/auth/data/model/user_model.dart';
 
 abstract class AuthRemoteDataSource {
+  Future<UserModel> getUserData({required String uid});
   Future<UserCredential> login({
     required String email,
     required String password,
+
   });
 
  Future<void> registerUser({
     required UserModel userModel,
     required String password,
+    File? imagefile,
   });
 
   Future<void> logout();
@@ -21,13 +27,31 @@ abstract class AuthRemoteDataSource {
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
-  final FirebaseAuth _firebaseAuth;
+ final FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
+  final FirebaseStorage _firebaseStorage; 
 
-  AuthRemoteDataSourceImpl({FirebaseAuth? firebaseAuth, FirebaseFirestore? firestore})
-    : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
-      _firestore = firestore ?? FirebaseFirestore.instance;
-
+  AuthRemoteDataSourceImpl({
+    FirebaseAuth? firebaseAuth,
+    FirebaseFirestore? firestore,
+    FirebaseStorage? firebaseStorage,
+  })  : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
+        _firestore = firestore ?? FirebaseFirestore.instance,
+        _firebaseStorage = firebaseStorage ?? FirebaseStorage.instance;
+        @override
+  Future<UserModel> getUserData({required String uid}) async {
+    try {
+      final documentSnapshot = await _firestore.collection('users').doc(uid).get();
+      
+      if (documentSnapshot.exists) {
+        return UserModel.fromMap(documentSnapshot.data()!);
+      } else {
+        throw Exception('المستخدم غير موجود في قاعدة البيانات');
+      }
+    } catch (e) {
+      throw Exception('فشل جلب بيانات المستخدم: $e');
+    }
+  }
   @override
   Future<UserCredential> login({
     required String email,
@@ -38,6 +62,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         email: email,
         password: password,
       );
+
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     } catch (e) {
@@ -49,6 +74,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<void> registerUser({
     required UserModel userModel,
     required String password,
+    File? imagefile,
   }) async {
     try {
       final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
@@ -57,11 +83,18 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
 
       final String uid = userCredential.user!.uid;
+      String? imageUrl;
+      if (imagefile != null) {
+        final ref = _firebaseStorage.ref().child('profile_images/$uid.jpg');
+        await ref.putFile(imagefile);
+        imageUrl = await ref.getDownloadURL();
+      }
 
-      final Map<String, dynamic> userData = userModel.toMap();
-      userData['uid'] = uid; 
-
-      await _firestore.collection('users').doc(uid).set(userData);
+      final updatedUser = userModel.copyWith(
+        uid: uid,
+        profileImage: imageUrl,
+      );
+      await _firestore.collection('users').doc(uid).set(updatedUser.toMap());
 
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);

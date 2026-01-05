@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/repository/auth_repository.dart';
 import '../../../data/model/user_model.dart';
@@ -11,12 +13,14 @@ class SignupCubit extends Cubit<SignupState> {
   Future<void> registerUser({
     required UserModel userModel,
     required String password,
+    File? profileImage, // <--- إضافة هذا
   }) async {
     emit(SignupLoading());
     try {
       await _authRepository.registerUser(
         user: userModel,
         password: password,
+        imagefile: profileImage, // <--- تمريرها للريبو
       );
       emit(SignupSuccess());
     } catch (e) {

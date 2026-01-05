@@ -6,6 +6,7 @@ import 'package:health_compass/feature/Reminders/preesntation/screens/Reminders_
 import 'package:health_compass/feature/auth/data/datasource/auth_remote_datasource.dart';
 import 'package:health_compass/feature/auth/data/repository/auth_repository_impl.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/signup_cubit.dart';
+import 'package:health_compass/feature/auth/presentation/cubit/cubit/user_cubit.dart';
 import 'package:health_compass/feature/auth/presentation/screen/family_member_info.dart';
 import 'package:health_compass/feature/chatbot/ui/screens/chat_bot_screen.dart';
 import 'package:health_compass/feature/doctor/doctor_main_screen.dart';
@@ -32,6 +33,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authRepository = AuthRepositoryImpl(
+      remoteDataSource: AuthRemoteDataSourceImpl(),
+    );
     return ScreenUtilInit(
       designSize: const Size(375, 812),
       minTextAdapt: true,
@@ -40,6 +44,11 @@ class MyApp extends StatelessWidget {
         return MultiBlocProvider(
           providers: [
             BlocProvider(create: (context) => HealthCubit()),
+            BlocProvider(
+              create: (context) => UserCubit(
+                authRepository: authRepository, 
+              )..getUserData(),
+            ),
 
             BlocProvider(
               create: (context) => SignupCubit(

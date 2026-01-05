@@ -40,55 +40,6 @@ class _Patientview_bodyState extends State<Patientview_body> {
     });
   }
 
-  Future<void> _handleLogout() async {
-    final shouldLogout = await showDialog<bool>(
-      context: context,
-      builder: (context) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          title: Text(
-            'تسجيل الخروج',
-            style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
-          ),
-          content: Text(
-            'هل تريد تسجيل الخروج؟',
-            style: GoogleFonts.tajawal(color: Colors.grey[700]),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(
-                'إلغاء',
-                style: GoogleFonts.tajawal(color: Colors.grey),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(
-                'خروج',
-                style: GoogleFonts.tajawal(
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (shouldLogout == true && mounted) {
-      await SharedPrefHelper.clearLoginData();
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,26 +52,7 @@ class _Patientview_bodyState extends State<Patientview_body> {
       child: Scaffold(
         backgroundColor: _backgroundColor,
 
-        appBar: AppBar(
-          title: Text(
-            'الرئيسية',
-            style: GoogleFonts.tajawal(
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-            ),
-          ),
-          centerTitle: true,
-          backgroundColor: const Color(0xFF0D9488),
-          elevation: 0,
-          foregroundColor: Colors.white,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.logout),
-              tooltip: 'خروج',
-              onPressed: _handleLogout,
-            ),
-          ],
-        ),
+        
 
         bottomNavigationBar: BottomNavBar(
           currentIndex: _selectedIndex,
@@ -163,7 +95,6 @@ class HomeContent extends StatelessWidget {
                     tasksStatus: state.dailyData.tasksStatus,
                   );
                 } else if (state is HomeError) {
-                  // رسالة خطأ بسيطة وواضحة
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 20),
@@ -193,8 +124,7 @@ class HomeContent extends StatelessWidget {
             const SizedBox(height: 10),
             buildWeeklyChallenges(),
 
-            // مسافة للبار السفلي
-            const SizedBox(height: 100),
+            const SizedBox(height: 50),
           ],
         ),
       ),

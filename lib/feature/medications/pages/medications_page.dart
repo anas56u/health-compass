@@ -20,7 +20,6 @@ class _MedicationsPageState extends State<MedicationsPage> {
       backgroundColor: const Color(0xFFF5F5F5),
       body: Column(
         children: [
-          // Header with gradient
           Container(
             padding: const EdgeInsets.all(20),
             decoration: const BoxDecoration(
@@ -40,13 +39,7 @@ class _MedicationsPageState extends State<MedicationsPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(
-                          Icons.arrow_forward_ios,
-                          color: Colors.white,
-                        ),
-                      ),
+                     
                       Text(
                         'جدول الادويه(يومي)',
                         style: GoogleFonts.tajawal(

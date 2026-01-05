@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:health_compass/core/routes/routes.dart';
+import 'package:health_compass/feature/auth/presentation/cubit/cubit/user_cubit.dart';
+import 'package:health_compass/feature/auth/presentation/cubit/cubit/user_state.dart';
 import 'package:health_compass/feature/health_tracking/presentation/HealthStatus_Card.dart';
 
 class header_patientview extends StatelessWidget {
@@ -44,13 +47,38 @@ class header_patientview extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     textDirection: TextDirection.rtl,
                     children: [
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: Colors.white,
+                      BlocBuilder<UserCubit, UserState>(
+                        builder: (context, state) {
+                          String? imageUrl;
 
-                        child: IconButton(  icon:  const Icon(Icons.person), color: const Color(0xFF00796B), onPressed:() {
-                          Navigator.pushNamed(context, AppRoutes.profileSettings);
-                        },),
+                          if (state is UserLoaded) {
+                            imageUrl = state.userModel.profileImage;
+                          }
+
+                          return InkWell(
+                            onTap: () {
+                              Navigator.pushNamed(
+                                context,
+                                AppRoutes.profileSettings,
+                              );
+                              print('Profile image tapped');
+                            },
+                            child: CircleAvatar(
+                              radius: 20,
+                              backgroundColor: Colors.white,
+                              backgroundImage:
+                                  (imageUrl != null && imageUrl.isNotEmpty)
+                                  ? NetworkImage(imageUrl)
+                                  : null,
+                              child: (imageUrl == null || imageUrl.isEmpty)
+                                  ? const Icon(
+                                      Icons.person,
+                                      color: Color(0xFF00796B),
+                                    )
+                                  : null,
+                            ),
+                          );
+                        },
                       ),
                       const Icon(
                         Icons.notifications_none,
@@ -61,14 +89,22 @@ class header_patientview extends StatelessWidget {
                   ),
                   const SizedBox(height: 30),
 
-                  Text(
-                    '.. اهلاً بعودتك يا حليم',
-                    textAlign: TextAlign.right,
-                    style: GoogleFonts.tajawal(
-                      color: Colors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  BlocBuilder<UserCubit, UserState>(
+                    builder: (context, state) {
+                      String userName = 'يا حليم';
+                      if (state is UserLoaded) {
+                        userName = state.userModel.fullName;
+                      }
+                      return Text(
+                        '.. اهلاً بعودتك $userName',
+                        textAlign: TextAlign.right,
+                        style: GoogleFonts.tajawal(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 5),
                   Text(

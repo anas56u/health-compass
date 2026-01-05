@@ -104,6 +104,7 @@ class _PatientInfoScreenState extends State<PatientInfoScreen> {
     context.read<SignupCubit>().registerUser(
       userModel: newPatient,
       password: widget.password,
+      profileImage: _profileImage, 
     );
   }
 
