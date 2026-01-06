@@ -13,7 +13,7 @@ class HealthCubit extends Cubit<HealthState> {
   HealthCubit() : super(HealthInitial()) {
     health.configure();
     fetchHealthData();
-    _startPeriodicUpdates();
+    _startContinuousMonitoring();
   }
 
   @override
@@ -23,18 +23,10 @@ class HealthCubit extends Cubit<HealthState> {
   }
 
   Future<void> requestPermissions() async {
-    // For Health Connect, we only need to use health.requestAuthorization
-    // No need for separate permission_handler requests
-    // Permission.sensors and Permission.location are for older Health APIs
     if (Platform.isAndroid) {
-      // Health Connect handles its own permissions through the Health app
-      print("Android: Using Health Connect permission flow");
+      // Android 14+ uses Health Connect natively
     } else {
-      // For iOS, request HealthKit permissions
-      PermissionStatus bodySensorsStatus = await Permission.sensors.request();
-      if (bodySensorsStatus.isGranted) {
-        print("iOS: Permissions granted");
-      }
+      await Permission.sensors.request();
     }
   }
 
@@ -47,94 +39,69 @@ class HealthCubit extends Cubit<HealthState> {
   }
 
   Future<void> fetchHealthData() async {
-    if (state is HealthInitial) {
-      emit(HealthLoading());
-    }
+    if (state is HealthInitial) emit(HealthLoading());
 
     try {
       await requestPermissions();
 
       if (Platform.isAndroid) {
-        print("Checking Health Connect SDK status...");
         final status = await health.getHealthConnectSdkStatus();
-        print("Health Connect SDK status: $status");
-
         if (status == HealthConnectSdkStatus.sdkUnavailable) {
           emit(HealthConnectNotInstalled());
-          return;
-        } else if (status ==
-            HealthConnectSdkStatus.sdkUnavailableProviderUpdateRequired) {
-          emit(HealthError("يرجى تحديث Health Connect من Google Play"));
           return;
         }
       }
 
-      final types = [
-        HealthDataType.HEART_RATE,
-        HealthDataType.BLOOD_PRESSURE_SYSTOLIC,
-        HealthDataType.BLOOD_PRESSURE_DIASTOLIC,
-        HealthDataType.BLOOD_GLUCOSE,
-      ];
+      final now = DateTime.now();
+      final startTime = now.subtract(const Duration(hours: 24));
 
-      print("Requesting authorization for types: $types");
-      bool requested = await health.requestAuthorization(
-        types,
-        permissions: [
-          HealthDataAccess.READ,
-          HealthDataAccess.READ,
-          HealthDataAccess.READ,
-          HealthDataAccess.READ,
-        ],
-      );
-      print("Authorization requested: $requested");
+      // 1. جلب البيانات الأساسية (نبضات القلب والضغط)
+      double heartRate = await _getMostRecentData(HealthDataType.HEART_RATE, startTime, now);
+      double systolic = await _getMostRecentData(HealthDataType.BLOOD_PRESSURE_SYSTOLIC, startTime, now);
+      double diastolic = await _getMostRecentData(HealthDataType.BLOOD_PRESSURE_DIASTOLIC, startTime, now);
 
-      if (requested) {
-        final now = DateTime.now();
-        final thirtyMinAgo = now.subtract(const Duration(minutes: 30));
+      // 2. معالجة الجلوكوز (Debug Logic)
+      double bloodGlucose = 0.0; // تعريف المتغير مرة واحدة هنا
 
-        double heartRate = await _getMostRecentData(
-          HealthDataType.HEART_RATE,
-          thirtyMinAgo,
-          now,
-        );
-        double systolic = await _getMostRecentData(
-          HealthDataType.BLOOD_PRESSURE_SYSTOLIC,
-          thirtyMinAgo,
-          now,
-        );
-        double diastolic = await _getMostRecentData(
-          HealthDataType.BLOOD_PRESSURE_DIASTOLIC,
-          thirtyMinAgo,
-          now,
-        );
-        double bloodGlucose = await _getMostRecentData(
-          HealthDataType.BLOOD_GLUCOSE,
-          thirtyMinAgo,
-          now,
+      try {
+        print("🔎 DEBUG: Fetching Glucose List...");
+        
+        // جلب القائمة الخام
+        List<HealthDataPoint> glucoseList = await health.getHealthDataFromTypes(
+          startTime: startTime,
+          endTime: now,
+          types: [HealthDataType.BLOOD_GLUCOSE],
         );
 
-        emit(
-          HealthLoaded(
-            heartRate: heartRate,
-            systolic: systolic.toInt(),
-            diastolic: diastolic.toInt(),
-            bloodGlucose: bloodGlucose,
-          ),
-        );
-      } else {
-        emit(
-          HealthError(
-            "لم يتم منح الأذونات. يرجى:\n"
-            "1. فتح تطبيق Health Connect\n"
-            "2. منح الأذونات يدوياً\n"
-            "3. إعادة فتح التطبيق",
-          ),
-        );
+        print("🔎 DEBUG: Found ${glucoseList.length} glucose records.");
+
+        if (glucoseList.isNotEmpty) {
+          // ترتيب القائمة لتكون الأحدث أولاً
+          glucoseList.sort((a, b) => b.dateTo.compareTo(a.dateTo));
+          
+          final recent = glucoseList.first;
+          print("🔎 DEBUG: Most recent glucose raw value: ${recent.value}");
+
+          if (recent.value is NumericHealthValue) {
+            bloodGlucose = (recent.value as NumericHealthValue).numericValue.toDouble();
+          }
+        }
+      } catch (e) {
+        print("⚠️ Error fetching glucose specific data: $e");
       }
-    } catch (e, stackTrace) {
-      print("Error in fetchHealthData: $e");
-      print("Stack trace: $stackTrace");
-      emit(HealthError("خطأ: ${e.toString()}"));
+
+      // 3. تحديث الواجهة
+      emit(
+        HealthLoaded(
+          heartRate: heartRate,
+          systolic: systolic.toInt(),
+          diastolic: diastolic.toInt(),
+          bloodGlucose: bloodGlucose, // استخدام القيمة النهائية
+        ),
+      );
+
+    } catch (e) {
+      print("CRITICAL ERROR in fetchHealthData: $e");
     }
   }
 
@@ -151,7 +118,9 @@ class HealthCubit extends Cubit<HealthState> {
       );
 
       if (data.isNotEmpty) {
-        final value = data.first.value as NumericHealthValue;
+        data.sort((a, b) => b.dateTo.compareTo(a.dateTo));
+        final mostRecent = data.first;
+        final value = mostRecent.value as NumericHealthValue;
         return value.numericValue.toDouble();
       }
       return 0.0;
@@ -160,9 +129,8 @@ class HealthCubit extends Cubit<HealthState> {
     }
   }
 
-  void _startPeriodicUpdates() {
-    _timer = Timer.periodic(const Duration(minutes: 30), (timer) {
-      print("HealthCubit: [تحديث دوري] جاري جلب البيانات...");
+  void _startContinuousMonitoring() {
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
       fetchHealthData();
     });
   }

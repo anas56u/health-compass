@@ -24,7 +24,7 @@ class Patientview_body extends StatefulWidget {
 
 class _Patientview_bodyState extends State<Patientview_body> {
   int _selectedIndex = 0;
-  final Color _backgroundColor = const Color(0xFFF9FAFB); // خلفية فاتحة جداً
+  final Color _backgroundColor = const Color(0xFFF9FAFB); 
 
   final List<Widget> _pages = [
     const HomeContent(),
