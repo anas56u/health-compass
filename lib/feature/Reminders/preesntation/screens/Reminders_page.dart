@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:health_compass/feature/Reminders/data/model/reminders_model.dart';
+import 'package:health_compass/feature/Reminders/preesntation/cubits/reminder_cubit.dart';
 import 'package:health_compass/feature/Reminders/widgets/AddReminderDialog.dart';
+import 'package:health_compass/feature/Reminders/preesntation/cubits/RemindersState.dart';
 
 class RemindersPage extends StatelessWidget {
   const RemindersPage({super.key});
@@ -38,32 +42,27 @@ class RemindersPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SectionHeader(title: 'التذكيرات اليوميه'),
-              ReminderCard(
-                title: 'أخذ دواء Metformin 500mg',
-                subtitle: 'يومياً الساعه 8:00 ص',
-                iconData: Icons.medication,
-                iconColor: const Color(0xFF26A69A),
+
+              // BlocBuilder لعرض التذكيرات من Cubit
+              BlocBuilder<RemindersCubit, RemindersState>(
+                builder: (context, state) {
+                  if (state is RemindersLoaded) {
+                    if (state.reminders.isEmpty) {
+                      return const Text('لا توجد تذكيرات بعد');
+                    }
+                    return Column(
+                      children: state.reminders.map((reminder) {
+                        return ReminderCard(
+                          reminder: reminder,
+                          iconColor: primaryColor,
+                        );
+                      }).toList(),
+                    );
+                  }
+                  return const Center(child: CircularProgressIndicator());
+                },
               ),
-              ReminderCard(
-                title: 'قياس نبضات القلب',
-                subtitle: 'يومياً الساعه 12:00 ظهراً',
-                iconData: Icons.favorite,
-                iconColor: const Color(0xFFEF5350),
-              ),
-              ReminderCard(
-                title: 'ادويه بعد الظهر',
-                subtitle: 'يومياً الساعه 2:00 م',
-                iconData: Icons.poll, // Placeholder icon
-                iconColor: const Color(0xFF6D4C41),
-              ),
-              const SizedBox(height: 20),
-              const SectionHeader(title: 'التذكيرات المهمه'),
-              ReminderCard(
-                title: 'لديك موعد مع الطبيب',
-                subtitle: '5\\2\\2026',
-                iconData: Icons.person,
-                iconColor: const Color(0xFF1E88E5),
-              ),
+
               const SizedBox(height: 40),
               SizedBox(
                 width: double.infinity,
@@ -83,11 +82,15 @@ class RemindersPage extends StatelessWidget {
                       color: Colors.white,
                     ),
                   ),
-                  onPressed: () {
-                    showDialog(
+                  onPressed: () async {
+                    final reminder = await showDialog<ReminderModel>(
                       context: context,
-                      builder: (context) => const AddReminderDialog(),
+                      builder: (_) => const AddReminderDialog(),
                     );
+
+                    if (reminder != null && context.mounted) {
+                      context.read<RemindersCubit>().addReminder(reminder);
+                    }
                   },
                 ),
               ),
@@ -99,6 +102,8 @@ class RemindersPage extends StatelessWidget {
   }
 }
 
+// ----------------------------
+// SectionHeader
 class SectionHeader extends StatelessWidget {
   final String title;
   const SectionHeader({super.key, required this.title});
@@ -118,16 +123,15 @@ class SectionHeader extends StatelessWidget {
   }
 }
 
+// ----------------------------
+// ReminderCard مرتبط بالـ ReminderModel
 class ReminderCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData iconData;
+  final ReminderModel reminder;
   final Color iconColor;
+
   const ReminderCard({
     super.key,
-    required this.title,
-    required this.subtitle,
-    required this.iconData,
+    required this.reminder,
     required this.iconColor,
   });
 
@@ -153,7 +157,11 @@ class ReminderCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(color: iconColor, shape: BoxShape.circle),
-            child: Icon(iconData, color: Colors.white, size: 24),
+            child: Icon(
+              IconData(reminder.iconCode, fontFamily: 'MaterialIcons'),
+              color: Colors.white,
+              size: 24,
+            ),
           ),
           const SizedBox(width: 15),
           Expanded(
@@ -161,7 +169,7 @@ class ReminderCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  reminder.title,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
@@ -170,7 +178,7 @@ class ReminderCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  subtitle,
+                  'الساعة ${TimeOfDay.fromDateTime(reminder.time).format(context)}',
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
@@ -179,21 +187,10 @@ class ReminderCard extends StatelessWidget {
           Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.edit, size: 20, color: Colors.grey),
-                onPressed: () {},
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-              const SizedBox(width: 15),
-              IconButton(
-                icon: const Icon(
-                  Icons.delete_outline,
-                  size: 20,
-                  color: Colors.grey,
-                ),
-                onPressed: () {},
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+                icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
+                onPressed: () {
+                  context.read<RemindersCubit>().deleteReminder(reminder);
+                },
               ),
             ],
           ),

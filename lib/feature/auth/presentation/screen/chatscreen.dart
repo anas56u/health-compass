@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
           secondary: const Color(0xFFE0F2F1), // لون ثانوي فاتح جداً للفقاعات
         ),
       ),
-      home: const ChatScreen(),
+      home: const ChatScreen(),    
     );
   }
 }

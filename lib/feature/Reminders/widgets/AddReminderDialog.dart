@@ -1,192 +1,167 @@
 import 'package:flutter/material.dart';
+import 'package:health_compass/feature/Reminders/data/model/reminders_model.dart';
 
-class AddReminderDialog extends StatelessWidget {
+class AddReminderDialog extends StatefulWidget {
   const AddReminderDialog({super.key});
+
+  @override
+  State<AddReminderDialog> createState() => _AddReminderDialogState();
+}
+
+class _AddReminderDialogState extends State<AddReminderDialog> {
+  final _titleController = TextEditingController();
+  final _detailsController = TextEditingController();
+  TimeOfDay _selectedTime = const TimeOfDay(hour: 8, minute: 0);
+  List<int> _selectedDays = [];
+  int _selectedIcon = Icons.notifications.codePoint;
+
+  final Map<String, int> _icons = {
+    'تنبيه': Icons.notifications.codePoint,
+    'دواء': Icons.medication.codePoint,
+    'قلب': Icons.favorite.codePoint,
+    'شخص': Icons.person.codePoint,
+  };
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       backgroundColor: const Color(0xFFEFEFEF),
-      elevation: 5,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.notifications, size: 40, color: Color(0xFF607D8B)),
-            const SizedBox(height: 20),
-
-            Row(
-              children: [
-                Expanded(child: _buildInputField(label: 'تاريخ التذكير')),
-                const SizedBox(width: 15),
-                Expanded(child: _buildInputField(label: 'نوع التذكير')),
-              ],
-            ),
-            const SizedBox(height: 15),
-
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: _buildDropdownField(
-                    label: 'عدد مرات التكرار',
-                    value: 'يومياً',
-                  ),
-                ),
-                const SizedBox(width: 10),
-
-                Expanded(
-                  flex: 2,
-                  child: _buildDropdownField(label: 'الايام', value: 'الاحد'),
-                ),
-                const SizedBox(width: 10),
-
-                Expanded(
-                  flex: 3,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(bottom: 5, right: 5),
-                        child: Text(
-                          'الوقت',
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          Expanded(child: _buildTimeBox('30')),
-                          const SizedBox(width: 5),
-                          Container(
-                            width: 1,
-                            height: 20,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(width: 5),
-                          Expanded(child: _buildTimeBox('5')),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 25),
-
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF137A74),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text('حفظ', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInputField({required String label}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 5, right: 5),
-          child: Text(
-            label,
-            style: const TextStyle(color: Colors.grey, fontSize: 12),
-          ),
-        ),
-        Container(
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 3,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: const TextField(
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 10,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDropdownField({required String label, required String value}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 5, right: 5),
-          child: Text(
-            label,
-            style: const TextStyle(color: Colors.grey, fontSize: 12),
-          ),
-        ),
-        Container(
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 5),
-          decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 3,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        padding: const EdgeInsets.all(20),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.arrow_drop_down, color: Colors.grey[600]),
-              Text(
-                value,
-                style: TextStyle(fontSize: 12, color: Colors.grey[800]),
+              const Text(
+                'اضافة تذكير',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              const SizedBox(height: 15),
+              _buildTextField(_titleController, 'عنوان التذكير'),
+              const SizedBox(height: 10),
+              _buildTextField(_detailsController, 'تفاصيل التذكير', maxLines: 2),
+              const SizedBox(height: 10),
+              _buildTimePicker(),
+              const SizedBox(height: 10),
+              _buildDaysPicker(),
+              const SizedBox(height: 10),
+              _buildIconPicker(),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  if (_titleController.text.isEmpty || _selectedDays.isEmpty) return;
+
+                  // توليد ID فريد للتذكير
+                  final String id = DateTime.now().millisecondsSinceEpoch.toString();
+                  // توليد notificationId فريد
+                  final int notificationId = DateTime.now().millisecondsSinceEpoch.remainder(100000);
+
+                  final reminder = ReminderModel(
+                    id: id,
+                    notificationId: notificationId,
+                    title: _titleController.text,
+                    details: _detailsController.text,
+                    time: DateTime(
+                      0,
+                      0,
+                      0,
+                      _selectedTime.hour,
+                      _selectedTime.minute,
+                    ),
+                    repeatDays: _selectedDays,
+                    iconCode: _selectedIcon,
+                  );
+
+                  Navigator.pop(context, reminder); // إرجاع التذكير لـ Cubit
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF137A74),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: const Text('حفظ', style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label, {int maxLines = 1}) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  Widget _buildTimePicker() {
+    return Row(
+      children: [
+        const Text('الوقت:'),
+        const SizedBox(width: 10),
+        TextButton(
+          onPressed: () async {
+            final picked = await showTimePicker(
+              context: context,
+              initialTime: _selectedTime,
+            );
+            if (picked != null) {
+              setState(() {
+                _selectedTime = picked;
+              });
+            }
+          },
+          child: Text('${_selectedTime.format(context)}'),
         ),
       ],
     );
   }
 
-  Widget _buildTimeBox(String text) {
-    return Container(
-      height: 40,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 3,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
+  Widget _buildDaysPicker() {
+    final days = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+    return Wrap(
+      spacing: 5,
+      children: List.generate(days.length, (index) {
+        final isSelected = _selectedDays.contains(index + 1);
+        return ChoiceChip(
+          label: Text(days[index]),
+          selected: isSelected,
+          onSelected: (selected) {
+            setState(() {
+              if (selected) {
+                _selectedDays.add(index + 1);
+              } else {
+                _selectedDays.remove(index + 1);
+              }
+            });
+          },
+        );
+      }),
+    );
+  }
+
+  Widget _buildIconPicker() {
+    return Wrap(
+      spacing: 10,
+      children: _icons.entries.map((e) {
+        final selected = _selectedIcon == e.value;
+        return ChoiceChip(
+          label: Icon(IconData(e.value, fontFamily: 'MaterialIcons')),
+          selected: selected,
+          onSelected: (_) {
+            setState(() {
+              _selectedIcon = e.value;
+            });
+          },
+        );
+      }).toList(),
     );
   }
 }

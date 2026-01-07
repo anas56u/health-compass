@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:health_compass/core/routes/routes.dart';
 import 'package:health_compass/feature/Reminders/preesntation/screens/Reminders_page.dart';
 import 'package:health_compass/feature/auth/presentation/screen/AppointmentBooking.dart';
+import 'package:health_compass/feature/auth/presentation/screen/chatscreen.dart';
 
 // --- استيراد ملفات Auth حسب المسارات الحالية في مشروعك ---
 import 'package:health_compass/feature/auth/presentation/screen/splash_screen.dart'; //
@@ -103,6 +104,10 @@ class AppRouter {
         case AppRoutes.reamindersPage:
         return MaterialPageRoute(
           builder: (_) => const RemindersPage(),
+        );
+        case AppRoutes.chatScreen:
+        return MaterialPageRoute(
+          builder: (_) => const ChatScreen(),
         );
 
       default:

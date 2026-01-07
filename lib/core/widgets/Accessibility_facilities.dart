@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:health_compass/core/routes/routes.dart';
 import 'package:health_compass/core/widgets/AccessItem.dart';
-import 'package:health_compass/feature/auth/presentation/screen/AppointmentBooking.dart';
 
 class AccessibilityFacilities extends StatelessWidget {
   @override
@@ -41,7 +40,9 @@ class AccessibilityFacilities extends StatelessWidget {
                       icon: Icons.location_on,
                       label: 'تواصل مع طبيبك',
                       context: context,
-                     
+                      onTap: () {
+                        Navigator.pushNamed(context, AppRoutes.doctorContact);
+                      },
                     ),
                     Accessitem(
                       icon: Icons.volume_up,
@@ -51,8 +52,12 @@ class AccessibilityFacilities extends StatelessWidget {
                     Accessitem(
                       icon: Icons.calendar_today,
                       label: 'احجز موعد مع طبيبك',
-                      context: context, onTap: () {
-                       Navigator.pushNamed(context, AppRoutes.appointmentBooking);
+                      context: context,
+                      onTap: () {
+                        Navigator.pushNamed(
+                          context,
+                          AppRoutes.appointmentBooking,
+                        );
                       },
                     ),
                   ],
