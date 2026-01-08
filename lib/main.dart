@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:health_compass/core/core.dart';
 import 'package:health_compass/core/servaces/notification_service.dart';
@@ -32,6 +33,19 @@ void main() async {
     final Box<ReminderModel> reminderBox = await Hive.openBox<ReminderModel>('reminders');
   final notificationService = NotificationService();
   await notificationService.init();
+  await notificationService.flutterLocalNotificationsPlugin.show(
+  9999,
+  'اختبار الإشعارات',
+  'إذا وصل هذا الإشعار، النظام شغال ✅',
+  const NotificationDetails(
+    android: AndroidNotificationDetails(
+      'reminders_channel_id_v2',
+      'Reminders Notifications',
+      importance: Importance.max,
+      priority: Priority.high,
+    ),
+  ),
+);
   await initializeDateFormatting();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);

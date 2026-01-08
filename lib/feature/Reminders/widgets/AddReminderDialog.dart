@@ -14,6 +14,7 @@ class _AddReminderDialogState extends State<AddReminderDialog> {
   TimeOfDay _selectedTime = const TimeOfDay(hour: 8, minute: 0);
   List<int> _selectedDays = [];
   int _selectedIcon = Icons.notifications.codePoint;
+  final now = DateTime.now();
 
   final Map<String, int> _icons = {
     'تنبيه': Icons.notifications.codePoint,
@@ -40,7 +41,11 @@ class _AddReminderDialogState extends State<AddReminderDialog> {
               const SizedBox(height: 15),
               _buildTextField(_titleController, 'عنوان التذكير'),
               const SizedBox(height: 10),
-              _buildTextField(_detailsController, 'تفاصيل التذكير', maxLines: 2),
+              _buildTextField(
+                _detailsController,
+                'تفاصيل التذكير',
+                maxLines: 2,
+              ),
               const SizedBox(height: 10),
               _buildTimePicker(),
               const SizedBox(height: 10),
@@ -50,12 +55,14 @@ class _AddReminderDialogState extends State<AddReminderDialog> {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
-                  if (_titleController.text.isEmpty || _selectedDays.isEmpty) return;
+                  if (_titleController.text.isEmpty || _selectedDays.isEmpty)
+                    return;
 
-                  // توليد ID فريد للتذكير
-                  final String id = DateTime.now().millisecondsSinceEpoch.toString();
-                  // توليد notificationId فريد
-                  final int notificationId = DateTime.now().millisecondsSinceEpoch.remainder(100000);
+                  final String id = DateTime.now().millisecondsSinceEpoch
+                      .toString();
+                  final int notificationId = DateTime.now()
+                      .millisecondsSinceEpoch
+                      .remainder(100000);
 
                   final reminder = ReminderModel(
                     id: id,
@@ -63,9 +70,9 @@ class _AddReminderDialogState extends State<AddReminderDialog> {
                     title: _titleController.text,
                     details: _detailsController.text,
                     time: DateTime(
-                      0,
-                      0,
-                      0,
+                      now.year,
+                      now.month,
+                      now.day,
                       _selectedTime.hour,
                       _selectedTime.minute,
                     ),
@@ -73,11 +80,13 @@ class _AddReminderDialogState extends State<AddReminderDialog> {
                     iconCode: _selectedIcon,
                   );
 
-                  Navigator.pop(context, reminder); // إرجاع التذكير لـ Cubit
+                  Navigator.pop(context, reminder); 
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF137A74),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 child: const Text('حفظ', style: TextStyle(color: Colors.white)),
               ),
@@ -88,7 +97,11 @@ class _AddReminderDialogState extends State<AddReminderDialog> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label, {int maxLines = 1}) {
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label, {
+    int maxLines = 1,
+  }) {
     return TextField(
       controller: controller,
       maxLines: maxLines,
@@ -124,28 +137,32 @@ class _AddReminderDialogState extends State<AddReminderDialog> {
     );
   }
 
-  Widget _buildDaysPicker() {
-    final days = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
-    return Wrap(
-      spacing: 5,
-      children: List.generate(days.length, (index) {
-        final isSelected = _selectedDays.contains(index + 1);
-        return ChoiceChip(
-          label: Text(days[index]),
-          selected: isSelected,
-          onSelected: (selected) {
-            setState(() {
-              if (selected) {
-                _selectedDays.add(index + 1);
-              } else {
-                _selectedDays.remove(index + 1);
-              }
-            });
-          },
-        );
-      }),
-    );
-  }
+
+Widget _buildDaysPicker() {
+  final days = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+  return Wrap(
+    spacing: 5,
+    children: List.generate(days.length, (index) {
+     
+      final dayValue = index == 0 ? 7 : index; 
+      
+      final isSelected = _selectedDays.contains(dayValue);
+      return ChoiceChip(
+        label: Text(days[index]),
+        selected: isSelected,
+        onSelected: (selected) {
+          setState(() {
+            if (selected) {
+              _selectedDays.add(dayValue);
+            } else {
+              _selectedDays.remove(dayValue);
+            }
+          });
+        },
+      );
+    }),
+  );
+}
 
   Widget _buildIconPicker() {
     return Wrap(

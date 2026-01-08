@@ -1,7 +1,8 @@
+// ------------------ RemindersCubit ------------------
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive/hive.dart';
 import 'package:health_compass/feature/Reminders/data/model/reminders_model.dart';
 import 'package:health_compass/feature/Reminders/preesntation/cubits/RemindersState.dart';
-import 'package:hive/hive.dart';
 import 'package:health_compass/core/servaces/notification_service.dart';
 
 class RemindersCubit extends Cubit<RemindersState> {
@@ -13,13 +14,25 @@ class RemindersCubit extends Cubit<RemindersState> {
     loadReminders();
   }
 
-  void loadReminders() {
-    emit(RemindersLoaded(reminderBox.values.toList()));
+  void loadReminders() async {
+    final reminders = reminderBox.values.toList();
+    emit(RemindersLoaded(reminders));
+
+    for (var reminder in reminders) {
+    await  notificationService.scheduleAnnoyingReminder(
+        id: reminder.notificationId,
+        title: reminder.title,
+        body: reminder.details,
+        time: reminder.time,
+        days: reminder.repeatDays,
+      );
+    }
   }
 
   Future<void> addReminder(ReminderModel reminder) async {
     await reminderBox.put(reminder.id, reminder);
 
+    // جدولة التذكير الجديد فوراً
     await notificationService.scheduleAnnoyingReminder(
       id: reminder.notificationId,
       title: reminder.title,

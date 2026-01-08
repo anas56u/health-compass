@@ -102,8 +102,7 @@ class RemindersPage extends StatelessWidget {
   }
 }
 
-// ----------------------------
-// SectionHeader
+
 class SectionHeader extends StatelessWidget {
   final String title;
   const SectionHeader({super.key, required this.title});
@@ -123,8 +122,7 @@ class SectionHeader extends StatelessWidget {
   }
 }
 
-// ----------------------------
-// ReminderCard مرتبط بالـ ReminderModel
+
 class ReminderCard extends StatelessWidget {
   final ReminderModel reminder;
   final Color iconColor;

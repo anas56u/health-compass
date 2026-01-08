@@ -1,8 +1,8 @@
+// ------------------ NotificationService ------------------
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_timezone/flutter_timezone.dart'; // تأكد من إضافة هذه المكتبة
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
 
@@ -14,29 +14,39 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-Future<void> init() async {
+  Future<void> init() async {
+    debugPrint("🔥 NotificationService INIT CALLED");
+
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'reminders_channel_id_v2',
+      'Reminders Notifications',
+      description: 'Important reminders channel',
+      importance: Importance.max,
+    );
+
+
+
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+
     tz.initializeTimeZones();
 
     try {
-      // التعديل هنا: الإصدار الجديد يرجع كائن TimezoneInfo، ونحن نأخذ منه الـ identifier
-      final String timeZoneName = await FlutterTimezone.getLocalTimezone()
-          .then((info) => info.identifier); 
-      
+      final String timeZoneName =
+          await FlutterTimezone.getLocalTimezone().then((info) => info.identifier);
       tz.setLocalLocation(tz.getLocation(timeZoneName));
       debugPrint("✅ Timezone set to Device Location: $timeZoneName");
     } catch (e) {
-      debugPrint("⚠️ Failed to get device timezone. Setting to Amman. Error: $e");
-      // في حال الفشل، نضع توقيت عمان (أو أي توقيت افتراضي تريده)
+      debugPrint(
+          "⚠️ Failed to get device timezone. Setting to Amman. Error: $e");
       tz.setLocalLocation(tz.getLocation('Asia/Amman'));
     }
 
-    // ... (باقي كود الدالة كما هو تماماً دون تغيير)
     const AndroidInitializationSettings initializationSettingsAndroid =
-AndroidInitializationSettings('@drawable/notification_icon');
-    
-    // ... الخ
+        AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    // إعدادات iOS
     const DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
       requestSoundPermission: true,
@@ -54,12 +64,13 @@ AndroidInitializationSettings('@drawable/notification_icon');
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         debugPrint("Notification Clicked: ${response.payload}");
       },
+      
     );
 
-    // طلب الإذن (للأندرويد 13+)
     if (Platform.isAndroid) {
       await flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
           ?.requestNotificationsPermission();
     }
   }
@@ -67,7 +78,8 @@ AndroidInitializationSettings('@drawable/notification_icon');
   Future<void> requestExactAlarmsPermission() async {
     if (Platform.isAndroid) {
       await flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
           ?.requestExactAlarmsPermission();
     }
   }
@@ -79,50 +91,46 @@ AndroidInitializationSettings('@drawable/notification_icon');
     required DateTime time,
     required List<int> days,
   }) async {
-    debugPrint("Attempting to schedule reminder: $title at $time");
-    
     await requestExactAlarmsPermission();
 
     for (int day in days) {
-      try {
-        final scheduledTime = _nextInstanceOfDayAndTime(day, time);
-        debugPrint("📅 Scheduling for day: $day at: $scheduledTime (Local Time)");
+      final scheduledTime = _nextInstanceOfDayAndTime(day, time);
+      debugPrint("📅 Scheduling for day: $day at: $scheduledTime");
 
-        await _scheduleForDay(id, day, time, title, body);
-        
-        // التكرارات المزعجة (بعد 5 و 10 دقائق)
-        await _scheduleForDay(id + 1000, day, time.add(const Duration(minutes: 5)), "تذكير: $title", "تنبيه 1: لم تقم بالمهمة!");
-        await _scheduleForDay(id + 2000, day, time.add(const Duration(minutes: 10)), "تذكير: $title", "تنبيه 2: لا تنسَ صحتك!");
-        
-        debugPrint("✅ Schedule Successful for day $day");
-      } catch (e) {
-        debugPrint("❌ ERROR Scheduling: $e");
-      }
+      await _scheduleForDay(id, day, time, title, body);
+
+      await _scheduleForDay(
+          id + 1000, day, time.add(const Duration(minutes: 5)), "تذكير: $title", "تنبيه 1: لم تقم بالمهمة!");
+      await _scheduleForDay(
+          id + 2000, day, time.add(const Duration(minutes: 10)), "تذكير: $title", "تنبيه 2: لا تنسَ صحتك!");
     }
   }
-  
-  Future<void> _scheduleForDay(int baseId, int day, DateTime time, String title, String? body) async {
-     // تم حذف المتغير uiLocalNotificationDateInterpretation لأنه لم يعد موجوداً في الإصدار الجديد
-     await flutterLocalNotificationsPlugin.zonedSchedule(
-        baseId + (day * 100),
-        title,
-        body,
-        _nextInstanceOfDayAndTime(day, time),
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'reminders_channel_id_v3', // قمنا بتحديث الـ ID للقناة
-            'Reminders Notifications',
-            channelDescription: 'Important reminders channel',
-            importance: Importance.max,
-            priority: Priority.high,
-            playSound: true,
-            fullScreenIntent: true,
-          ),
-          iOS: DarwinNotificationDetails(presentSound: true),
+
+  Future<void> _scheduleForDay(
+      int baseId, int day, DateTime time, String title, String? body) async {
+        final scheduledDate = _nextInstanceOfDayAndTime(day, time);
+    
+    debugPrint("🔔 تمت الجدولة: ID=$baseId | اليوم=$day | التاريخ والموعد=${scheduledDate.toString()}");
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      baseId + (day * 100),
+      title,
+      body,
+      _nextInstanceOfDayAndTime(day, time),
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'reminders_channel_id_v2',
+          'Reminders Notifications',
+          channelDescription: 'Important reminders channel',
+          importance: Importance.max,
+          priority: Priority.high,
+          playSound: true,
+          fullScreenIntent: true,
         ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime, 
-      );
+        iOS: DarwinNotificationDetails(presentSound: true),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+    );
   }
 
   tz.TZDateTime _nextInstanceOfDayAndTime(int day, DateTime time) {
@@ -134,15 +142,9 @@ AndroidInitializationSettings('@drawable/notification_icon');
   }
 
   tz.TZDateTime _nextInstanceOfTime(DateTime time) {
-    // استخدام التوقيت المحلي (الذي تم ضبطه في init ليكون عمان أو غيرها)
     final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-    
     tz.TZDateTime scheduledDate = tz.TZDateTime(
         tz.local, now.year, now.month, now.day, time.hour, time.minute);
-        debugPrint("User Selected: ${time.hour}:${time.minute}");
-debugPrint("Scheduled TZ Time: $scheduledDate");
-debugPrint("Current TZ Time: $now");
-        
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
