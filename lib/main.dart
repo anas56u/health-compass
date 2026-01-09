@@ -27,25 +27,25 @@ void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
-  Hive.registerAdapter(
-    ReminderModelAdapter(),
+  Hive.registerAdapter(ReminderModelAdapter());
+  final Box<ReminderModel> reminderBox = await Hive.openBox<ReminderModel>(
+    'reminders',
   );
-    final Box<ReminderModel> reminderBox = await Hive.openBox<ReminderModel>('reminders');
   final notificationService = NotificationService();
   await notificationService.init();
   await notificationService.flutterLocalNotificationsPlugin.show(
-  9999,
-  'اختبار الإشعارات',
-  'إذا وصل هذا الإشعار، النظام شغال ✅',
-  const NotificationDetails(
-    android: AndroidNotificationDetails(
-      'reminders_channel_id_v2',
-      'Reminders Notifications',
-      importance: Importance.max,
-      priority: Priority.high,
+    9999,
+    'اختبار الإشعارات',
+    'إذا وصل هذا الإشعار، النظام شغال ✅',
+    const NotificationDetails(
+      android: AndroidNotificationDetails(
+        'reminders_channel_id_v2',
+        'Reminders Notifications',
+        importance: Importance.max,
+        priority: Priority.high,
+      ),
     ),
-  ),
-);
+  );
   await initializeDateFormatting();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);

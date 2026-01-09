@@ -6,12 +6,12 @@ class HomeInitial extends HometaskState {}
 
 class HomeLoading extends HometaskState {}
 
-class HomeLoaded extends HometaskState {
-  final DailyTrackingModel dailyData;
-  HomeLoaded(this.dailyData);
-}
-
 class HomeError extends HometaskState {
   final String message;
   HomeError(this.message);
+}
+
+class HomeLoaded extends HometaskState {
+  final DailyTrackingModel dailyData;
+  HomeLoaded(this.dailyData);
 }
