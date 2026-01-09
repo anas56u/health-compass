@@ -13,43 +13,22 @@ class HometaskCubit extends Cubit<HometaskState> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   StreamSubscription? _trackingSubscription;
 
+  // ✅✅ التصحيح هنا: استخدام تنسيق ISO القياسي (YYYY-MM-DD)
+  // هذا يضمن أن التاريخ يكون "2026-01-09" بدلاً من "2026-1-9"
   String get _todayDocId {
-    final now = DateTime.now();
-    return "${now.year}-${now.month}-${now.day}";
+    return DateTime.now().toIso8601String().split('T')[0];
   }
 
-  // --- 1. إعدادات التحديات (قواعد اللعبة) ---
-  // هذه الدالة تعيد لنا معلومات التحدي المرتبط بالمهمة:
-  // [ID, TargetSteps, RewardPoints]
+  // --- 1. إعدادات التحديات ---
   Map<String, dynamic>? _getChallengeConfig(String taskId) {
-    // مثال: إذا كانت المهمة تحتوي على كلمة "medicine"
-    if (taskId == 'medication') { // تأكد من الـ taskId الفعلي لديك
-      return {
-        'id': '1',           // معرف تحدي الأدوية
-        'target': 7,         // الهدف: 7 أيام
-        'reward': 500,       // الجائزة: 500 نقطة
-      };
-    }
-    // مثال: المشي
-    if (taskId == 'morning_walk') {
-      return {
-        'id': '2',          // معرف تحدي المشي في achievements_cubit
-        'target': 7,        // الهدف: 7 أيام
-        'reward': 400,      // الجائزة
-      };
-    }
-    // مثال: الصحة والضغط
-   if (taskId == 'vital_signs') {
-      return {
-        'id': '3',
-        'target': 7,        // الهدف: 7 أيام
-        'reward': 300,
-      };
-    }
-    return null; // لا يوجد تحدي مرتبط
+    if (taskId == 'medication') return {'id': '1', 'target': 7, 'reward': 500};
+    if (taskId == 'morning_walk')
+      return {'id': '2', 'target': 7, 'reward': 400};
+    if (taskId == 'vital_signs') return {'id': '3', 'target': 7, 'reward': 300};
+    return null;
   }
 
-  // ... (دالة startTracking تبقى كما هي) ...
+  // --- Start Tracking ---
   void startTracking() {
     final userId = _auth.currentUser?.uid;
     if (userId == null) return;
@@ -61,55 +40,57 @@ class HometaskCubit extends Cubit<HometaskState> {
         .collection('users')
         .doc(userId)
         .collection('daily_tracking')
-        .doc(_todayDocId)
+        .doc(_todayDocId) // سيستخدم الصيغة الصحيحة الآن
         .snapshots()
         .listen(
-      (snapshot) {
-        if (snapshot.exists) {
-          final data = DailyTrackingModel.fromJson(snapshot.data());
-          emit(HomeLoaded(data));
-        } else {
-          emit(HomeLoaded(DailyTrackingModel( tasksStatus: {})));
-        }
-      },
-      onError: (e) {
-        emit(HomeError(e.toString()));
-      },
-    );
+          (snapshot) {
+            if (snapshot.exists) {
+              final data = DailyTrackingModel.fromJson(snapshot.data()!);
+              emit(HomeLoaded(data));
+            } else {
+              emit(HomeLoaded(DailyTrackingModel(tasksStatus: {})));
+            }
+          },
+          onError: (e) {
+            emit(HomeError(e.toString()));
+          },
+        );
   }
 
-  // --- 2. المنطق الجديد (Core Logic) ---
- // --- 2. المنطق الجديد (Core Logic) ---
+  // --- 2. المنطق الموحد (Unified Logic) ---
   Future<void> toggleTask(String taskId, bool isCompleted) async {
     final userId = _auth.currentUser?.uid;
     if (userId == null) return;
 
+    // 1. مسار التتبع القديم
     final dailyDocRef = _firestore
         .collection('users')
         .doc(userId)
         .collection('daily_tracking')
         .doc(_todayDocId);
 
+    // 2. ✅ مسار الداشبورد (الآن التاريخ متطابق!)
+    final dashboardTaskRef = _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('daily_tasks')
+        .doc(_todayDocId) // 2026-01-09
+        .collection('tasks_list')
+        .doc(taskId);
+
     final userRef = _firestore.collection('users').doc(userId);
 
     try {
       await _firestore.runTransaction((transaction) async {
-        // ============================================================
-        // 1. مرحلة القراءة (READS PHASE)
-        // ============================================================
-        
-        // أ. قراءة ملف اليوم (للتأكد من حالة الـ Checkbox)
+        // --- قراءة ---
         final dailySnapshot = await transaction.get(dailyDocRef);
 
-        // ب. التحضير لقراءة التحدي
         DocumentSnapshot? challengeSnapshot;
         DocumentReference? challengeRef;
         Map<String, dynamic>? config;
 
-        // نفحص هل هذه عملية "إتمام" مهمة (Check) وليست إلغاء (Uncheck)
         if (isCompleted) {
           config = _getChallengeConfig(taskId);
-          
           if (config != null) {
             final String challengeId = config['id'];
             challengeRef = _firestore
@@ -117,17 +98,13 @@ class HometaskCubit extends Cubit<HometaskState> {
                 .doc(userId)
                 .collection('challenges_progress')
                 .doc(challengeId);
-
-            // نقرأ بيانات التحدي الحالية (كم يوم أنجز؟ ومتى كان آخر تحديث؟)
             challengeSnapshot = await transaction.get(challengeRef);
           }
         }
 
-        // ============================================================
-        // 2. مرحلة الكتابة (WRITES PHASE)
-        // ============================================================
+        // --- كتابة ---
 
-        // أ. تحديث حالة المهمة اليومية (UI Checkbox) - يتم دائماً
+        // أ. تحديث Daily Tracking (للصفحة الحالية)
         if (!dailySnapshot.exists) {
           transaction.set(dailyDocRef, {
             'tasks': {taskId: isCompleted},
@@ -136,46 +113,44 @@ class HometaskCubit extends Cubit<HometaskState> {
           transaction.update(dailyDocRef, {'tasks.$taskId': isCompleted});
         }
 
-        // ب. منطق التحديات الذكي (Smart Challenge Logic)
+        // ب. ✅ تحديث Daily Tasks (للداشبورد)
+        transaction.set(dashboardTaskRef, {
+          'id': taskId,
+          'isCompleted': isCompleted,
+          'timestamp': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+        // ج. منطق التحديات
         if (config != null && challengeRef != null) {
           final int targetSteps = config['target'];
           final int bigReward = config['reward'];
-
-          int currentdays = 0;
+          int currentSteps = 0;
           Timestamp? lastUpdated;
 
-          // استخراج البيانات إذا كانت موجودة
           if (challengeSnapshot != null && challengeSnapshot.exists) {
             final data = challengeSnapshot.data() as Map<String, dynamic>?;
-            currentdays= data?['currentSteps'] ?? 0;
+            currentSteps = data?['currentSteps'] ?? 0;
             lastUpdated = data?['lastUpdated'] as Timestamp?;
           }
 
-          // [Best Practice]: التحقق من "هل تم التحديث اليوم؟"
           bool canIncrement = true;
-          
           if (lastUpdated != null) {
             final DateTime lastDate = lastUpdated.toDate();
             final DateTime now = DateTime.now();
-
-            // مقارنة السنة والشهر واليوم فقط (تجاهل الوقت)
-            if (lastDate.year == now.year && 
-                lastDate.month == now.month && 
+            if (lastDate.year == now.year &&
+                lastDate.month == now.month &&
                 lastDate.day == now.day) {
-              canIncrement = false; // لقد قمت بالتحديث اليوم بالفعل!
+              canIncrement = false;
             }
           }
 
-          // الشرط الذهبي: نزيد العداد فقط إذا لم نحدث اليوم + لم نصل للهدف بعد
-          if (canIncrement && currentdays < targetSteps) {
-            int newSteps = currentdays + 1;
-
+          if (canIncrement && currentSteps < targetSteps) {
+            int newSteps = currentSteps + 1;
             transaction.set(challengeRef, {
               'currentSteps': newSteps,
-              'lastUpdated': FieldValue.serverTimestamp(), // نسجل وقت اللحظة الحالية
+              'lastUpdated': FieldValue.serverTimestamp(),
             }, SetOptions(merge: true));
 
-            // التحقق من الفوز وإعطاء الجائزة الكبرى
             if (newSteps == targetSteps) {
               transaction.update(userRef, {
                 'totalPoints': FieldValue.increment(bigReward),
@@ -189,7 +164,6 @@ class HometaskCubit extends Cubit<HometaskState> {
       emit(HomeError("فشل تحديث المهمة: $e"));
     }
   }
-  
 
   @override
   Future<void> close() {
