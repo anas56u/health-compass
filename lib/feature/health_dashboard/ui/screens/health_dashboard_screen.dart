@@ -1,20 +1,16 @@
-import 'dart:io';
-import 'dart:math'; // إضافة مهمة لحساب Max/Min
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:health_compass/feature/health_dashboard/models/health_data_model.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:open_file/open_file.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart' as intl;
 
-// تأكد من المسارات الصحيحة لديك
+// تأكد من استيراد الموديلات والكيوبت والخدمة بشكل صحيح
+import 'package:health_compass/feature/health_dashboard/models/health_data_model.dart';
 import 'package:health_compass/feature/health_dashboard/logic/health_dashboard_cubit.dart';
 import 'package:health_compass/feature/home/presentation/PatientView_body.dart';
+import 'package:pdf/pdf.dart';
 
 class HealthDashboardScreen extends StatefulWidget {
   const HealthDashboardScreen({super.key});
@@ -27,279 +23,38 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
     with SingleTickerProviderStateMixin {
   final Color _primaryColor = const Color(0xFF0D9488);
   final Color _bgColor = const Color(0xFFF8FAFC);
-
-  // للتحكم في التمرير التلقائي عند الضغط على البطاقات
   final ScrollController _scrollController = ScrollController();
 
-  bool _isWeekly = true;
+  bool _isWeekly = true; // يمكن ربطها بالكيوبت لاحقاً
   int _selectedChartIndex = 0;
-  int _selectedDateIndex = 6; // افتراضياً نختار "اليوم"
+  int _selectedDateIndex = 6; // افتراضياً اليوم
 
-  // --- دوال المنطق ---
-  String _getSugarStatus(int value) => value == 0
-      ? "--"
-      : (value > 140 ? "مرتفع" : (value < 70 ? "منخفض" : "طبيعي"));
+  // --- دوال مساعدة للعرض ---
+  String _getSugarStatus(int value) =>
+      value == 0 ? "--" : (value > 140 ? "مرتفع" : "طبيعي");
 
-  String _getHeartStatus(int value) => value == 0
-      ? "--"
-      : (value > 100 ? "تسارع" : (value < 60 ? "تباطؤ" : "طبيعي"));
+  String _getHeartStatus(int value) =>
+      value == 0 ? "--" : (value > 100 ? "تسارع" : "طبيعي");
 
-  // --- دالة التفعيل والتركيز التلقائي ---
+  // --- تفعيل الرسم البياني والتركيز عليه ---
   void _activateChartFor(int index) {
-    setState(() {
-      _selectedChartIndex = index;
-    });
-    // تمرير سلس نحو الرسم البياني
+    setState(() => _selectedChartIndex = index);
+    // التمرير التلقائي لمكان الرسم البياني (بشكل نسبي لارتفاع الشاشة)
     if (_scrollController.hasClients) {
+      final screenHeight = MediaQuery.of(context).size.height;
       _scrollController.animateTo(
-        400, // موقع تقريبي للرسم البياني
+        screenHeight * 0.45, // تقريباً منتصف الصفحة
         duration: const Duration(milliseconds: 600),
         curve: Curves.easeInOut,
       );
     }
   }
 
-  // --- دالة PDF ---
-  Future<void> _generateAndDownloadPdf(HealthDataModel data) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => const Center(child: CircularProgressIndicator()),
-    );
-
-    try {
-      final imageBytes = await rootBundle.load('assets/images/logo.jpeg');
-      final logoImage = pw.MemoryImage(imageBytes.buffer.asUint8List());
-
-      final pdf = pw.Document();
-      final PdfColor pdfPrimary = PdfColor.fromInt(0xFF0D9488);
-      final PdfColor pdfTextSecondary = PdfColors.grey700;
-      final heartStatus = _getHeartStatus(data.heartRate.toInt());
-      final sugarStatus = _getSugarStatus(data.sugar);
-
-      pdf.addPage(
-        pw.MultiPage(
-          pageTheme: pw.PageTheme(
-            margin: const pw.EdgeInsets.all(40),
-            theme: pw.ThemeData.withFont(
-              base: pw.Font.helvetica(),
-              bold: pw.Font.helveticaBold(),
-            ),
-          ),
-          header: (context) =>
-              _buildPdfHeader(pdfPrimary, pdfTextSecondary, logoImage),
-          footer: (context) => _buildPdfFooter(context, pdfPrimary),
-          build: (pw.Context context) {
-            return [
-              pw.SizedBox(height: 20),
-              pw.Container(
-                padding: const pw.EdgeInsets.all(15),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.grey100,
-                  borderRadius: pw.BorderRadius.circular(8),
-                  border: pw.Border.all(color: PdfColors.grey300),
-                ),
-                child: pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildPatientInfoItem(
-                      "Patient Name",
-                      "User Name",
-                      pdfPrimary,
-                    ),
-                    _buildPatientInfoItem("ID", "#892301", pdfPrimary),
-                    _buildPatientInfoItem("Age", "24 Years", pdfPrimary),
-                    _buildPatientInfoItem("Gender", "Male", pdfPrimary),
-                  ],
-                ),
-              ),
-              pw.SizedBox(height: 30),
-              pw.Text(
-                "Vital Signs Summary",
-                style: pw.TextStyle(
-                  fontSize: 18,
-                  fontWeight: pw.FontWeight.bold,
-                  color: pdfPrimary,
-                ),
-              ),
-              pw.Divider(color: pdfPrimary, thickness: 2),
-              pw.SizedBox(height: 15),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildPdfVitalCard(
-                    "Heart Rate",
-                    "${data.heartRate.toInt()}",
-                    "bpm",
-                    heartStatus,
-                    pdfPrimary,
-                  ),
-                  pw.SizedBox(width: 15),
-                  _buildPdfVitalCard(
-                    "Blood Pressure",
-                    data.bloodPressure.isEmpty ? "--/--" : data.bloodPressure,
-                    "mmHG",
-                    "Normal",
-                    pdfPrimary,
-                  ),
-                ],
-              ),
-              pw.SizedBox(height: 15),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildPdfVitalCard(
-                    "Blood Sugar",
-                    "${data.sugar}",
-                    "mg/dL",
-                    sugarStatus,
-                    PdfColors.orange700,
-                  ),
-                  pw.SizedBox(width: 15),
-                  _buildPdfVitalCard(
-                    "Weight",
-                    "${data.weight}",
-                    "kg",
-                    "Stable",
-                    PdfColors.brown700,
-                  ),
-                ],
-              ),
-              pw.SizedBox(height: 20),
-              pw.Container(
-                width: double.infinity,
-                padding: const pw.EdgeInsets.all(15),
-                decoration: pw.BoxDecoration(
-                  color: PdfColor.fromInt(0xFF10B981).withOpacity(0.1),
-                  borderRadius: pw.BorderRadius.circular(8),
-                  border: pw.Border.all(color: PdfColor.fromInt(0xFF10B981)),
-                ),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(
-                      "Daleel AI Insights",
-                      style: pw.TextStyle(
-                        color: PdfColor.fromInt(0xFF10B981),
-                        fontWeight: pw.FontWeight.bold,
-                      ),
-                    ),
-                    pw.SizedBox(height: 5),
-                    pw.Text(
-                      "Patient shows good commitment. Keep up the good work!",
-                      style: const pw.TextStyle(fontSize: 10),
-                    ),
-                  ],
-                ),
-              ),
-            ];
-          },
-        ),
-      );
-
-      final output = await getTemporaryDirectory();
-      final file = File("${output.path}/medical_report.pdf");
-      await file.writeAsBytes(await pdf.save());
-
-      if (mounted) Navigator.pop(context);
-      await OpenFile.open(file.path);
-    } catch (e) {
-      if (mounted) Navigator.pop(context);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error: $e")));
-    }
-  }
-
-  // --- مكونات PDF المساعدة ---
-  pw.Widget _buildPdfHeader(
-    PdfColor primary,
-    PdfColor secondary,
-    pw.ImageProvider logo,
-  ) {
-    return pw.Row(
-      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-      children: [
-        pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text(
-              "HEALTH COMPASS",
-              style: pw.TextStyle(
-                color: primary,
-                fontWeight: pw.FontWeight.bold,
-                fontSize: 24,
-              ),
-            ),
-            pw.Text(
-              "Comprehensive Medical Report",
-              style: pw.TextStyle(color: secondary, fontSize: 10),
-            ),
-          ],
-        ),
-        pw.Container(height: 50, width: 50, child: pw.Image(logo)),
-      ],
-    );
-  }
-
-  pw.Widget _buildPdfFooter(pw.Context context, PdfColor primary) =>
-      pw.Footer(title: pw.Text("Page ${context.pageNumber}"));
-
-  pw.Widget _buildPatientInfoItem(String label, String value, PdfColor color) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-          label,
-          style: const pw.TextStyle(color: PdfColors.grey600, fontSize: 9),
-        ),
-        pw.Text(
-          value,
-          style: pw.TextStyle(
-            color: PdfColors.black,
-            fontWeight: pw.FontWeight.bold,
-            fontSize: 11,
-          ),
-        ),
-      ],
-    );
-  }
-
-  pw.Widget _buildPdfVitalCard(
-    String title,
-    String value,
-    String unit,
-    String status,
-    PdfColor color,
-  ) {
-    return pw.Expanded(
-      child: pw.Container(
-        padding: const pw.EdgeInsets.all(12),
-        decoration: pw.BoxDecoration(
-          border: pw.Border.all(color: color.withOpacity(0.3)),
-          borderRadius: pw.BorderRadius.circular(8),
-        ),
-        child: pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text(
-              title,
-              style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
-            ),
-            pw.Text(
-              value,
-              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.Text(status, style: pw.TextStyle(fontSize: 10, color: color)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // --- بناء الشاشة ---
   @override
   Widget build(BuildContext context) {
+    // استخدام MediaQuery للأبعاد النسبية
+    final size = MediaQuery.of(context).size;
+
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent),
     );
@@ -315,7 +70,6 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
               body: RefreshIndicator(
                 onRefresh: () async {
                   context.read<HealthDashboardCubit>().initDashboard();
-                  await Future.delayed(const Duration(seconds: 1));
                 },
                 color: _primaryColor,
                 child: BlocBuilder<HealthDashboardCubit, HealthDashboardState>(
@@ -324,17 +78,17 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                       return const Center(child: CircularProgressIndicator());
                     }
                     if (state is HealthDashboardError) {
-                      return Center(child: Text("حدث خطأ: ${state.message}"));
+                      return Center(child: Text("خطأ: ${state.message}"));
                     }
 
                     if (state is HealthDashboardLoaded) {
-                      // التحقق من وجود بيانات (لإظهار الحالة الفارغة عند الحاجة)
+                      // التحقق من فراغ البيانات لعرض الـ Empty State
                       bool isEmptyData =
                           state.latestData.heartRate == 0 &&
                           state.latestData.sugar == 0;
 
                       return CustomScrollView(
-                        controller: _scrollController, // ✅ ربط المتحكم بالتمرير
+                        controller: _scrollController,
                         physics: const BouncingScrollPhysics(
                           parent: AlwaysScrollableScrollPhysics(),
                         ),
@@ -354,14 +108,14 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const SizedBox(height: 25),
-                                  // 1. شريط التاريخ التفاعلي
+                                  // 1. شريط التاريخ
                                   _buildFadeIn(
                                     child: _buildRealDateTimeline(),
                                     delay: 100,
                                   ),
                                   const SizedBox(height: 25),
 
-                                  // 2. بطاقة الإنجاز (تفاعلية الآن)
+                                  // 2. بطاقة الإنجاز (أصبحت تفاعلية الآن)
                                   _buildFadeIn(
                                     child: _buildDailyProgressCard(
                                       state.completedTasks,
@@ -383,7 +137,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                             ),
                           ),
 
-                          // 3. الشبكة أو حالة "لا توجد بيانات"
+                          // 3. شبكة البيانات الحيوية
                           isEmptyData
                               ? SliverToBoxAdapter(
                                   child: _buildEmptyStateWidget(),
@@ -399,11 +153,17 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const SizedBox(height: 30),
-                                  // 4. الرسم البياني (يظهر دائماً لكن مع رسالة إذا فارغ)
-                                  _buildSectionTitle("التحليل البياني"),
-                                  const SizedBox(height: 15),
-                                  _buildMultiChartSection(state.historyData),
-                                  const SizedBox(height: 30),
+                                  // 4. الرسم البياني (يظهر فقط عند وجود بيانات)
+                                  if (!isEmptyData) ...[
+                                    _buildSectionTitle("التحليل البياني"),
+                                    const SizedBox(height: 15),
+                                    // نمرر الارتفاع النسبي للرسم البياني
+                                    _buildMultiChartSection(
+                                      state.historyData,
+                                      height: size.height * 0.45,
+                                    ),
+                                    const SizedBox(height: 30),
+                                  ],
 
                                   _buildInsightBanner(),
                                   const SizedBox(height: 100),
@@ -493,7 +253,12 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
             child: Icon(Icons.picture_as_pdf_rounded, color: Colors.white),
           ),
           tooltip: "تحميل التقرير",
-          onPressed: () => _generateAndDownloadPdf(data),
+          onPressed: () {
+            // PdfService.generateAndOpen(data);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("تأكد من تفعيل PdfService")),
+            );
+          },
         ),
         const SizedBox(width: 8),
       ],
@@ -514,14 +279,6 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
               right: -50,
               child: CircleAvatar(
                 radius: 150,
-                backgroundColor: Colors.white.withOpacity(0.05),
-              ),
-            ),
-            Positioned(
-              bottom: 50,
-              left: -30,
-              child: CircleAvatar(
-                radius: 80,
                 backgroundColor: Colors.white.withOpacity(0.05),
               ),
             ),
@@ -569,6 +326,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                     ],
                   ),
                   const SizedBox(height: 20),
+                  // أزرار التبديل (أسبوعي/شهري)
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
@@ -578,8 +336,9 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _buildHeaderTabButton("أسبوعي", true),
-                        _buildHeaderTabButton("شهري", false),
+                        // ✅ نمرر الـ context هنا
+                        _buildHeaderTabButton(context, "أسبوعي", true),
+                        _buildHeaderTabButton(context, "شهري", false),
                       ],
                     ),
                   ),
@@ -592,11 +351,19 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
     );
   }
 
-  Widget _buildHeaderTabButton(String text, bool isWeeklyBtn) {
+  // ✅ أضفنا (BuildContext context) هنا
+  Widget _buildHeaderTabButton(
+    BuildContext context,
+    String text,
+    bool isWeeklyBtn,
+  ) {
     bool isSelected = _isWeekly == isWeeklyBtn;
+
     return GestureDetector(
       onTap: () {
-        // يمكن ربط هذا لاحقاً لتغيير المجال الزمني
+        setState(() => _isWeekly = isWeeklyBtn);
+        // ✅ الآن نستخدم الـ context الصحيح الممرر للدالة
+        context.read<HealthDashboardCubit>().toggleViewMode(isWeeklyBtn);
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
@@ -617,18 +384,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: GoogleFonts.cairo(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: Colors.black87,
-      ),
-    );
-  }
-
-  // ✅ شريط التاريخ التفاعلي (Interactive Timeline)
+  //  الشريط الزمني التفاعلي
   Widget _buildRealDateTimeline() {
     return SizedBox(
       height: 85,
@@ -646,7 +402,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
           return InkWell(
             onTap: () {
               setState(() => _selectedDateIndex = index);
-              // ✅ استدعاء الكيوبت لجلب بيانات هذا التاريخ
+              //  استخدم الـ context القادم من itemBuilder
               context.read<HealthDashboardCubit>().changeSelectedDate(date);
             },
             borderRadius: BorderRadius.circular(18),
@@ -698,54 +454,106 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
     );
   }
 
-  Widget _buildInsightBanner() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFECFDF5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            backgroundColor: Colors.white,
-            radius: 18,
-            child: Icon(
-              Icons.auto_graph_rounded,
-              color: Color(0xFF10B981),
-              size: 20,
+  //  بطاقة الإنجاز (تفاعلية)
+  Widget _buildDailyProgressCard(int completed, int total) {
+    double progress = total == 0 ? 0 : completed / total;
+    bool isFull = progress >= 1.0;
+
+    return InkWell(
+      onTap: () {
+        // يمكنك هنا الانتقال لصفحة المهام: Navigator.push...
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 500),
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: isFull
+              ? const LinearGradient(
+                  colors: [Color(0xFFFFD700), Color(0xFFFFA000)],
+                ) // ذهبي
+              : const LinearGradient(
+                  colors: [Color(0xFF1E293B), Color(0xFF334155)],
+                ), // كحلي
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: isFull
+                  ? Colors.amber.withOpacity(0.4)
+                  : const Color(0xFF1E293B).withOpacity(0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          ],
+        ),
+        child: Row(
+          children: [
+            Stack(
+              alignment: Alignment.center,
               children: [
-                Text(
-                  "تحسن ملحوظ!",
-                  style: GoogleFonts.cairo(
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF065F46),
-                    fontSize: 14,
+                SizedBox(
+                  width: 60,
+                  height: 60,
+                  child: CircularProgressIndicator(
+                    value: progress,
+                    strokeWidth: 6,
+                    backgroundColor: Colors.white24,
+                    valueColor: AlwaysStoppedAnimation(
+                      isFull ? Colors.white : const Color(0xFF2DD4BF),
+                    ),
                   ),
                 ),
-                Text(
-                  "أداؤك أفضل بنسبة 12% مقارنة بالأسبوع الماضي.",
-                  style: GoogleFonts.cairo(
-                    color: const Color(0xFF047857),
-                    fontSize: 11,
+                if (isFull)
+                  const Icon(Icons.emoji_events, color: Colors.white, size: 30)
+                else
+                  Text(
+                    "${(progress * 100).toInt()}%",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isFull ? "أنت أسطورة!" : "تحدي اليوم",
+                    style: GoogleFonts.cairo(
+                      color: isFull ? Colors.black87 : Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isFull
+                        ? "أتممت جميع المهام بنجاح 🎉"
+                        : "أكملت $completed من أصل $total مهام",
+                    style: GoogleFonts.cairo(
+                      color: isFull ? Colors.black54 : Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.white54,
+              size: 16,
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // --- Grid & Cards ---
+  //  شبكة العلامات الحيوية (تفاعلية)
   Widget _buildVitalSignsGrid(HealthDataModel data) {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -763,7 +571,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
               status: _getHeartStatus(data.heartRate.toInt()),
               color: const Color(0xFFEF4444),
               icon: Icons.favorite_rounded,
-              onTap: () => _activateChartFor(2), // تفعيل القلب
+              onTap: () => _activateChartFor(2), // تفعيل رسم القلب
             ),
             delay: 400,
           ),
@@ -775,7 +583,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
               status: "طبيعي",
               color: _primaryColor,
               icon: Icons.compress_rounded,
-              onTap: () => _activateChartFor(1), // تفعيل الضغط
+              onTap: () => _activateChartFor(1), // تفعيل رسم الضغط
             ),
             delay: 500,
           ),
@@ -787,7 +595,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
               status: _getSugarStatus(data.sugar),
               color: const Color(0xFFF59E0B),
               icon: Icons.water_drop_rounded,
-              onTap: () => _activateChartFor(0), // تفعيل السكر
+              onTap: () => _activateChartFor(0), // تفعيل رسم السكر
             ),
             delay: 600,
           ),
@@ -909,82 +717,69 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
     );
   }
 
-  // --- Charts Section (Fix Applied: Filter Zeros) ---
-  Widget _buildMultiChartSection(List<HealthDataModel> history) {
-    const int daysCount = 7;
+  // --- الرسم البياني الذكي
+  Widget _buildMultiChartSection(
+    List<HealthDataModel> history, {
+    required double height,
+  }) {
+    // 1. تحديد النطاق بناءً على الاختيار (أسبوعي أم شهري)
+    final int daysCount = _isWeekly ? 7 : 30;
+
     List<FlSpot> spots = [];
     List<double> dailyValues = List.filled(daysCount, 0.0);
     DateTime toDateOnly(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
     final today = toDateOnly(DateTime.now());
 
-    // 1. توزيع البيانات
+    // 2. توزيع البيانات
     for (var item in history) {
       final itemDate = toDateOnly(item.date);
       final difference = today.difference(itemDate).inDays;
+
       if (difference >= 0 && difference < daysCount) {
+        // المعادلة العامة: (آخر اندكس - الفرق)
         int index = (daysCount - 1) - difference;
+
         double val = 0.0;
         if (_selectedChartIndex == 0)
           val = item.sugar.toDouble();
         else if (_selectedChartIndex == 2)
           val = item.heartRate;
-        else if (_selectedChartIndex == 1) {
-          try {
-            if (item.bloodPressure.contains('/'))
-              val = double.parse(item.bloodPressure.split('/')[0]);
-            else
-              val = double.tryParse(item.bloodPressure) ?? 0;
-          } catch (_) {
-            val = 0;
-          }
-        }
+        else if (_selectedChartIndex == 1)
+          val = item.systolic.toDouble();
+
+        // نأخذ القيمة الأحدث إذا تكررت التواريخ
         if (dailyValues[index] == 0) dailyValues[index] = val;
       }
     }
 
-    // 2. تحويل القيم إلى نقاط (مع تجاهل الأصفار لإصلاح الرسم)
+    // 3. إنشاء النقاط
     for (int i = 0; i < daysCount; i++) {
       if (dailyValues[i] > 0) {
-        // ✅ الفلتر السحري
         spots.add(FlSpot(i.toDouble(), dailyValues[i]));
       }
     }
 
-    // إذا لم تكن هناك نقاط، نضع نقطة وهمية لتجنب الانهيار أو نعرض واجهة "فارغة"
     if (spots.isEmpty) {
       return Container(
-        height: 400,
+        height: height > 400 ? 400 : height,
         alignment: Alignment.center,
-        margin: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.bar_chart_rounded,
-              size: 60,
-              color: Colors.grey.shade300,
-            ),
-            Text(
-              "لا توجد بيانات كافية للرسم",
-              style: GoogleFonts.cairo(color: Colors.grey),
-            ),
-          ],
+        child: Text(
+          "لا توجد بيانات كافية للرسم",
+          style: GoogleFonts.cairo(color: Colors.grey),
         ),
       );
     }
 
-    // حساب الحدود الدنيا والعليا
+    // حساب الحدود
     double maxY = spots.map((e) => e.y).reduce(max);
     double minY = spots.map((e) => e.y).reduce(min);
-
     double graphMin = (minY - 10) < 0 ? 0 : (minY - 10);
     double graphMax = maxY + 10;
-    if (graphMax == graphMin)
-      graphMax += 10; // تجنب أن يكون الحد الأدنى يساوي الأعلى
+    if (graphMax == graphMin) graphMax += 10;
 
     Color activeColor = _selectedChartIndex == 0
         ? Colors.orange
@@ -993,7 +788,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
         : Colors.redAccent;
 
     return Container(
-      height: 400,
+      height: height > 500 ? 500 : height,
       padding: const EdgeInsets.fromLTRB(10, 20, 20, 10),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -1025,9 +820,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
               LineChartData(
                 lineTouchData: LineTouchData(
                   touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (_) => Colors.blueGrey.withOpacity(
-                      0.9,
-                    ), // ✅ تم استخدام getTooltipColor الصحيح
+                    getTooltipColor: (_) => Colors.blueGrey.withOpacity(0.9),
                     getTooltipItems: (touchedSpots) => touchedSpots
                         .map(
                           (spot) => LineTooltipItem(
@@ -1067,24 +860,28 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 32,
-                      interval: 1,
+                      // ✅ في الوضع الشهري: نعرض تاريخ كل 5 أيام لتجنب الزحام
+                      interval: _isWeekly ? 1 : 5,
                       getTitlesWidget: (value, meta) {
                         int index = value.toInt();
-                        if (index >= 0 && index < 7) {
+                        if (index >= 0 && index < daysCount) {
                           final date = DateTime.now().subtract(
-                            Duration(days: 6 - index),
+                            Duration(days: (daysCount - 1) - index),
                           );
-                          final dayName = intl.DateFormat(
-                            'E',
-                            'ar',
-                          ).format(date);
+                          // ✅ تنسيق التاريخ يختلف حسب الوضع
+                          final text = _isWeekly
+                              ? intl.DateFormat('E', 'ar').format(
+                                  date,
+                                ) // سبت، أحد
+                              : intl.DateFormat('d/M').format(date); // 12/1
+
                           return Padding(
                             padding: const EdgeInsets.only(top: 10),
                             child: Text(
-                              dayName,
+                              text,
                               style: GoogleFonts.cairo(
                                 color: Colors.grey.shade600,
-                                fontSize: 11,
+                                fontSize: 10,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -1105,10 +902,10 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                     barWidth: 4,
                     isStrokeCapRound: true,
                     dotData: FlDotData(
-                      show: true,
+                      show: _isWeekly,
                       getDotPainter: (spot, percent, barData, index) =>
                           FlDotCirclePainter(
-                            radius: 5,
+                            radius: 4,
                             color: Colors.white,
                             strokeWidth: 3,
                             strokeColor: activeColor,
@@ -1128,7 +925,8 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                   ),
                 ],
                 minX: 0,
-                maxX: 6,
+                maxX: (daysCount - 1)
+                    .toDouble(), // ✅ الحد الأقصى ديناميكي (6 أو 29)
                 minY: graphMin,
                 maxY: graphMax,
               ),
@@ -1141,7 +939,6 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
     );
   }
 
-  // ✅ الدالة المفقودة تمت إعادتها
   Widget _buildChartTab(String title, int index, Color color) {
     bool isSelected = _selectedChartIndex == index;
     return GestureDetector(
@@ -1166,99 +963,58 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
     );
   }
 
-  Widget _buildDailyProgressCard(int completed, int total) {
-    double progress = total == 0 ? 0 : completed / total;
-    bool isFull = progress >= 1.0;
+  Widget _buildSectionTitle(String title) => Text(
+    title,
+    style: GoogleFonts.cairo(
+      fontSize: 18,
+      fontWeight: FontWeight.bold,
+      color: Colors.black87,
+    ),
+  );
 
-    return InkWell(
-      onTap: () {
-        // يمكنك هنا وضع التنقل لصفحة المهام
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 500),
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: isFull
-              ? const LinearGradient(
-                  colors: [Color(0xFFFFD700), Color(0xFFFFA000)],
-                )
-              : const LinearGradient(
-                  colors: [Color(0xFF1E293B), Color(0xFF334155)],
-                ),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: isFull
-                  ? Colors.amber.withOpacity(0.4)
-                  : const Color(0xFF1E293B).withOpacity(0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
+  Widget _buildInsightBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFECFDF5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          const CircleAvatar(
+            backgroundColor: Colors.white,
+            radius: 18,
+            child: Icon(
+              Icons.auto_graph_rounded,
+              color: Color(0xFF10B981),
+              size: 20,
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Stack(
-              alignment: Alignment.center,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  width: 60,
-                  height: 60,
-                  child: CircularProgressIndicator(
-                    value: progress,
-                    strokeWidth: 6,
-                    backgroundColor: Colors.white24,
-                    valueColor: AlwaysStoppedAnimation(
-                      isFull ? Colors.white : const Color(0xFF2DD4BF),
-                    ),
+                Text(
+                  "تحسن ملحوظ!",
+                  style: GoogleFonts.cairo(
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF065F46),
+                    fontSize: 14,
                   ),
                 ),
-                if (isFull)
-                  const Icon(Icons.emoji_events, color: Colors.white, size: 30)
-                else
-                  Text(
-                    "${(progress * 100).toInt()}%",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+                Text(
+                  "أداؤك أفضل بنسبة 12% مقارنة بالأسبوع الماضي.",
+                  style: GoogleFonts.cairo(
+                    color: const Color(0xFF047857),
+                    fontSize: 11,
                   ),
+                ),
               ],
             ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isFull ? "أنت أسطورة!" : "تحدي اليوم",
-                    style: GoogleFonts.cairo(
-                      color: isFull ? Colors.black87 : Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    isFull
-                        ? "أتممت جميع المهام بنجاح 🎉"
-                        : "أكملت $completed من أصل $total مهام",
-                    style: GoogleFonts.cairo(
-                      color: isFull ? Colors.black54 : Colors.white70,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.arrow_forward_ios_rounded,
-              color: Colors.white54,
-              size: 16,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

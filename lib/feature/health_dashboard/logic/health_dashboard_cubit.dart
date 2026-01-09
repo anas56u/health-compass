@@ -18,30 +18,23 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
   List<HealthDataModel> _cachedHistory = [];
   List<TaskModel> _cachedTasks = [];
   DateTime _currentSelectedDate = DateTime.now();
-
-  // ✅ متغير لتتبع الوضع الحالي (افتراضياً أسبوعي)
   bool _isWeeklyView = true;
 
   void initDashboard() {
     _currentSelectedDate = DateTime.now();
-    _fetchHealthHistory(); // سيستخدم القيمة الافتراضية (أسبوعي)
+    _fetchHealthHistory();
     _listenToTasksForDate(_currentSelectedDate);
   }
 
-  // ✅ دالة جديدة: التبديل بين أسبوعي وشهري
   void toggleViewMode(bool isWeekly) {
-    if (_isWeeklyView == isWeekly) return; // لا تفعل شيئاً إذا لم يتغير الوضع
-
+    if (_isWeeklyView == isWeekly) return;
     _isWeeklyView = isWeekly;
-    emit(HealthDashboardLoading()); // إظهار تحميل أثناء جلب البيانات الجديدة
-
-    // إعادة جلب السجل بالعدد الجديد (7 أو 30)
+    emit(HealthDashboardLoading());
     _fetchHealthHistory();
   }
 
   void changeSelectedDate(DateTime date) {
     _currentSelectedDate = date;
-    // عند تغيير التاريخ، لا نحتاج لإعادة جلب السجل الصحي كاملاً، فقط نحدث الواجهة
     _listenToTasksForDate(date);
     _emitUpdatedState();
   }
@@ -50,9 +43,7 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
-    _healthSubscription?.cancel(); // إلغاء الاشتراك القديم
-
-    // ✅ تحديد عدد الأيام بناءً على الوضع المختار
+    _healthSubscription?.cancel();
     final int limit = _isWeeklyView ? 7 : 30;
 
     _healthSubscription = _firestore
@@ -60,7 +51,7 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
         .doc(uid)
         .collection('health_readings')
         .orderBy('timestamp', descending: true)
-        .limit(limit) // ✅ جلب 7 أو 30 قراءة
+        .limit(limit)
         .snapshots()
         .listen((snapshot) {
           _cachedHistory = snapshot.docs
@@ -68,18 +59,18 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
               .toList()
               .reversed
               .toList();
-
           _emitUpdatedState();
         }, onError: (e) => emit(HealthDashboardError(e.toString())));
   }
 
-  // ... (دالة _listenToTasksForDate تبقى كما هي) ...
   void _listenToTasksForDate(DateTime date) {
-    // (نفس الكود السابق تماماً)
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
+
     _tasksSubscription?.cancel();
+    // استخدام تنسيق ISO للتاريخ لضمان تطابقه مع التخزين
     final dateString = date.toIso8601String().split('T')[0];
+
     _tasksSubscription = _firestore
         .collection('users')
         .doc(uid)
@@ -96,9 +87,11 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
   }
 
   void _emitUpdatedState() {
+    // 1. البحث عن القراءة الصحية
     HealthDataModel displayData;
     try {
       displayData = _cachedHistory.firstWhere((element) {
+        // مقارنة السنة والشهر واليوم فقط
         return element.date.year == _currentSelectedDate.year &&
             element.date.month == _currentSelectedDate.month &&
             element.date.day == _currentSelectedDate.day;
@@ -107,32 +100,35 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
       displayData = HealthDataModel(
         heartRate: 0,
         sugar: 0,
-        bloodPressure: "",
+        systolic: 0,
+        diastolic: 0,
         weight: 0,
         date: _currentSelectedDate,
       );
     }
 
-    const int fixedTotalTasks = 3;
+    // 2. ✅ حساب المهام ديناميكياً (إصلاح المنطق)
+    final int totalTasks = _cachedTasks.length; // لم يعد 3 ثابتاً
     final int completedCount = _cachedTasks.where((t) => t.isCompleted).length;
-    double percentage = fixedTotalTasks > 0
-        ? completedCount / fixedTotalTasks
-        : 0.0;
+
+    double percentage = 0.0;
+    if (totalTasks > 0) {
+      percentage = completedCount / totalTasks;
+    }
 
     emit(
       HealthDashboardLoaded(
         latestData: displayData,
         historyData: _cachedHistory,
         commitmentPercentage: percentage,
-        totalTasks: fixedTotalTasks,
+        totalTasks: totalTasks, // نرسل العدد الحقيقي
         completedTasks: completedCount,
         selectedDate: _currentSelectedDate,
-        isWeekly: _isWeeklyView, // ✅ تمرير الحالة للواجهة
+        isWeekly: _isWeeklyView,
       ),
     );
   }
 
-  // ... (close تبقى كما هي) ...
   @override
   Future<void> close() {
     _healthSubscription?.cancel();

@@ -1,6 +1,8 @@
 part of 'health_dashboard_cubit.dart';
 
-abstract class HealthDashboardState {}
+abstract class HealthDashboardState {
+  const HealthDashboardState();
+}
 
 class HealthDashboardInitial extends HealthDashboardState {}
 
@@ -13,20 +15,36 @@ class HealthDashboardLoaded extends HealthDashboardState {
   final int totalTasks;
   final int completedTasks;
   final DateTime selectedDate;
-  final bool isWeekly; // ✅ الإضافة الجديدة: هل العرض أسبوعي؟
+  final bool isWeekly;
 
-  HealthDashboardLoaded({
+  const HealthDashboardLoaded({
     required this.latestData,
     required this.historyData,
     required this.commitmentPercentage,
     required this.totalTasks,
     required this.completedTasks,
     required this.selectedDate,
-    required this.isWeekly, // مطلوب الآن
+    required this.isWeekly,
   });
+
+  // ✅ تحسين الأداء: مقارنة القيم لمنع التحديثات العشوائية
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is HealthDashboardLoaded &&
+        other.latestData == latestData &&
+        other.commitmentPercentage == commitmentPercentage &&
+        other.selectedDate == selectedDate &&
+        other.isWeekly == isWeekly &&
+        other.historyData.length == historyData.length; // مقارنة سريعة للطول
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(latestData, commitmentPercentage, selectedDate, isWeekly);
 }
 
 class HealthDashboardError extends HealthDashboardState {
   final String message;
-  HealthDashboardError(this.message);
+  const HealthDashboardError(this.message);
 }

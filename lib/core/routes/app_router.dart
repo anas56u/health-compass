@@ -15,6 +15,7 @@ import 'package:health_compass/feature/auth/presentation/screen/user_type.dart';
 import 'package:health_compass/feature/auth/presentation/screen/patient_info.dart';
 import 'package:health_compass/feature/auth/presentation/screen/doctor_info.dart';
 import 'package:health_compass/feature/auth/presentation/screen/family_member_info.dart';
+import 'package:health_compass/feature/chatbot/ui/screens/chat_bot_screen.dart';
 import 'package:health_compass/feature/family_invite/family_invite.dart';
 import 'package:health_compass/feature/health_dashboard/ui/screens/health_dashboard_screen.dart';
 import 'package:health_compass/feature/home/presentation/PatientView_body.dart';
@@ -98,9 +99,10 @@ class AppRouter {
       case AppRoutes.chatScreen:
         return MaterialPageRoute(builder: (_) => const ChatScreen());
 
-      // --- ✅ إضافة المسار الجديد هنا ---
       case AppRoutes.healthDashboard:
         return MaterialPageRoute(builder: (_) => const HealthDashboardScreen());
+      case AppRoutes.chatBot:
+        return MaterialPageRoute(builder: (_) => const ChatBotScreen());
 
       default:
         return MaterialPageRoute(

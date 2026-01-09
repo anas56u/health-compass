@@ -14,7 +14,7 @@ class AccessibilityFacilities extends StatelessWidget {
         'icon': Icons.location_on_rounded,
         'label': 'تواصل مع طبيبك',
         'color': Colors.blue, // لون مميز
-        'route': null,
+        'route': AppRoutes.doctorContact,
       },
       {
         'icon': Icons.watch_later_rounded,
