@@ -13,7 +13,7 @@ import 'package:health_compass/feature/achievements/preesntation/screens/achieve
 import 'package:health_compass/feature/auth/presentation/screen/login_page.dart';
 import 'package:health_compass/feature/chatbot/ui/screens/chat_bot_screen.dart';
 import 'package:health_compass/feature/family_invite/family_invite.dart';
-import 'package:health_compass/feature/medications/pages/medications_page.dart';
+import 'package:health_compass/feature/medications/pages/medications_page_firebase.dart';
 
 class Patientview_body extends StatefulWidget {
   const Patientview_body({super.key});
@@ -24,12 +24,12 @@ class Patientview_body extends StatefulWidget {
 
 class _Patientview_bodyState extends State<Patientview_body> {
   int _selectedIndex = 0;
-  final Color _backgroundColor = const Color(0xFFF9FAFB); 
+  final Color _backgroundColor = const Color(0xFFF9FAFB);
 
   final List<Widget> _pages = [
     const HomeContent(),
-    const MedicationsPage(),
-   const FamilyInvitePage(),
+    const MedicationsPageFirebase(),
+    const FamilyInvitePage(),
     const SizedBox(),
     const AchievementsPage(),
   ];
@@ -39,7 +39,6 @@ class _Patientview_bodyState extends State<Patientview_body> {
       _selectedIndex = index;
     });
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -51,8 +50,6 @@ class _Patientview_bodyState extends State<Patientview_body> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: _backgroundColor,
-
-        
 
         bottomNavigationBar: BottomNavBar(
           currentIndex: _selectedIndex,
