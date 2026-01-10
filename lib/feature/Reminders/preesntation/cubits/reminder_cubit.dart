@@ -3,14 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive/hive.dart';
 import 'package:health_compass/feature/Reminders/data/model/reminders_model.dart';
 import 'package:health_compass/feature/Reminders/preesntation/cubits/RemindersState.dart';
-import 'package:health_compass/core/servaces/notification_service.dart';
+import 'package:health_compass/core/services/notification_service.dart';
 
 class RemindersCubit extends Cubit<RemindersState> {
   final Box<ReminderModel> reminderBox;
   final NotificationService notificationService;
 
   RemindersCubit(this.reminderBox, this.notificationService)
-      : super(RemindersInitial()) {
+    : super(RemindersInitial()) {
     loadReminders();
   }
 
@@ -19,7 +19,7 @@ class RemindersCubit extends Cubit<RemindersState> {
     emit(RemindersLoaded(reminders));
 
     for (var reminder in reminders) {
-    await  notificationService.scheduleAnnoyingReminder(
+      await notificationService.scheduleAnnoyingReminder(
         id: reminder.notificationId,
         title: reminder.title,
         body: reminder.details,

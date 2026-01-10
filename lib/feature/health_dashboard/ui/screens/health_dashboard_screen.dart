@@ -5,12 +5,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart' as intl;
-
-// تأكد من استيراد الموديلات والكيوبت والخدمة بشكل صحيح
 import 'package:health_compass/feature/health_dashboard/models/health_data_model.dart';
 import 'package:health_compass/feature/health_dashboard/logic/health_dashboard_cubit.dart';
 import 'package:health_compass/feature/home/presentation/PatientView_body.dart';
 import 'package:pdf/pdf.dart';
+import 'package:health_compass/core/services/pdf_service.dart';
 
 class HealthDashboardScreen extends StatefulWidget {
   const HealthDashboardScreen({super.key});
@@ -97,6 +96,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                             context,
                             state.latestData,
                             state.commitmentPercentage,
+                            state.userName,
                           ),
 
                           SliverToBoxAdapter(
@@ -227,6 +227,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
     BuildContext context,
     HealthDataModel data,
     double commitment,
+    String userName, // ✅ معامل جديد لاستقبال اسم المستخدم
   ) {
     final int percentInt = (commitment * 100).toInt();
     return SliverAppBar(
@@ -253,11 +254,20 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
             child: Icon(Icons.picture_as_pdf_rounded, color: Colors.white),
           ),
           tooltip: "تحميل التقرير",
-          onPressed: () {
-            // PdfService.generateAndOpen(data);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("تأكد من تفعيل PdfService")),
-            );
+          // ✅ تفعيل زر الـ PDF وتمرير الاسم
+          onPressed: () async {
+            try {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("جاري إنشاء التقرير...")),
+              );
+
+              // استدعاء الخدمة مع البيانات والاسم
+              await PdfService.generateAndOpen(data, userName);
+            } catch (e) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text("حدث خطأ: $e")));
+            }
           },
         ),
         const SizedBox(width: 8),
@@ -336,7 +346,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // ✅ نمرر الـ context هنا
+                        // ✅ نمرر الـ context هنا لتجنب خطأ ProviderNotFoundException
                         _buildHeaderTabButton(context, "أسبوعي", true),
                         _buildHeaderTabButton(context, "شهري", false),
                       ],

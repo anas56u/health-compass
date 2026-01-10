@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:health_compass/core/core.dart';
-import 'package:health_compass/core/servaces/notification_service.dart';
+import 'package:health_compass/core/services/notification_service.dart';
 import 'package:health_compass/feature/Reminders/data/model/reminders_model.dart';
 import 'package:health_compass/feature/Reminders/preesntation/cubits/reminder_cubit.dart';
 import 'package:health_compass/feature/Reminders/preesntation/screens/Reminders_page.dart';

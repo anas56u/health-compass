@@ -9,21 +9,22 @@ import 'package:health_compass/feature/health_dashboard/models/health_data_model
 
 class PdfService {
   // الألوان المستوحاة من التطبيق
-  static const PdfColor primaryColor = PdfColor.fromInt(0xFF0D9488); // Teal
-  static const PdfColor accentColor = PdfColor.fromInt(
-    0xFFF0FDFA,
-  ); // Light Teal bg
+  static const PdfColor primaryColor = PdfColor.fromInt(0xFF0D9488);
+  static const PdfColor accentColor = PdfColor.fromInt(0xFFF0FDFA);
   static const PdfColor darkText = PdfColor.fromInt(0xFF1E293B);
   static const PdfColor lightText = PdfColor.fromInt(0xFF64748B);
 
-  static Future<void> generateAndOpen(HealthDataModel data) async {
+  // ✅ الدالة تستقبل الآن اسم المستخدم
+  static Future<void> generateAndOpen(
+    HealthDataModel data,
+    String userName,
+  ) async {
     final pdf = pw.Document();
 
-    // تحميل اللوجو والخطوط
+    // تحميل اللوجو
     final imageBytes = await rootBundle.load('assets/images/logo.jpeg');
     final logoImage = pw.MemoryImage(imageBytes.buffer.asUint8List());
 
-    // تنسيق التاريخ الحالي
     final String reportDate = intl.DateFormat(
       'dd MMM yyyy, hh:mm a',
     ).format(DateTime.now());
@@ -40,10 +41,7 @@ class PdfService {
             ignoreMargins: true,
             child: pw.Container(
               decoration: pw.BoxDecoration(
-                border: pw.Border.all(
-                  color: primaryColor,
-                  width: 5,
-                ), // إطار خارجي
+                border: pw.Border.all(color: primaryColor, width: 5),
               ),
             ),
           ),
@@ -53,7 +51,6 @@ class PdfService {
         build: (context) => [
           pw.SizedBox(height: 20),
 
-          // 1. عنوان التقرير
           pw.Center(
             child: pw.Text(
               "MEDICAL STATUS REPORT",
@@ -67,11 +64,10 @@ class PdfService {
           ),
           pw.SizedBox(height: 20),
 
-          // 2. معلومات المريض
-          _buildPatientInfoSection(),
+          // ✅ تمرير الاسم للقسم الخاص به
+          _buildPatientInfoSection(userName),
           pw.SizedBox(height: 30),
 
-          // 3. ملخص العلامات الحيوية
           pw.Text(
             "VITAL SIGNS OVERVIEW",
             style: pw.TextStyle(
@@ -87,12 +83,10 @@ class PdfService {
 
           pw.SizedBox(height: 30),
 
-          // 4. ملاحظات وتحليل
           _buildInsightsSection(),
 
           pw.SizedBox(height: 40),
 
-          // 5. مساحة التوقيع
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.end,
             children: [
@@ -116,7 +110,6 @@ class PdfService {
       ),
     );
 
-    // حفظ وفتح الملف
     final output = await getTemporaryDirectory();
     final file = File(
       "${output.path}/Health_Report_${DateTime.now().millisecondsSinceEpoch}.pdf",
@@ -125,7 +118,7 @@ class PdfService {
     await OpenFile.open(file.path);
   }
 
-  // --- مكونات التصميم (Widgets) ---
+  // --- Widgets ---
 
   static pw.Widget _buildHeader(pw.MemoryImage logo, String date) {
     return pw.Column(
@@ -185,19 +178,18 @@ class PdfService {
     );
   }
 
-  static pw.Widget _buildPatientInfoSection() {
+  static pw.Widget _buildPatientInfoSection(String userName) {
     return pw.Container(
       padding: const pw.EdgeInsets.all(15),
       decoration: pw.BoxDecoration(
         color: accentColor,
         borderRadius: pw.BorderRadius.circular(6),
-        // ✅ استخدام withOpacity الآن سيعمل بفضل الامتداد في الأسفل
         border: pw.Border.all(color: primaryColor.withOpacity(0.2)),
       ),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
-          _buildInfoField("Patient Name", "User Name"),
+          _buildInfoField("Patient Name", userName), // ✅ عرض الاسم الحقيقي
           _buildInfoField("Patient ID", "#892301"),
           _buildInfoField("Age / Gender", "24 Y / Male"),
           _buildInfoField("Blood Type", "O+"),
@@ -300,7 +292,6 @@ class PdfService {
         decoration: pw.BoxDecoration(
           color: color,
           borderRadius: pw.BorderRadius.circular(8),
-          // ✅ استخدام withOpacity هنا أيضاً
           border: pw.Border.all(color: textColor.withOpacity(0.3)),
         ),
         child: pw.Column(
@@ -367,7 +358,7 @@ class PdfService {
       padding: const pw.EdgeInsets.all(15),
       decoration: pw.BoxDecoration(
         color: PdfColors.grey100,
-        borderRadius: pw.BorderRadius.circular(8),
+        // ✅ تم حذف borderRadius لتفادي الخطأ
         border: pw.Border(left: pw.BorderSide(color: primaryColor, width: 4)),
       ),
       child: pw.Column(
@@ -430,7 +421,7 @@ class PdfService {
       : (value > 100 ? "High" : (value < 60 ? "Low" : "Normal"));
 }
 
-// ✅✅ هذا الامتداد هو الذي يحل المشكلة، تأكد من وجوده في نهاية الملف
+// ✅ الامتداد الضروري لدعم الشفافية في الألوان
 extension PdfColorExtension on PdfColor {
   PdfColor withOpacity(double opacity) {
     return PdfColor(red, green, blue, opacity);

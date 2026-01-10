@@ -16,6 +16,7 @@ class HealthDashboardLoaded extends HealthDashboardState {
   final int completedTasks;
   final DateTime selectedDate;
   final bool isWeekly;
+  final String userName; // ✅ (1) تمت إضافة متغير الاسم
 
   const HealthDashboardLoaded({
     required this.latestData,
@@ -25,9 +26,9 @@ class HealthDashboardLoaded extends HealthDashboardState {
     required this.completedTasks,
     required this.selectedDate,
     required this.isWeekly,
+    required this.userName, // ✅ (2) أصبح مطلوباً في البناء
   });
 
-  // ✅ تحسين الأداء: مقارنة القيم لمنع التحديثات العشوائية
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
@@ -36,12 +37,18 @@ class HealthDashboardLoaded extends HealthDashboardState {
         other.commitmentPercentage == commitmentPercentage &&
         other.selectedDate == selectedDate &&
         other.isWeekly == isWeekly &&
-        other.historyData.length == historyData.length; // مقارنة سريعة للطول
+        other.userName == userName && // ✅ (3) إدراجه في المقارنة
+        other.historyData.length == historyData.length;
   }
 
   @override
-  int get hashCode =>
-      Object.hash(latestData, commitmentPercentage, selectedDate, isWeekly);
+  int get hashCode => Object.hash(
+    latestData,
+    commitmentPercentage,
+    selectedDate,
+    isWeekly,
+    userName, // ✅ (4) إدراجه في الـ HashCode
+  );
 }
 
 class HealthDashboardError extends HealthDashboardState {

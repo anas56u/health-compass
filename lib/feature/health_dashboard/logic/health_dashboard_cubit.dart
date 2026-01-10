@@ -18,12 +18,46 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
   List<HealthDataModel> _cachedHistory = [];
   List<TaskModel> _cachedTasks = [];
   DateTime _currentSelectedDate = DateTime.now();
+
+  // ✅ 1. متغيرات الحالة الجديدة
   bool _isWeeklyView = true;
+  String _userName = "مستخدم"; // اسم افتراضي
 
   void initDashboard() {
     _currentSelectedDate = DateTime.now();
+
+    // ✅ 2. جلب الاسم عند البدء
+    _fetchUserName();
+
     _fetchHealthHistory();
     _listenToTasksForDate(_currentSelectedDate);
+  }
+
+  // ✅ 3. دالة لجلب اسم المستخدم الحقيقي
+  Future<void> _fetchUserName() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      // الاسم من المصادقة كبداية
+      _userName = user.displayName ?? "مستخدم";
+
+      // محاولة جلب الاسم التفصيلي من Firestore
+      try {
+        final doc = await _firestore.collection('users').doc(user.uid).get();
+        if (doc.exists && doc.data() != null) {
+          final data = doc.data()!;
+          // تحقق من اسم الحقل في الداتابيز لديك (name أو fullName)
+          if (data.containsKey('name')) {
+            _userName = data['name'];
+          } else if (data.containsKey('fullName')) {
+            _userName = data['fullName'];
+          }
+        }
+      } catch (e) {
+        print("Error fetching name: $e");
+      }
+      // تحديث الواجهة بالاسم الجديد
+      _emitUpdatedState();
+    }
   }
 
   void toggleViewMode(bool isWeekly) {
@@ -68,7 +102,7 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
     if (uid == null) return;
 
     _tasksSubscription?.cancel();
-    // استخدام تنسيق ISO للتاريخ لضمان تطابقه مع التخزين
+    // تحويل التاريخ لنفس صيغة التخزين (YYYY-MM-DD)
     final dateString = date.toIso8601String().split('T')[0];
 
     _tasksSubscription = _firestore
@@ -87,11 +121,9 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
   }
 
   void _emitUpdatedState() {
-    // 1. البحث عن القراءة الصحية
     HealthDataModel displayData;
     try {
       displayData = _cachedHistory.firstWhere((element) {
-        // مقارنة السنة والشهر واليوم فقط
         return element.date.year == _currentSelectedDate.year &&
             element.date.month == _currentSelectedDate.month &&
             element.date.day == _currentSelectedDate.day;
@@ -107,8 +139,7 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
       );
     }
 
-    // 2. ✅ حساب المهام ديناميكياً (إصلاح المنطق)
-    final int totalTasks = _cachedTasks.length; // لم يعد 3 ثابتاً
+    final int totalTasks = _cachedTasks.length;
     final int completedCount = _cachedTasks.where((t) => t.isCompleted).length;
 
     double percentage = 0.0;
@@ -121,10 +152,11 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
         latestData: displayData,
         historyData: _cachedHistory,
         commitmentPercentage: percentage,
-        totalTasks: totalTasks, // نرسل العدد الحقيقي
+        totalTasks: totalTasks,
         completedTasks: completedCount,
         selectedDate: _currentSelectedDate,
         isWeekly: _isWeeklyView,
+        userName: _userName,
       ),
     );
   }
