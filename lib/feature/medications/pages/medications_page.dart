@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../widgets/medication_day_selector.dart';
 import '../widgets/medication_time_slot.dart';
 import '../widgets/medication_card.dart';
+import '../models/medication_log_model.dart';
 
 class MedicationsPage extends StatefulWidget {
   const MedicationsPage({super.key});
@@ -39,7 +40,6 @@ class _MedicationsPageState extends State<MedicationsPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                     
                       Text(
                         'جدول الادويه(يومي)',
                         style: GoogleFonts.tajawal(
@@ -190,4 +190,3 @@ class _MedicationsPageState extends State<MedicationsPage> {
     );
   }
 }
-

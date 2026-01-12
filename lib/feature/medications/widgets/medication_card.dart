@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-enum MedicationStatus { taken, notTaken, pending }
+import '../models/medication_log_model.dart';
 
 class MedicationCard extends StatelessWidget {
   final String medicationName;
@@ -146,6 +145,28 @@ class MedicationCard extends StatelessWidget {
           children: [
             Expanded(
               child: ElevatedButton(
+                onPressed: onTaken,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0D9488),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  'تم الأخذ',
+                  style: GoogleFonts.tajawal(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton(
                 onPressed: onSkipped,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.grey[200],
@@ -157,7 +178,7 @@ class MedicationCard extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  'لم تأخذ بعد',
+                  'لم أخذ',
                   style: GoogleFonts.tajawal(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -170,4 +191,3 @@ class MedicationCard extends StatelessWidget {
     }
   }
 }
-
