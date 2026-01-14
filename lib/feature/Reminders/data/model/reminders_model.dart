@@ -28,6 +28,9 @@ class ReminderModel extends HiveObject {
   @HiveField(7)
   int iconCode;
 
+  @HiveField(8) // حقل جديد
+  DateTime? lastCompletedDate;
+
   ReminderModel({
     required this.id,
     required this.notificationId,

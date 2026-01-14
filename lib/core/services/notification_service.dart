@@ -1,4 +1,3 @@
-// ------------------ NotificationService ------------------
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -105,6 +104,17 @@ class NotificationService {
           id + 2000, day, time.add(const Duration(minutes: 10)), "تذكير: $title", "تنبيه 2: لا تنسَ صحتك!");
     }
   }
+  // دالة لإيقاف التنبيهات المزعجة لليوم الحالي فقط
+  Future<void> cancelTodayAnnoyance(int baseId, int day) async {
+    // معادلة الـ ID للتذكيرات المزعجة كما شرحناها سابقاً
+    final id1 = (baseId + 1000) + (day * 100); // بعد 5 دقائق
+    final id2 = (baseId + 2000) + (day * 100); // بعد 10 دقائق
+
+    await flutterLocalNotificationsPlugin.cancel(id1);
+    await flutterLocalNotificationsPlugin.cancel(id2);
+    
+    debugPrint("🛑 تم إيقاف الإشعارات المزعجة لهذا اليوم (IDs: $id1, $id2)");
+  }
 
   Future<void> _scheduleForDay(
       int baseId, int day, DateTime time, String title, String? body) async {
@@ -150,8 +160,20 @@ class NotificationService {
     }
     return scheduledDate;
   }
+  Future<void> cancelAnnoyingReminder(int id, List<int> days) async {
+    for (int day in days) {
+      // 1. حساب الـ IDs بنفس معادلة الإنشاء بالضبط
+      final List<int> idsToCancel = [
+        id + (day * 100),          // ID التذكير الأساسي
+        (id + 1000) + (day * 100), // ID التنبيه الأول
+        (id + 2000) + (day * 100), // ID التنبيه الثاني
+      ];
 
-  Future<void> cancelReminder(int id) async {
-    await flutterLocalNotificationsPlugin.cancel(id);
+      // 2. المرور عليهم وحذفهم جميعاً
+      for (var finalId in idsToCancel) {
+        await flutterLocalNotificationsPlugin.cancel(finalId);
+        debugPrint("🗑 تم حذف الإشعار المجدول رقم: $finalId");
+      }
+    }
   }
 }

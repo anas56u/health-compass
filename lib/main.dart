@@ -55,7 +55,7 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatelessWidget {  
   final Box<ReminderModel> reminderBox;
   final NotificationService notificationService;
   const MyApp({

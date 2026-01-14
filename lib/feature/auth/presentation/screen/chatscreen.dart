@@ -146,7 +146,7 @@ class _ChatScreenState extends State<ChatScreen> {
               color: Colors.white,
               size: 20,
             ),
-            onPressed: widget.onBack ?? () {},
+            onPressed:  () { Navigator.pop(context); } ,
           ),
           title: Row(
             children: [
