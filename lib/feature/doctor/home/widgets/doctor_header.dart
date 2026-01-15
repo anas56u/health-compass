@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:health_compass/feature/doctor/home/pages/doctor_requstes_page.dart';
 
 class DoctorHeader extends StatelessWidget {
   final String doctorName;
@@ -28,7 +29,10 @@ class DoctorHeader extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  onPressed: () {},
+                  onPressed: () {Navigator.push(
+        context, 
+        MaterialPageRoute(builder: (context) => const DoctorRequestsPage())
+      );},
                   icon: const Icon(Icons.menu, color: Colors.white, size: 28),
                 ),
                 CircleAvatar(

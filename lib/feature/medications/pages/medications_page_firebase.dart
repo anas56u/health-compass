@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:health_compass/core/services/notification_service.dart';
 import '../widgets/medication_day_selector.dart';
 import '../widgets/medication_time_slot.dart';
 import '../widgets/medication_card.dart';
@@ -31,6 +32,51 @@ class _MedicationsPageFirebaseState extends State<MedicationsPageFirebase> {
     final today = DateTime.now();
     final difference = selectedDayIndex - 3; // 3 is today's index
     _selectedDate = today.add(Duration(days: difference));
+  }
+  Future<void> _deleteMedication(MedicationModel med) async {
+    // Best Practice: إظهار رسالة تأكيد قبل الحذف (Confirmation Dialog)
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('حذف الدواء', style: GoogleFonts.tajawal(fontWeight: FontWeight.bold)),
+        content: Text('هل أنت متأكد من حذف ${med.medicationName}؟', style: GoogleFonts.tajawal()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('إلغاء', style: GoogleFonts.tajawal(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('حذف', style: GoogleFonts.tajawal(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      // 1. حذف من قاعدة البيانات
+      await _medicationService.deleteMedication(med.id);
+      
+      // 2. إلغاء الإشعار محلياً
+      // تأكد أن medicationId و daysOfWeek مخزنة بشكل صحيح في الموديل
+      await NotificationService().cancelMedicationReminders(
+        med.notificationId, 
+        med.daysOfWeek
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم حذف الدواء بنجاح', style: GoogleFonts.tajawal()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint("Error deleting medication: $e");
+    }
   }
 
   void _showAddMedicationDialog() {
@@ -75,7 +121,6 @@ class _MedicationsPageFirebaseState extends State<MedicationsPageFirebase> {
     String medicationId,
     MedicationStatus newStatus,
   ) async {
-    // Capture the messenger before async gap
     final messenger = ScaffoldMessenger.of(context);
     try {
       await _medicationService.updateMedicationStatus(
@@ -363,6 +408,7 @@ class _MedicationsPageFirebaseState extends State<MedicationsPageFirebase> {
                             medication.id,
                             MedicationStatus.notTaken,
                           ),
+                          onDelete: () => _deleteMedication(medication),
                         ),
                       );
                     }).toList(),
@@ -373,3 +419,4 @@ class _MedicationsPageFirebaseState extends State<MedicationsPageFirebase> {
     );
   }
 }
+

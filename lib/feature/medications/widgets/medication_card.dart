@@ -9,6 +9,7 @@ class MedicationCard extends StatelessWidget {
   final MedicationStatus status;
   final VoidCallback? onTaken;
   final VoidCallback? onSkipped;
+  final VoidCallback? onDelete; // <--- أضف هذا المتغير
 
   const MedicationCard({
     super.key,
@@ -18,6 +19,7 @@ class MedicationCard extends StatelessWidget {
     this.status = MedicationStatus.pending,
     this.onTaken,
     this.onSkipped,
+    this.onDelete, // <--- أضف هذا المتغير
   });
 
   @override
@@ -76,10 +78,13 @@ class MedicationCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(
-                Icons.chevron_left_rounded,
-                color: Colors.grey,
-                size: 24,
+              IconButton(
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Colors.redAccent, // لون مميز للحذف
+                  size: 24,
+                ),
+                onPressed: onDelete, // استدعاء الدالة عند الضغط
               ),
             ],
           ),

@@ -7,6 +7,7 @@ class PatientModel extends UserModel {
   final bool isTakingMeds;
   final String? specificDisease;
   final bool hasOtherIssues;
+  final List<String> doctorIds; 
 
   PatientModel({
     required super.uid,
@@ -14,15 +15,15 @@ class PatientModel extends UserModel {
     required super.fullName,
     required super.phoneNumber,
     required super.createdAt,
-    super.profileImage, // 1. تمرير صورة البروفايل للأب (UserModel)
+    super.profileImage,
     required this.diseaseType,
     this.diagnosisYear,
     this.isTakingMeds = false,
     this.specificDisease,
     this.hasOtherIssues = false,
+    this.doctorIds = const [], 
   }) : super(userType: 'patient');
 
-  // 2. تنفيذ دالة copyWith (الحل لمشكلة الخطأ السابق)
   @override
   PatientModel copyWith({
     String? uid,
@@ -35,19 +36,22 @@ class PatientModel extends UserModel {
     bool? isTakingMeds,
     String? specificDisease,
     bool? hasOtherIssues,
+    List<String>? doctorIds,
   }) {
     return PatientModel(
-      uid: uid ?? this.uid, // إذا مررت قيمة جديدة استخدمها، وإلا احتفظ بالقديمة
+      uid: uid ?? this.uid, 
       email: email ?? this.email,
       fullName: fullName ?? this.fullName,
       phoneNumber: phoneNumber ?? this.phoneNumber,
-      createdAt: this.createdAt, // عادة لا نعدل تاريخ الإنشاء
+      createdAt: this.createdAt, 
       profileImage: profileImage ?? this.profileImage,
       diseaseType: diseaseType ?? this.diseaseType,
       diagnosisYear: diagnosisYear ?? this.diagnosisYear,
       isTakingMeds: isTakingMeds ?? this.isTakingMeds,
       specificDisease: specificDisease ?? this.specificDisease,
       hasOtherIssues: hasOtherIssues ?? this.hasOtherIssues,
+      doctorIds: doctorIds ?? this.doctorIds,
+
     );
   }
 
@@ -60,12 +64,13 @@ class PatientModel extends UserModel {
       'phone_number': phoneNumber,
       'user_type': userType,
       'created_at': Timestamp.fromDate(createdAt),
-      'profile_image': profileImage, // 3. حفظ رابط الصورة في قاعدة البيانات
+      'profile_image': profileImage, 
       'disease_type': diseaseType,
       'diagnosis_year': diagnosisYear,
       'is_taking_meds': isTakingMeds,
       'specific_disease': specificDisease,
       'has_other_issues': hasOtherIssues,
+      'doctor_ids': doctorIds,
     };
   }
 
@@ -82,6 +87,7 @@ class PatientModel extends UserModel {
       isTakingMeds: map['is_taking_meds'] ?? false,
       specificDisease: map['specific_disease'],
       hasOtherIssues: map['has_other_issues'] ?? false,
+      doctorIds: List<String>.from(map['doctor_ids'] ?? []),
     );
   }
 }

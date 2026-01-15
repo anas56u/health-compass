@@ -98,6 +98,7 @@ class MyApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             initialRoute: AppRoutes.splash,
             onGenerateRoute: AppRouter().generateRoute,
+            
           ),
         );
       },

@@ -8,7 +8,6 @@ class AccessibilityFacilities extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. تحديث القائمة لإضافة الألوان لكل عنصر (الترميز اللوني)
     final List<Map<String, dynamic>> accessItems = [
       {
         'icon': Icons.location_on_rounded,

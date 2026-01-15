@@ -10,6 +10,7 @@ class MedicationModel {
   final List<int> daysOfWeek;
   final bool isActive;
   final DateTime createdAt;
+  final int notificationId; // <--- حقل جديد
 
   MedicationModel({
     required this.id,
@@ -20,7 +21,7 @@ class MedicationModel {
     required this.period,
     required this.daysOfWeek,
     this.isActive = true,
-    required this.createdAt,
+    required this.createdAt, required this.notificationId,
   });
 
   factory MedicationModel.fromFirestore(DocumentSnapshot doc) {
@@ -35,6 +36,7 @@ class MedicationModel {
       daysOfWeek: List<int>.from(data['daysOfWeek'] ?? []),
       isActive: data['isActive'] ?? true,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
+      notificationId: data['notificationId'] ?? 0,
     );
   }
 
@@ -48,6 +50,7 @@ class MedicationModel {
       'daysOfWeek': daysOfWeek,
       'isActive': isActive,
       'createdAt': Timestamp.fromDate(createdAt),
+      'notificationId': notificationId, // <--- حفظ في قاعدة البيانات
     };
   }
 
@@ -61,6 +64,7 @@ class MedicationModel {
     List<int>? daysOfWeek,
     bool? isActive,
     DateTime? createdAt,
+    int? notificationId,
   }) {
     return MedicationModel(
       id: id ?? this.id,
@@ -72,6 +76,7 @@ class MedicationModel {
       daysOfWeek: daysOfWeek ?? this.daysOfWeek,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
+      notificationId: notificationId ?? this.notificationId,
     );
   }
 }
