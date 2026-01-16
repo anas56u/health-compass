@@ -133,6 +133,12 @@ class ReminderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    bool isDoneToday = false;
+if (reminder.lastCompletedDate != null) {
+  final now = DateTime.now();
+  final last = reminder.lastCompletedDate!;
+  isDoneToday = last.year == now.year && last.month == now.month && last.day == now.day;
+}
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -183,11 +189,27 @@ class ReminderCard extends StatelessWidget {
           Row(
             children: [
               IconButton(
+<<<<<<< HEAD:lib/feature/Reminders/presentation/screens/Reminders_page.dart
                 icon: const Icon(
                   Icons.delete_outline,
                   size: 20,
                   color: Colors.grey,
                 ),
+=======
+         icon: Icon(
+           isDoneToday ? Icons.check_circle : Icons.circle_outlined,
+           color: isDoneToday ? Colors.green : Colors.grey,
+           size: 28,
+         ),
+         onPressed: isDoneToday 
+           ? null // إذا انتهت لا تفعل شيئاً
+           : () {
+               context.read<RemindersCubit>().markAsDone(reminder);
+             },
+       ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
+>>>>>>> f1a3daae5c0d05d7279170ab2ab263d71c297254:lib/feature/Reminders/preesntation/screens/Reminders_page.dart
                 onPressed: () {
                   context.read<RemindersCubit>().deleteReminder(reminder);
                 },

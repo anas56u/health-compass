@@ -46,7 +46,7 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatelessWidget {  
   final Box<ReminderModel> reminderBox;
   final NotificationService notificationService;
 
@@ -99,6 +99,7 @@ class MyApp extends StatelessWidget {
             // إعدادات التوجيه (Routing)
             initialRoute: AppRoutes.splash, // أو AppRoutes.login حسب رغبتك
             onGenerateRoute: AppRouter().generateRoute,
+            
           ),
         );
       },

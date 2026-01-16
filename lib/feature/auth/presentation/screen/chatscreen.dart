@@ -1,37 +1,13 @@
 import 'package:flutter/material.dart';
-
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Health Compass Chat',
-      theme: ThemeData(
-        useMaterial3: true,
-        primaryColor: const Color(0xFF0D9488),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0D9488),
-          primary: const Color(0xFF0D9488),
-          secondary: const Color(0xFFE0F2F1), // لون ثانوي فاتح جداً للفقاعات
-        ),
-      ),
-      home: const ChatScreen(),    
-    );
-  }
-}
+// 1. استيراد الحارس
+import 'package:health_compass/core/widgets/doctor_link_guard.dart';
 
 // -------------------- المودل والبيانات --------------------
 
 class ChatMessage {
   final String text;
   final bool isMe;
-  final DateTime timestamp; // نستخدم وقت حقيقي للترتيب
+  final DateTime timestamp;
 
   ChatMessage({
     required this.text,
@@ -55,7 +31,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final Color _primaryColor = const Color(0xFF0D9488);
 
-  // قائمة الرسائل (أحدث رسالة تكون في الاندكس 0 لأننا نعكس القائمة)
+  // بيانات وهمية للتجربة
   final List<ChatMessage> _messages = [
     ChatMessage(
       text: "ان شاء الله، شكراً دكتور",
@@ -82,7 +58,6 @@ class _ChatScreenState extends State<ChatScreen> {
       isMe: true,
       timestamp: DateTime.now().subtract(const Duration(minutes: 7)),
     ),
-    // رسالة من يوم سابق للتجربة
     ChatMessage(
       text: "مرحباً دكتور، كيف حالك؟",
       isMe: true,
@@ -110,7 +85,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // دالة مساعدة لتنسيق الوقت (بدون مكتبات خارجية)
   String _formatTime(DateTime date) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     final hour = date.hour > 12
@@ -120,7 +94,6 @@ class _ChatScreenState extends State<ChatScreen> {
     return "$hour:${twoDigits(date.minute)} $period";
   }
 
-  // دالة لتحديد فواصل التاريخ
   bool _isSameDay(DateTime date1, DateTime date2) {
     return date1.year == date2.year &&
         date1.month == date2.month &&
@@ -129,124 +102,113 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: const Color(
-          0xFFF0F2F5,
-        ), // خلفية أهدأ قليلاً (مثل الواتساب)
-        // --- الشريط العلوي ---
-        appBar: AppBar(
-          backgroundColor: _primaryColor,
-          elevation: 0,
-          titleSpacing: 0,
-          leading: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: Colors.white,
-              size: 20,
-            ),
-            onPressed: widget.onBack ?? () {},
-          ),
-          title: Row(
-            children: [
-              const CircleAvatar(
-                radius: 18,
-                backgroundColor: Colors.white,
-                child: Icon(
-                  Icons.person,
-                  color: Colors.grey,
-                ), // استبدلها بالصورة
+    // 2. تطبيق الحارس هنا
+    return DoctorLinkGuard(
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF0F2F5),
+          appBar: AppBar(
+            backgroundColor: _primaryColor,
+            elevation: 0,
+            titleSpacing: 0,
+            leading: IconButton(
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Colors.white,
+                size: 20,
               ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "د. محمد أبو موسى",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+            title: Row(
+              children: [
+                const CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.person, color: Colors.grey),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "د. محمد أبو موسى",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                  Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: Colors.greenAccent[400],
-                          shape: BoxShape.circle,
+                    Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: Colors.greenAccent[400],
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Text(
-                        "متصل الآن",
-                        style: TextStyle(fontSize: 12, color: Colors.white70),
-                      ),
-                    ],
-                  ),
-                ],
+                        const SizedBox(width: 4),
+                        const Text(
+                          "متصل الآن",
+                          style: TextStyle(fontSize: 12, color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.videocam_rounded, color: Colors.white),
+                onPressed: () {},
+              ),
+              IconButton(
+                icon: const Icon(Icons.call_rounded, color: Colors.white),
+                onPressed: () {},
               ),
             ],
           ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.videocam_rounded, color: Colors.white),
-              onPressed: () {},
-            ),
-            IconButton(
-              icon: const Icon(Icons.call_rounded, color: Colors.white),
-              onPressed: () {},
-            ),
-          ],
-        ),
+          body: Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  reverse: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  itemCount: _messages.length,
+                  itemBuilder: (context, index) {
+                    final message = _messages[index];
+                    final bool isFirstInSequence =
+                        index == 0 || _messages[index - 1].isMe != message.isMe;
+                    final bool isNewDay =
+                        index == _messages.length - 1 ||
+                        !_isSameDay(
+                          message.timestamp,
+                          _messages[index + 1].timestamp,
+                        );
 
-        body: Column(
-          children: [
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                reverse: true,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
+                    return Column(
+                      children: [
+                        if (isNewDay) _buildDateDivider(message.timestamp),
+                        _buildEnhancedBubble(message, isFirstInSequence),
+                      ],
+                    );
+                  },
                 ),
-                itemCount: _messages.length,
-                itemBuilder: (context, index) {
-                  final message = _messages[index];
-
-                  // المنطق لتحديد هل الرسالة هي الأولى في مجموعتها (لعرض الذيل)
-                  // وهل هي من يوم جديد (لعرض التاريخ)
-                  final bool isFirstInSequence =
-                      index == 0 || _messages[index - 1].isMe != message.isMe;
-                  final bool isNewDay =
-                      index == _messages.length - 1 ||
-                      !_isSameDay(
-                        message.timestamp,
-                        _messages[index + 1].timestamp,
-                      );
-
-                  return Column(
-                    children: [
-                      if (isNewDay) _buildDateDivider(message.timestamp),
-                      _buildEnhancedBubble(message, isFirstInSequence),
-                    ],
-                  );
-                },
               ),
-            ),
-
-            // --- منطقة الكتابة العصرية ---
-            _buildModernInputArea(),
-          ],
+              _buildModernInputArea(),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // ودجت فاصل التاريخ
   Widget _buildDateDivider(DateTime date) {
     final now = DateTime.now();
     String text;
@@ -276,14 +238,13 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // ودجت الفقاعة المحسنة
   Widget _buildEnhancedBubble(ChatMessage msg, bool isFirstInSequence) {
     return Align(
       alignment: msg.isMe ? Alignment.centerLeft : Alignment.centerRight,
       child: Container(
         margin: EdgeInsets.only(
-          bottom: 4, // مسافة صغيرة بين الرسائل المتتالية
-          top: isFirstInSequence ? 4 : 0, // مسافة أكبر قليلاً لبداية المجموعة
+          bottom: 4,
+          top: isFirstInSequence ? 4 : 0,
         ),
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.75,
@@ -293,12 +254,8 @@ class _ChatScreenState extends State<ChatScreen> {
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(
-              msg.isMe && isFirstInSequence ? 4 : 16,
-            ), // ذيل صغير
-            bottomRight: Radius.circular(
-              !msg.isMe && isFirstInSequence ? 4 : 16,
-            ),
+            bottomLeft: Radius.circular(msg.isMe && isFirstInSequence ? 4 : 16),
+            bottomRight: Radius.circular(!msg.isMe && isFirstInSequence ? 4 : 16),
           ),
           boxShadow: [
             BoxShadow(
@@ -318,11 +275,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 style: TextStyle(
                   color: msg.isMe ? Colors.white : Colors.black87,
                   fontSize: 15,
-                  height: 1.3, // تباعد أسطر مريح للقراءة
+                  height: 1.3,
                 ),
               ),
               const SizedBox(height: 2),
-              // الوقت والمؤشرات
               Row(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -347,7 +303,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // منطقة إدخال عصرية ونظيفة
   Widget _buildModernInputArea() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -362,14 +317,11 @@ class _ChatScreenState extends State<ChatScreen> {
                 size: 28,
                 color: Color(0xFF0D9488),
               ),
-              onPressed: () {}, // قائمة المرفقات
+              onPressed: () {},
             ),
             Expanded(
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF0F2F5),
                   borderRadius: BorderRadius.circular(24),
@@ -388,7 +340,6 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            // زر التسجيل الصوتي أو الإرسال يتغير حسب الحالة
             GestureDetector(
               onTap: _sendMessage,
               child: CircleAvatar(

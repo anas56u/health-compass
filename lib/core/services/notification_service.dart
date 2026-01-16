@@ -1,6 +1,6 @@
-// ------------------ NotificationService ------------------
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -105,6 +105,71 @@ class NotificationService {
           id + 2000, day, time.add(const Duration(minutes: 10)), "تذكير: $title", "تنبيه 2: لا تنسَ صحتك!");
     }
   }
+  /// دالة لجدولة تذكير الدواء
+  Future<void> scheduleMedicationReminder({
+    required int id, // notificationId من الموديل
+    required String title,
+    required String body,
+    required TimeOfDay time, // وقت الدواء
+    required List<int> days, // أيام الأسبوع (1 = الاثنين ... 7 = الأحد)
+  }) async {
+    // التأكد من الصلاحيات (Android 12+)
+    await requestExactAlarmsPermission();
+
+    // تحويل TimeOfDay إلى DateTime لغايات الجدولة
+    final now = DateTime.now();
+    final scheduleTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      time.hour,
+      time.minute,
+    );
+
+    // المرور على الأيام المختارة وجدولة إشعار لكل يوم
+    for (int day in days) {
+      // ملاحظة: DateTime في فلاتر يعتبر (1 = الاثنين) و (7 = الأحد)
+      // تأكد أن List<int> days القادمة من الموديل متوافقة مع هذا الترتيب
+      // في الكود الحالي لديك يبدو أنك تستخدم index القائمة (0-6)، سنحتاج لضبط ذلك.
+      
+      // flutter_local_notifications يستخدم 1 للاثنين وتصل لـ 7 للأحد
+      // إذا كانت مصفوفة الأيام لديك تبدأ من 0 للأحد، يجب عمل mapping
+      int notificationDay = day; 
+      
+      // نقوم بتوليد ID فريد لكل يوم بناءً على ID الدواء الأصلي
+      // مثلاً: الدواء رقم 55، يوم الاثنين (1) يصبح رقمه 5501
+      // هذا يمنع تضارب الـ IDs
+      final int uniqueNotificationId = int.parse("$id$day");
+
+     
+
+      await _scheduleForDay(
+        uniqueNotificationId, 
+        day, // اليوم المستهدف
+        scheduleTime, 
+        title, 
+        body
+      );
+    }
+  }
+
+  Future<void> cancelMedicationReminders(int id, List<int> days) async {
+    for (int day in days) {
+       final int uniqueNotificationId = int.parse("$id$day");
+       await flutterLocalNotificationsPlugin.cancel(uniqueNotificationId);
+    }
+    debugPrint("🗑️ تم حذف جميع تذكيرات الدواء رقم: $id");
+  }
+
+  Future<void> cancelTodayAnnoyance(int baseId, int day) async {
+    final id1 = (baseId + 1000) + (day * 100); 
+    final id2 = (baseId + 2000) + (day * 100); 
+
+    await flutterLocalNotificationsPlugin.cancel(id1);
+    await flutterLocalNotificationsPlugin.cancel(id2);
+    
+    debugPrint("🛑 تم إيقاف الإشعارات المزعجة لهذا اليوم (IDs: $id1, $id2)");
+  }
 
   Future<void> _scheduleForDay(
       int baseId, int day, DateTime time, String title, String? body) async {
@@ -150,8 +215,20 @@ class NotificationService {
     }
     return scheduledDate;
   }
+  Future<void> cancelAnnoyingReminder(int id, List<int> days) async {
+    for (int day in days) {
+      // 1. حساب الـ IDs بنفس معادلة الإنشاء بالضبط
+      final List<int> idsToCancel = [
+        id + (day * 100),          // ID التذكير الأساسي
+        (id + 1000) + (day * 100), // ID التنبيه الأول
+        (id + 2000) + (day * 100), // ID التنبيه الثاني
+      ];
 
-  Future<void> cancelReminder(int id) async {
-    await flutterLocalNotificationsPlugin.cancel(id);
+      // 2. المرور عليهم وحذفهم جميعاً
+      for (var finalId in idsToCancel) {
+        await flutterLocalNotificationsPlugin.cancel(finalId);
+        debugPrint("🗑 تم حذف الإشعار المجدول رقم: $finalId");
+      }
+    }
   }
 }

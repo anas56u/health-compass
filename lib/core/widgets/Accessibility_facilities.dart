@@ -8,18 +8,17 @@ class AccessibilityFacilities extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. تحديث القائمة لإضافة الألوان لكل عنصر (الترميز اللوني)
     final List<Map<String, dynamic>> accessItems = [
       {
         'icon': Icons.location_on_rounded,
         'label': 'تواصل مع طبيبك',
         'color': Colors.blue, // لون مميز
-        'route': AppRoutes.doctorContact,
+        'route': AppRoutes.chatScreen,
       },
       {
         'icon': Icons.watch_later_rounded,
         'label': 'تقاريرك وتقدمك',
-        'color': const Color(0xFF0D9488), // لون التطبيق الأساسي
+        'color': const Color(0xFF0D9488),
         'route': AppRoutes.healthDashboard,
       },
       {

@@ -24,6 +24,7 @@ class DoctorMainScreenContent extends StatelessWidget {
     const NotificationsPage(),
     const ChatPage(),
     const AppointmentsPage(),
+    
   ];
 
   void _onNavTap(BuildContext context, int index) {
@@ -61,6 +62,7 @@ class _DoctorMainScreenWithIndex extends StatelessWidget {
     const NotificationsPage(),
     const ChatPage(),
     const AppointmentsPage(),
+  
   ];
 
   void _onNavTap(BuildContext context, int newIndex) {
