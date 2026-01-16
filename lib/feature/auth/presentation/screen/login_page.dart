@@ -12,6 +12,9 @@ import 'package:health_compass/feature/home/presentation/PatientView_body.dart';
 import 'package:health_compass/feature/auth/presentation/screen/signup_page.dart';
 import 'package:health_compass/core/widgets/custom_textfild.dart';
 
+// ✅ تم تفعيل استيراد شاشة العائلة
+import 'package:health_compass/feature/family_member/presentation/screens/family_member_home_screen.dart';
+
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
 
@@ -36,8 +39,6 @@ class _LoginViewState extends State<LoginView> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _rememberMe = false;
-
-  // متغير لإظهار/إخفاء كلمة المرور
   bool _isPasswordVisible = false;
 
   @override
@@ -60,14 +61,39 @@ class _LoginViewState extends State<LoginView> {
               ),
               backgroundColor: Colors.green,
               duration: const Duration(seconds: 1),
-              behavior: SnackBarBehavior.floating, // تحسين مظهر السناك بار
+              behavior: SnackBarBehavior.floating,
             ),
           );
+
+          // ✅ التوجيه حسب نوع المستخدم
           Future.delayed(const Duration(milliseconds: 500), () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const Patientview_body()),
-            );
+            if (state.userType == 'family_member') {
+              // توجيه فرد العائلة للشاشة الحقيقية
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FamilyMemberHomeScreen(
+                    userPermission: 'interactive', // تفعيل وضع التعديل
+                  ),
+                ),
+              );
+            } else if (state.userType == 'doctor') {
+              // توجيه الطبيب (حالياً للمريض كمثال)
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const Patientview_body(),
+                ),
+              );
+            } else {
+              // توجيه المريض
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const Patientview_body(),
+                ),
+              );
+            }
           });
         } else if (state is LoginFailure) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -82,25 +108,18 @@ class _LoginViewState extends State<LoginView> {
           );
         }
       },
-      // 1. إغلاق الكيبورد عند الضغط في الفراغ
       child: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: CustomScaffold(
-          // جعل الخلفية شفافة للسماح بظهور التدرج (إذا كان CustomScaffold يدعم ذلك)
-          // إذا لم يدعم، سيعمل التدرج داخل الـ Container فقط
           backgroundColor: Colors.transparent,
           body: Container(
             width: double.infinity,
             height: double.infinity,
-            // 2. الخلفية المتدرجة
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF41BFAA), // اللون الأساسي (Teal)
-                  Color(0xFF2D82B5), // تدرج أغمق
-                ],
+                colors: [Color(0xFF41BFAA), Color(0xFF2D82B5)],
               ),
             ),
             child: SafeArea(
@@ -112,7 +131,6 @@ class _LoginViewState extends State<LoginView> {
                       horizontal: 24,
                       vertical: 20,
                     ),
-                    // 3. البطاقة البيضاء العائمة
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
@@ -120,9 +138,7 @@ class _LoginViewState extends State<LoginView> {
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(
-                          24,
-                        ), // حواف دائرية ناعمة
+                        borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.1),
@@ -137,9 +153,7 @@ class _LoginViewState extends State<LoginView> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Image.asset("assets/images/logo.jpeg", height: 100),
-
                             const SizedBox(height: 10),
-
                             Text(
                               "تسجيل الدخول",
                               style: AppTextStyling.fontFamilyTajawal.copyWith(
@@ -148,9 +162,7 @@ class _LoginViewState extends State<LoginView> {
                                 color: AppColors.textDark,
                               ),
                             ),
-
                             const SizedBox(height: 5),
-
                             Text(
                               "مرحبا بك في تطبيق بوصلة الصحة",
                               style: AppTextStyling.fontFamilyTajawal.copyWith(
@@ -158,10 +170,7 @@ class _LoginViewState extends State<LoginView> {
                                 fontSize: 14,
                               ),
                             ),
-
                             const SizedBox(height: 30),
-
-                            // البريد الإلكتروني
                             const Align(
                               alignment: Alignment.centerRight,
                               child: CustomText(
@@ -175,25 +184,20 @@ class _LoginViewState extends State<LoginView> {
                               hinttext: "ادخل البريد الالكتروني",
                               onChanged: (value) {},
                             ),
-
                             const SizedBox(height: 20),
-
-                            // كلمة المرور
                             const Align(
                               alignment: Alignment.centerRight,
                               child: CustomText(text: "كلمه المرور", size: 12),
                             ),
                             const SizedBox(height: 8),
-                            // Stack لوضع أيقونة العين فوق الـ CustomTextfild
                             Stack(
-                              alignment:
-                                  Alignment.centerLeft, // الأيقونة لليسار
+                              alignment: Alignment.centerLeft,
                               children: [
                                 CustomTextfild(
                                   controller: _passwordController,
                                   hinttext: "ادخل كلمة المرور",
-                                  // ⚠️ تأكد أن CustomTextfild يدعم obscureText
-                                  // obscureText: !_isPasswordVisible,
+                                  // تأكد من تحديث CustomTextfild لدعم obscureText كما شرحنا سابقاً
+                                  obscureText: !_isPasswordVisible,
                                   onChanged: (value) {},
                                 ),
                                 IconButton(
@@ -212,10 +216,7 @@ class _LoginViewState extends State<LoginView> {
                                 ),
                               ],
                             ),
-
                             const SizedBox(height: 15),
-
-                            // نسيت كلمة المرور & تذكرني
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -223,7 +224,7 @@ class _LoginViewState extends State<LoginView> {
                                   onPressed: () {
                                     Navigator.pushNamed(
                                       context,
-                                      AppRoutes.forgetPassword,
+                                      '/forget_password', // استخدام String مباشر أو AppRoutes.forgetPassword
                                     );
                                   },
                                   child: Text(
@@ -262,10 +263,7 @@ class _LoginViewState extends State<LoginView> {
                                 ),
                               ],
                             ),
-
                             const SizedBox(height: 20),
-
-                            // زر تسجيل الدخول (باستخدام Cubit)
                             BlocBuilder<LoginCubit, LoginState>(
                               builder: (context, state) {
                                 final isLoading = state is LoginLoading;
@@ -290,13 +288,9 @@ class _LoginViewState extends State<LoginView> {
                                 );
                               },
                             ),
-
                             const SizedBox(height: 20),
-
-                            // زر جوجل (التصميم الجديد المحسن)
                             ElevatedButton(
                               onPressed: () {
-                                // TODO: Google Sign In Logic
                                 print("Google Sign In");
                               },
                               style: ElevatedButton.styleFrom(
@@ -334,30 +328,22 @@ class _LoginViewState extends State<LoginView> {
                                 ],
                               ),
                             ),
-
                             const SizedBox(height: 20),
-
                             const Divider(
                               color: Colors.grey,
                               thickness: 0.5,
                               indent: 20,
                               endIndent: 20,
                             ),
-
                             const SizedBox(height: 10),
-
-                            // رابط التسجيل
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 GestureDetector(
                                   onTap: () {
-                                    Navigator.push(
+                                    Navigator.pushNamed(
                                       context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const signup_page(), // تأكد من اسم الكلاس الصحيح (SignupPage أو signup_page)
-                                      ),
+                                      '/signup', // استخدام String مباشر أو AppRoutes.signup
                                     );
                                   },
                                   child: Text(

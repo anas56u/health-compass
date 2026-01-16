@@ -9,9 +9,11 @@ class AppRoutes {
   static const String patientInfo = '/patient_info';
   static const String doctorInfo = '/doctor_info';
   static const String familyMemberInfo = '/family_member_info';
+  static const String familyHome = '/family_member_home';
+  static const String linkPatient = '/link_patient';
+  static const String familyProfile = '/family_profile';
 
-  static const String patientHome =
-      '/patient_home'; // استخدم هذا الاسم في AppRouter
+  static const String patientHome = '/patient_home';
   static const String achievements = '/achievements';
   static const String appointmentBooking = '/AppointmentBookingScreen';
   static const String chatBot = '/chat_bot';
@@ -20,5 +22,5 @@ class AppRoutes {
   static const String reamindersPage = '/reminders_page';
   static const String chatScreen = '/chat_screen';
   static const String doctorContact = '/doctor_contact';
-  static const healthDashboard = '/healthDashboard';
+  static const String healthDashboard = '/healthDashboard';
 }

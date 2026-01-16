@@ -1,16 +1,27 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:health_compass/core/core.dart';
-import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
-import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:health_compass/core/routes/routes.dart';
 import 'package:health_compass/core/widgets/custom_button.dart';
-import 'package:health_compass/feature/home/presentation/PatientView_body.dart';
 import 'package:health_compass/core/widgets/custom_textfild.dart';
+import 'package:health_compass/feature/auth/data/model/family_member_model.dart';
+import 'package:health_compass/feature/auth/presentation/cubit/cubit/signup_cubit.dart';
+import 'package:health_compass/feature/auth/presentation/cubit/cubit/signup_state.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 
 class FamilyMemberInfoScreen extends StatefulWidget {
-  const FamilyMemberInfoScreen({super.key});
+  final String email;
+  final String password;
+
+  const FamilyMemberInfoScreen({
+    super.key,
+    required this.email,
+    required this.password,
+  });
 
   @override
   State<FamilyMemberInfoScreen> createState() => _FamilyMemberInfoScreenState();
@@ -19,400 +30,220 @@ class FamilyMemberInfoScreen extends StatefulWidget {
 class _FamilyMemberInfoScreenState extends State<FamilyMemberInfoScreen> {
   String? fullName;
   String? phoneNumber;
-  bool isLoading = false;
+  File? _profileImage;
 
-  // القيم الافتراضية
-  bool wantToLink = true;
+  // ✅ القيم الافتراضية
   String selectedRelation = 'son';
-  String selectedRole = 'relative';
   String selectedPermission = 'view_only';
 
-  Future<void> sendFamilyDataToFirebase() async {
-    if (!wantToLink) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const Patientview_body()),
-      );
-      return;
+  final Color primaryColor = const Color(0xFF41BFAA);
+
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        _profileImage = File(image.path);
+      });
     }
+  }
+
+  void _registerFamilyMember(BuildContext context) {
     if (fullName == null || fullName!.isEmpty) {
-      showsnackbar(context, massage: "يرجى إدخال اسم المرافق");
+      showsnackbar(context, massage: "يرجى إدخال الاسم الكامل");
       return;
     }
     if (phoneNumber == null) {
-      showsnackbar(context, massage: "يرجى إدخال رقم هاتف المرافق");
+      showsnackbar(context, massage: "يرجى إدخال رقم الهاتف");
       return;
     }
-    setState(() => isLoading = true);
 
-    try {
-      final User? currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null) return;
+    // ✅ إنشاء الموديل مع القيم المختارة
+    final newFamilyMember = FamilyMemberModel(
+      uid: '',
+      email: widget.email,
+      fullName: fullName!,
+      phoneNumber: phoneNumber!,
+      createdAt: DateTime.now(),
+      profileImage: '',
+      relation: selectedRelation, // ✅ تمرير العلاقة
+      permission: selectedPermission, // ✅ تمرير الصلاحية
+    );
 
-      Map<String, dynamic> familyData = {
-        'patient_uid': currentUser.uid,
-        'member_name': fullName,
-        'member_phone': phoneNumber,
-        'relation': selectedRelation,
-        'role': selectedRole,
-        'permission': selectedPermission,
-        'created_at': FieldValue.serverTimestamp(),
-      };
-
-      await FirebaseFirestore.instance
-          .collection('family_members')
-          .add(familyData);
-
-      showsnackbar(context, massage: "تم إضافة فرد العائلة بنجاح");
-
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const Patientview_body()),
-        );
-      }
-    } catch (e) {
-      // ✅ التعديل هنا: طباعة الخطأ للمبرمج فقط
-      print("Error saving family member: $e");
-
-      // ✅ عرض رسالة لطيفة للمستخدم بدون تفاصيل تقنية
-      showsnackbar(
-        context,
-        massage: "حدث خطأ غير متوقع، يرجى التحقق من الاتصال والمحاولة مجدداً",
-      );
-    } finally {
-      if (mounted) setState(() => isLoading = false);
-    }
+    context.read<SignupCubit>().registerUser(
+      userModel: newFamilyMember,
+      password: widget.password,
+      profileImage: _profileImage,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF41BFAA);
-
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: ModalProgressHUD(
-        inAsyncCall: isLoading,
-        progressIndicator: const CircularProgressIndicator(color: primaryColor),
-        child: Scaffold(
-          backgroundColor: const Color(0xFFF5F7FA),
-          body: SafeArea(
-            child: Column(
-              children: [
-                // --- الشريط العلوي ---
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 15,
+    return BlocConsumer<SignupCubit, SignupState>(
+      listener: (context, state) {
+        if (state is SignupSuccess) {
+          showsnackbar(context, massage: "تم إنشاء حساب فرد العائلة بنجاح ✅");
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.familyHome,
+            (route) => false,
+            // يمكن تمرير arguments هنا إذا كان الراوتر يدعمها
+            arguments: {'permission': state.permission},
+          );
+        } else if (state is SignupFailure) {
+          showsnackbar(context, massage: state.error);
+        }
+      },
+      builder: (context, state) {
+        bool isLoading = state is SignupLoading;
+        return ModalProgressHUD(
+          inAsyncCall: isLoading,
+          progressIndicator: CircularProgressIndicator(color: primaryColor),
+          child: Directionality(
+            textDirection: TextDirection.rtl,
+            child: Scaffold(
+              backgroundColor: const Color(0xFFF5F7FA),
+              appBar: AppBar(
+                backgroundColor: const Color(0xFFF5F7FA),
+                elevation: 0,
+                leading: const BackButton(color: Colors.black),
+                title: Text(
+                  "بيانات فرد العائلة",
+                  style: GoogleFonts.tajawal(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                ),
+                centerTitle: true,
+              ),
+              body: SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 10,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      BackButton(
-                        onPressed: () => Navigator.pop(context),
-                        color: Colors.black,
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const Patientview_body(),
-                            ),
-                          );
-                        },
-                        child: Text(
-                          'تخطي',
-                          style: GoogleFonts.tajawal(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[600],
+                      // --- صورة البروفايل ---
+                      Center(
+                        child: GestureDetector(
+                          onTap: _pickImage,
+                          child: CircleAvatar(
+                            radius: 50,
+                            backgroundColor: Colors.grey[200],
+                            backgroundImage: _profileImage != null
+                                ? FileImage(_profileImage!)
+                                : null,
+                            child: _profileImage == null
+                                ? Icon(
+                                    Icons.family_restroom,
+                                    size: 50,
+                                    color: Colors.grey[400],
+                                  )
+                                : null,
                           ),
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+
+                      // --- المعلومات الشخصية ---
+                      _buildSectionTitle("المعلومات الشخصية"),
+                      _buildLabel("الاسم الكامل"),
+                      CustomTextfild(
+                        hinttext: "الاسم الرباعي",
+                        onChanged: (value) => fullName = value,
+                      ),
+                      const SizedBox(height: 15),
+                      _buildLabel("رقم الهاتف"),
+                      IntlPhoneField(
+                        initialCountryCode: 'JO',
+                        textAlign: TextAlign.right,
+                        languageCode: "ar",
+                        onChanged: (phone) =>
+                            phoneNumber = phone.completeNumber,
+                      ),
+                      const SizedBox(height: 25),
+
+                      // --- صلة القرابة ---
+                      _buildSectionTitle("صلتك بالمريض"),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          _buildRelationChip("ابن/ـة", "son", Icons.child_care),
+                          _buildRelationChip("أب/أم", "parent", Icons.elderly),
+                          _buildRelationChip(
+                            "زوج/ـة",
+                            "partner",
+                            Icons.favorite,
+                          ),
+                          _buildRelationChip("أخ/أخت", "sibling", Icons.people),
+                        ],
+                      ),
+                      const SizedBox(height: 25),
+
+                      // ---  صلاحيات الحساب ---
+                      _buildSectionTitle("صلاحيات الحساب"),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildPermissionCard(
+                              title: "عرض فقط",
+                              value: "view_only",
+                              icon: Icons.visibility_rounded,
+                              description: "مشاهدة البيانات دون تعديل",
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildPermissionCard(
+                              title: "متابعة تفاعلية",
+                              value: "interactive",
+                              icon: Icons.edit_note_rounded,
+                              description: "إمكانية إضافة وتعديل البيانات",
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 40),
+
+                      // --- زر التأكيد ---
+                      Center(
+                        child: custom_button(
+                          buttonText: 'تأكيد التسجيل',
+                          width: double.infinity,
+                          onPressed: () => _registerFamilyMember(context),
                         ),
                       ),
                     ],
                   ),
                 ),
-
-                // --- المحتوى ---
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 10),
-                        Text(
-                          "الربط مع أفراد العائلة",
-                          style: GoogleFonts.tajawal(
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "اربط حسابك مع من يحبك لمتابعة حالتك الصحية والاطمئنان عليك.",
-                          style: GoogleFonts.tajawal(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                            height: 1.5,
-                          ),
-                        ),
-
-                        const SizedBox(height: 30),
-
-                        // بطاقة السؤال الرئيسي
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "هل ترغب بربط حسابك مع أحد أفراد عائلتك؟",
-                                style: GoogleFonts.tajawal(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildSelectableCard(
-                                      title: "نعم",
-                                      isSelected: wantToLink,
-                                      onTap: () =>
-                                          setState(() => wantToLink = true),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 15),
-                                  Expanded(
-                                    child: _buildSelectableCard(
-                                      title: "لا",
-                                      isSelected: !wantToLink,
-                                      onTap: () =>
-                                          setState(() => wantToLink = false),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // عرض الفورم فقط إذا اختار "نعم"
-                        AnimatedCrossFade(
-                          duration: const Duration(milliseconds: 300),
-                          firstChild: Container(),
-                          secondChild: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 25),
-
-                              _buildLabel("الاسم الكامل للمرافق"),
-                              CustomTextfild(
-                                hinttext: "مثال: أحمد محمد",
-                                onChanged: (val) => fullName = val,
-                              ),
-
-                              const SizedBox(height: 20),
-
-                              _buildLabel("رقم الهاتف"),
-                              IntlPhoneField(
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                  hintText: "79xxxxxxx",
-                                  hintStyle: TextStyle(
-                                    color: Colors.grey[400],
-                                    fontSize: 14,
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                    horizontal: 16,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey.shade300,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey.shade300,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: const BorderSide(
-                                      color: primaryColor,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                ),
-                                initialCountryCode: 'JO',
-                                textAlign: TextAlign.right,
-                                languageCode: "ar",
-                                onChanged: (phone) =>
-                                    phoneNumber = phone.completeNumber,
-                              ),
-
-                              const SizedBox(height: 25),
-
-                              _buildLabel("صلة القرابة"),
-                              Wrap(
-                                spacing: 10,
-                                runSpacing: 10,
-                                children: [
-                                  _buildChip(
-                                    "ابن/ـة",
-                                    "son",
-                                    selectedRelation,
-                                    (val) =>
-                                        setState(() => selectedRelation = val),
-                                  ),
-                                  _buildChip(
-                                    "أم",
-                                    "mother",
-                                    selectedRelation,
-                                    (val) =>
-                                        setState(() => selectedRelation = val),
-                                  ),
-                                  _buildChip(
-                                    "أب",
-                                    "father",
-                                    selectedRelation,
-                                    (val) =>
-                                        setState(() => selectedRelation = val),
-                                  ),
-                                  _buildChip(
-                                    "زوج/ـة",
-                                    "spouse",
-                                    selectedRelation,
-                                    (val) =>
-                                        setState(() => selectedRelation = val),
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 25),
-
-                              _buildLabel("الدور"),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildChip(
-                                      "قريب",
-                                      "relative",
-                                      selectedRole,
-                                      (val) =>
-                                          setState(() => selectedRole = val),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: _buildChip(
-                                      "مقدم رعاية",
-                                      "caregiver",
-                                      selectedRole,
-                                      (val) =>
-                                          setState(() => selectedRole = val),
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 25),
-
-                              _buildLabel("الصلاحية المتاحة"),
-                              Container(
-                                padding: const EdgeInsets.all(5),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: Colors.grey.shade300,
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    RadioListTile(
-                                      title: Text(
-                                        "عرض تقارير فقط",
-                                        style: GoogleFonts.tajawal(
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      value: 'view_only',
-                                      groupValue: selectedPermission,
-                                      activeColor: primaryColor,
-                                      onChanged: (val) => setState(
-                                        () =>
-                                            selectedPermission = val.toString(),
-                                      ),
-                                    ),
-                                    Divider(
-                                      height: 1,
-                                      color: Colors.grey.shade200,
-                                    ),
-                                    RadioListTile(
-                                      title: Text(
-                                        "متابعة تفاعلية (كامل الصلاحيات)",
-                                        style: GoogleFonts.tajawal(
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      value: 'interactive',
-                                      groupValue: selectedPermission,
-                                      activeColor: primaryColor,
-                                      onChanged: (val) => setState(
-                                        () =>
-                                            selectedPermission = val.toString(),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          crossFadeState: wantToLink
-                              ? CrossFadeState.showSecond
-                              : CrossFadeState.showFirst,
-                        ),
-
-                        const SizedBox(height: 40),
-
-                        Center(
-                          child: custom_button(
-                            buttonText: wantToLink
-                                ? 'تأكيد وحفظ'
-                                : 'متابعة بدون ربط',
-                            width: double.infinity,
-                            onPressed: sendFamilyDataToFirebase,
-                          ),
-                        ),
-                        const SizedBox(height: 30),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.tajawal(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: primaryColor,
+            ),
+          ),
+          const Divider(thickness: 1, height: 10),
+        ],
       ),
     );
   }
@@ -424,82 +255,99 @@ class _FamilyMemberInfoScreenState extends State<FamilyMemberInfoScreen> {
         text,
         style: GoogleFonts.tajawal(
           fontSize: 14,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w600,
           color: Colors.black87,
         ),
       ),
     );
   }
 
-  Widget _buildSelectableCard({
+  Widget _buildRelationChip(String label, String value, IconData icon) {
+    bool isSelected = selectedRelation == value;
+    return GestureDetector(
+      onTap: () => setState(() => selectedRelation = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? primaryColor : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? primaryColor : Colors.grey.shade300,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected ? Colors.white : Colors.grey[600],
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: GoogleFonts.tajawal(
+                color: isSelected ? Colors.white : Colors.grey[700],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPermissionCard({
     required String title,
-    required bool isSelected,
-    required VoidCallback onTap,
+    required String value,
+    required IconData icon,
+    required String description,
   }) {
+    bool isSelected = selectedPermission == value;
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(vertical: 12),
+      onTap: () => setState(() => selectedPermission = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF41BFAA) : Colors.grey[100],
-          borderRadius: BorderRadius.circular(10),
+          color: isSelected ? primaryColor.withOpacity(0.1) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? const Color(0xFF41BFAA) : Colors.transparent,
+            color: isSelected ? primaryColor : Colors.grey.shade200,
+            width: 2,
           ),
         ),
-        child: Text(
-          title,
-          style: GoogleFonts.tajawal(
-            color: isSelected ? Colors.white : Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? primaryColor : Colors.grey,
+              size: 30,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: GoogleFonts.tajawal(
+                fontWeight: FontWeight.bold,
+                color: isSelected ? primaryColor : Colors.black87,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.tajawal(color: Colors.grey[600], fontSize: 11),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildChip(
-    String label,
-    String value,
-    String groupValue,
-    Function(String) onSelect,
-  ) {
-    bool isSelected = value == groupValue;
-    return GestureDetector(
-      onTap: () => onSelect(value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFF41BFAA).withOpacity(0.1)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? const Color(0xFF41BFAA) : Colors.grey.shade300,
-            width: 1.5,
-          ),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.tajawal(
-            fontSize: 13,
-            color: isSelected ? const Color(0xFF41BFAA) : Colors.black54,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
+  void showsnackbar(BuildContext context, {required String massage}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(massage), backgroundColor: Colors.black87),
     );
   }
-}
-
-void showsnackbar(BuildContext context, {required String massage}) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(massage, style: const TextStyle(color: Colors.white)),
-      backgroundColor: Colors.black87,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-    ),
-  );
 }

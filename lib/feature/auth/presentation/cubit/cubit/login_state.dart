@@ -10,8 +10,17 @@ final class LoginLoading extends LoginState {}
 final class LoginSuccess extends LoginState {
   final String message;
   final User? user;
+  final String userType;
+  final String route;
+  final String permission;
 
-  LoginSuccess({required this.message, this.user});
+  LoginSuccess({
+    required this.message,
+    this.user,
+    required this.userType,
+    required this.route,
+    this.permission = 'interactive',
+  });
 }
 
 final class LoginFailure extends LoginState {

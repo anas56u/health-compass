@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:health_compass/feature/Reminders/data/model/reminders_model.dart';
-import 'package:health_compass/feature/Reminders/preesntation/cubits/reminder_cubit.dart';
+import 'package:health_compass/feature/Reminders/presentation/cubits/reminder_cubit.dart';
 import 'package:health_compass/feature/Reminders/widgets/AddReminderDialog.dart';
-import 'package:health_compass/feature/Reminders/preesntation/cubits/RemindersState.dart';
+import 'package:health_compass/feature/Reminders/presentation/cubits/RemindersState.dart';
 
 class RemindersPage extends StatelessWidget {
   const RemindersPage({super.key});
@@ -102,7 +102,6 @@ class RemindersPage extends StatelessWidget {
   }
 }
 
-
 class SectionHeader extends StatelessWidget {
   final String title;
   const SectionHeader({super.key, required this.title});
@@ -121,7 +120,6 @@ class SectionHeader extends StatelessWidget {
     );
   }
 }
-
 
 class ReminderCard extends StatelessWidget {
   final ReminderModel reminder;
@@ -185,7 +183,11 @@ class ReminderCard extends StatelessWidget {
           Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
+                icon: const Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: Colors.grey,
+                ),
                 onPressed: () {
                   context.read<RemindersCubit>().deleteReminder(reminder);
                 },

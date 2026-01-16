@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // للنسخ للحافظة
+import 'package:google_fonts/google_fonts.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:health_compass/feature/family_member/data/family_repository.dart';
 
 class FamilyInvitePage extends StatefulWidget {
   const FamilyInvitePage({super.key});
@@ -8,198 +14,359 @@ class FamilyInvitePage extends StatefulWidget {
 }
 
 class _FamilyInvitePageState extends State<FamilyInvitePage> {
+  final Color primaryColor = const Color(0xFF41BFAA);
+  final Color bgColor = const Color(0xFFF5F7FA);
+
+  final FamilyRepository _repository = FamilyRepository();
+  String? _inviteCode;
+  bool _isLoading = true;
+  bool _hasError = false;
+  bool _isCopied = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchInviteCode();
+  }
+
+  // دالة لجلب الكود (إما موجود مسبقاً أو توليد جديد)
+  Future<void> _fetchInviteCode() async {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
+
+    try {
+      // 1. محاولة جلب الكود الموجود
+      String? code = await _repository.getExistingCode();
+
+      // 2. إذا لم يوجد كود، نقوم بتوليد واحد جديد
+      code ??= await _repository.generateAndSaveInviteCode();
+
+      if (mounted) {
+        setState(() {
+          _inviteCode = code;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    const backgroundColor = Color(0xFFE8EEF5); 
-    const primaryColor = Color(0xFF1ABC9C);
-    const darkText = Color(0xFF2D3E50);
-
-    return Theme(
-      data: ThemeData(
-        fontFamily: 'Arial',
-        scaffoldBackgroundColor: backgroundColor,
-        colorScheme: ColorScheme.fromSeed(seedColor: primaryColor),
-      ),
-      child: Directionality(
-        textDirection: TextDirection.rtl,
-        child: Scaffold(
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {},
-            backgroundColor: primaryColor,
-            elevation: 4,
-            shape: const CircleBorder(), 
-            child: const Icon(Icons.add, color: Colors.white, size: 30),
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: bgColor,
+        appBar: AppBar(
+          backgroundColor: bgColor,
+          elevation: 0,
+          leading: const BackButton(color: Colors.black),
+          title: Text(
+            "دعوة العائلة",
+            style: GoogleFonts.tajawal(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 18.sp,
+            ),
           ),
-          
-          body: SafeArea(
+          centerTitle: true,
+        ),
+
+        // زر عائم للمشاركة السريعة
+        floatingActionButton: _inviteCode != null && !_isLoading && !_hasError
+            ? FloatingActionButton.extended(
+                onPressed: _shareCode,
+                backgroundColor: primaryColor,
+                elevation: 4,
+                icon: Icon(
+                  Icons.share_rounded,
+                  color: Colors.white,
+                  size: 24.sp,
+                ),
+                label: Text(
+                  "مشاركة الرابط",
+                  style: GoogleFonts.tajawal(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontSize: 14.sp,
+                  ),
+                ),
+              )
+            : null,
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+
+        body: _buildBody(),
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    // حالة التحميل
+    if (_isLoading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(color: primaryColor),
+            SizedBox(height: 15.h),
+            Text(
+              "جاري تحضير كود الدعوة...",
+              style: GoogleFonts.tajawal(color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // حالة الخطأ
+    if (_hasError) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline_rounded, color: Colors.red, size: 50.sp),
+            SizedBox(height: 15.h),
+            Text(
+              "حدث خطأ أثناء تحميل الكود",
+              style: GoogleFonts.tajawal(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 20.h),
+            ElevatedButton.icon(
+              onPressed: _fetchInviteCode,
+              icon: const Icon(Icons.refresh, color: Colors.white),
+              label: const Text("إعادة المحاولة"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // الحالة الطبيعية (عرض الكود)
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(24.w, 10.h, 24.w, 80.h), // مساحة للزر العائم
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // عنوان ترحيبي
+          Text(
+            "شارك صحتك مع عائلتك ❤️",
+            style: GoogleFonts.tajawal(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            "اتبع الخطوات التالية لربط حساب أحد أفراد عائلتك:",
+            style: GoogleFonts.tajawal(
+              fontSize: 14.sp,
+              color: Colors.grey[600],
+            ),
+            textAlign: TextAlign.center,
+          ),
+
+          SizedBox(height: 30.h),
+
+          // الخطوة 1: المسح الضوئي
+          _buildStepHeader(1, "المسح الضوئي (الأسرع)"),
+          SizedBox(height: 15.h),
+
+          // بطاقة QR Code
+          Container(
+            padding: EdgeInsets.all(20.w),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24.r),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
             child: Column(
               children: [
-                _buildHeader(darkText),
-
-                Expanded(
-                  child: Center(
-                    child: SingleChildScrollView( 
-                      padding: const EdgeInsets.symmetric(horizontal: 25),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            'قم باضافة افراد عائلتك لمتابعه حالتك الصحيه',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF5A6B7C),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 30),
-                          
-                          _buildActionCard(),
-                        ],
-                      ),
-                    ),
+                QrImageView(
+                  data: _inviteCode!,
+                  version: QrVersions.auto,
+                  size: 180.sp,
+                  foregroundColor: Colors.black87,
+                  gapless: false,
+                ),
+                SizedBox(height: 15.h),
+                Text(
+                  "افتح تطبيق المرافق وامسح هذا الكود",
+                  style: GoogleFonts.tajawal(
+                    fontSize: 12.sp,
+                    color: Colors.grey[500],
                   ),
                 ),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
 
+          SizedBox(height: 30.h),
 
-  Widget _buildHeader(Color textColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              const CircleAvatar(
-                radius: 30,
-                backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=11'),
-              ),
-              const SizedBox(width: 15),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'حليم المجالي',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor),
+          // الخطوة 2: النسخ اليدوي
+          _buildStepHeader(2, "أو النسخ اليدوي"),
+          SizedBox(height: 15.h),
+
+          InkWell(
+            onTap: _copyCodeToClipboard,
+            borderRadius: BorderRadius.circular(16.r),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16.r),
+                border: Border.all(
+                  color: _isCopied ? Colors.green : Colors.grey.shade200,
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
                   ),
-                  const SizedBox(height: 4),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "كود الربط:",
+                        style: GoogleFonts.tajawal(
+                          fontSize: 12.sp,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                      Text(
+                        _inviteCode!,
+                        style: GoogleFonts.changa(
+                          fontSize: 24.sp,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: EdgeInsets.all(10.w),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade400),
-                      borderRadius: BorderRadius.circular(12),
+                      color: _isCopied
+                          ? Colors.green.withOpacity(0.1)
+                          : primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12.r),
                     ),
-                    child: const Text(
-                      'حساب مرافق',
-                      style: TextStyle(fontSize: 10, color: Colors.grey),
+                    child: Icon(
+                      _isCopied ? Icons.check_rounded : Icons.copy_rounded,
+                      color: _isCopied ? Colors.green : primaryColor,
+                      size: 22.sp,
                     ),
                   ),
                 ],
               ),
-            ],
-          ),
-
-          IconButton(
-            icon: Icon(Icons.settings_outlined, color: Colors.grey.shade600, size: 28),
-            onPressed: () {},
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade400),
-        borderRadius: BorderRadius.circular(4), 
-      ),
-      child: Column(
-        children: [
-          _buildStyledButton(
-            text: 'قم بدعوة افراد عائلتك من خلال الرابط او من واتس اب',
-            icon: Icons.chat_bubble, 
-            iconColor: Colors.green,
-            onPressed: () {},
-          ),
-
-          const SizedBox(height: 20),
-
-          _buildOrDivider(),
-
-          const SizedBox(height: 20),
-
-          _buildStyledButton(
-            text: 'قم بالتسجيل يدوياً',
-            onPressed: () {},
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStyledButton({
-    required String text,
-    required VoidCallback onPressed,
-    IconData? icon,
-    Color? iconColor,
-  }) {
-    return SizedBox(
-      width: double.infinity,
-      height: 55, 
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFE8EEF5),
-          foregroundColor: Colors.black54, 
-          elevation: 4,
-          shadowColor: Colors.grey.shade300,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-            side: const BorderSide(color: Colors.grey, width: 0.5), 
-          ),
-        ),
-        onPressed: onPressed,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, color: iconColor, size: 20),
-              const SizedBox(width: 8),
-            ],
-            Flexible( 
-              child: Text(
-                text,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildOrDivider() {
+  // --- Widgets ---
+
+  Widget _buildStepHeader(int number, String title) {
     return Row(
-      children: const [
-        Expanded(child: Divider(color: Colors.grey, thickness: 1)),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 10),
+      children: [
+        Container(
+          width: 28.w,
+          height: 28.w,
+          decoration: BoxDecoration(
+            color: primaryColor,
+            shape: BoxShape.circle,
+          ),
+          alignment: Alignment.center,
           child: Text(
-            'أو',
-            style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+            "$number",
+            style: GoogleFonts.tajawal(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14.sp,
+            ),
           ),
         ),
-        Expanded(child: Divider(color: Colors.grey, thickness: 1)),
+        SizedBox(width: 10.w),
+        Text(
+          title,
+          style: GoogleFonts.tajawal(
+            fontSize: 16.sp,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
       ],
     );
+  }
+
+  // --- Functions ---
+
+  void _shareCode() {
+    if (_inviteCode != null) {
+      Share.share(
+        'مرحباً، تابع حالتي الصحية على تطبيق بوصلة الصحة باستخدام الكود: $_inviteCode',
+      );
+    }
+  }
+
+  void _copyCodeToClipboard() {
+    if (_inviteCode != null) {
+      Clipboard.setData(ClipboardData(text: _inviteCode!));
+      setState(() => _isCopied = true);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 10.w),
+              Text("تم نسخ الكود بنجاح", style: GoogleFonts.tajawal()),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.r),
+          ),
+          margin: EdgeInsets.all(20.w),
+        ),
+      );
+
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) setState(() => _isCopied = false);
+      });
+    }
   }
 }

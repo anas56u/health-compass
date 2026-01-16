@@ -2,7 +2,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive/hive.dart';
 import 'package:health_compass/feature/Reminders/data/model/reminders_model.dart';
-import 'package:health_compass/feature/Reminders/preesntation/cubits/RemindersState.dart';
+import 'package:health_compass/feature/Reminders/presentation/cubits/RemindersState.dart';
 import 'package:health_compass/core/services/notification_service.dart';
 
 class RemindersCubit extends Cubit<RemindersState> {

@@ -3,7 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:health_compass/core/core.dart';
 import 'package:health_compass/core/widgets/custom_button.dart';
 import 'package:health_compass/feature/auth/presentation/screen/doctor_info.dart';
-// import 'package:health_compass/feature/auth/presentation/screen/family_member_info.dart'; // لم نعد بحاجة لهذا الاستيراد هنا
+// ✅ تم إلغاء التعليق عن هذا السطر
+import 'package:health_compass/feature/auth/presentation/screen/family_member_info.dart';
 import 'package:health_compass/feature/auth/presentation/screen/patient_info.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 
@@ -158,7 +159,6 @@ class _UserTypeState extends State<UserType>
 
                               const SizedBox(height: 15),
 
-                              // --- ✅ تم حذف خيار فرد العائلة ---
                               _buildTypeCard(
                                 value: "مريض",
                                 title: "مريض",
@@ -167,9 +167,18 @@ class _UserTypeState extends State<UserType>
                                 activeColor: activeColor,
                               ),
 
-                              const SizedBox(
-                                height: 15,
-                              ), // مسافة أكبر قليلاً بين الخيارين
+                              const SizedBox(height: 15),
+
+                              // ✅ تمت إضافة خيار فرد العائلة هنا
+                              _buildTypeCard(
+                                value: "فرد عائلة",
+                                title: "فرد عائلة",
+                                subtitle: "متابعة صحة أفراد العائلة",
+                                icon: Icons.family_restroom,
+                                activeColor: activeColor,
+                              ),
+
+                              const SizedBox(height: 15),
 
                               _buildTypeCard(
                                 value: "طبيب",
@@ -225,10 +234,7 @@ class _UserTypeState extends State<UserType>
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
-        ), // زيادة المساحة الرأسية قليلاً
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
           color: isSelected ? activeColor.withOpacity(0.1) : Colors.grey[50],
           borderRadius: BorderRadius.circular(12),
@@ -303,7 +309,12 @@ class _UserTypeState extends State<UserType>
         AppRoutes.doctorInfo,
         arguments: {'email': widget.email, 'password': widget.password},
       );
+    } else if (selectedUserType == "فرد عائلة") {
+      Navigator.pushNamed(
+        context,
+        AppRoutes.familyMemberInfo, // تأكد أن هذا المسار معرف في ملف AppRoutes
+        arguments: {'email': widget.email, 'password': widget.password},
+      );
     }
-    // ✅ تم حذف شرط الانتقال لفرد العائلة
   }
 }

@@ -1,53 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:health_compass/core/core.dart';
 import 'package:health_compass/core/services/notification_service.dart';
 import 'package:health_compass/feature/Reminders/data/model/reminders_model.dart';
-import 'package:health_compass/feature/Reminders/preesntation/cubits/reminder_cubit.dart';
-import 'package:health_compass/feature/Reminders/preesntation/screens/Reminders_page.dart';
+import 'package:health_compass/feature/Reminders/presentation/cubits/reminder_cubit.dart';
 import 'package:health_compass/feature/auth/data/datasource/auth_remote_datasource.dart';
 import 'package:health_compass/feature/auth/data/repository/auth_repository_impl.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/signup_cubit.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/user_cubit.dart';
-import 'package:health_compass/feature/auth/presentation/screen/family_member_info.dart';
-import 'package:health_compass/feature/chatbot/ui/screens/chat_bot_screen.dart';
-import 'package:health_compass/feature/doctor/doctor_main_screen.dart';
 import 'package:health_compass/feature/health_tracking/presentation/cubits/SimpleBlocObserver.dart';
 import 'package:health_compass/feature/health_tracking/presentation/cubits/health_cubit/health_cubit.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'firebase_options.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:health_compass/core/routes/routes.dart';
+import 'package:health_compass/feature/family_member/data/family_repository.dart';
+import 'package:health_compass/feature/family_member/logic/family_cubit.dart';
 
 void main() async {
   Bloc.observer = SimpleBlocObserver();
 
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 1. تهيئة Hive
   await Hive.initFlutter();
   Hive.registerAdapter(ReminderModelAdapter());
   final Box<ReminderModel> reminderBox = await Hive.openBox<ReminderModel>(
     'reminders',
   );
+
+  // 2. تهيئة الإشعارات
   final notificationService = NotificationService();
   await notificationService.init();
-  await notificationService.flutterLocalNotificationsPlugin.show(
-    9999,
-    'اختبار الإشعارات',
-    'إذا وصل هذا الإشعار، النظام شغال ✅',
-    const NotificationDetails(
-      android: AndroidNotificationDetails(
-        'reminders_channel_id_v2',
-        'Reminders Notifications',
-        importance: Importance.max,
-        priority: Priority.high,
-      ),
-    ),
-  );
+
+  // 3. تهيئة تنسيق التاريخ
   await initializeDateFormatting();
 
+  // 4. تهيئة Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(
@@ -58,6 +49,7 @@ void main() async {
 class MyApp extends StatelessWidget {
   final Box<ReminderModel> reminderBox;
   final NotificationService notificationService;
+
   const MyApp({
     super.key,
     required this.reminderBox,
@@ -66,9 +58,14 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // إعداد المستودعات (Repositories)
     final authRepository = AuthRepositoryImpl(
       remoteDataSource: AuthRemoteDataSourceImpl(),
     );
+
+    // ✅ إنشاء مستودع العائلة
+    final familyRepository = FamilyRepository();
+
     return ScreenUtilInit(
       designSize: const Size(375, 812),
       minTextAdapt: true,
@@ -76,6 +73,7 @@ class MyApp extends StatelessWidget {
       builder: (context, child) {
         return MultiBlocProvider(
           providers: [
+            // --- الكيوبتات القديمة ---
             BlocProvider(
               create: (context) =>
                   RemindersCubit(reminderBox, notificationService),
@@ -85,18 +83,21 @@ class MyApp extends StatelessWidget {
               create: (context) =>
                   UserCubit(authRepository: authRepository)..getUserData(),
             ),
+            BlocProvider(create: (context) => SignupCubit(authRepository)),
 
-            BlocProvider(
-              create: (context) => SignupCubit(
-                AuthRepositoryImpl(
-                  remoteDataSource: AuthRemoteDataSourceImpl(),
-                ),
-              ),
-            ),
+            // ✅✅ إضافة FamilyCubit الجديد هنا ليصبح متاحاً للتطبيق بالكامل ✅✅
+            BlocProvider(create: (context) => FamilyCubit(familyRepository)),
           ],
           child: MaterialApp(
             debugShowCheckedModeBanner: false,
-            initialRoute: AppRoutes.splash,
+            title: 'Health Compass',
+            theme: ThemeData(
+              useMaterial3: true,
+              primaryColor: const Color(0xFF41BFAA),
+              scaffoldBackgroundColor: const Color(0xFFF5F7FA),
+            ),
+            // إعدادات التوجيه (Routing)
+            initialRoute: AppRoutes.splash, // أو AppRoutes.login حسب رغبتك
             onGenerateRoute: AppRouter().generateRoute,
           ),
         );

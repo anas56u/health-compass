@@ -1,27 +1,38 @@
 import 'package:flutter/material.dart';
 
 class CustomTextfild extends StatelessWidget {
-  @override
   final String? hinttext;
   final Function(String)? onChanged;
   final TextEditingController? controller;
+
+  // ✅ 1. أضفنا المتغير هنا
+  final bool obscureText;
+
   const CustomTextfild({
     super.key,
     this.hinttext,
     this.onChanged,
     this.controller,
+    // ✅ 2. أضفناه في الكونستركتور مع قيمة افتراضية false
+    this.obscureText = false,
   });
+
+  @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
+
+      // ✅ 3. مررنا القيمة للـ TextFormField ليقوم بالإخفاء عند الحاجة
+      obscureText: obscureText,
+
       textDirection: TextDirection.ltr,
       textAlign: TextAlign.left,
-
-      style: TextStyle(color: Colors.black),
+      style: const TextStyle(color: Colors.black), // يفضل إضافة const
       validator: (value) {
         if (value!.isEmpty) {
           return "this field is required";
         }
+        return null; // يجب إرجاع null إذا كان التحقق صحيحاً
       },
       onChanged: onChanged,
       decoration: InputDecoration(
@@ -47,6 +58,7 @@ class CustomTextfild extends StatelessWidget {
           borderSide: const BorderSide(color: Colors.red, width: 1.5),
         ),
         border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(17), // توحيد الحواف
           borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
         ),
       ),

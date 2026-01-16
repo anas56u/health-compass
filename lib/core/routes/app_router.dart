@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:health_compass/core/routes/routes.dart';
-
-// --- استيرادات الشاشات الموجودة ---
-import 'package:health_compass/feature/Reminders/preesntation/screens/Reminders_page.dart';
+import 'package:health_compass/feature/Reminders/presentation/screens/Reminders_page.dart';
 import 'package:health_compass/feature/auth/presentation/screen/AppointmentBooking.dart';
 import 'package:health_compass/feature/auth/presentation/screen/chatscreen.dart';
 import 'package:health_compass/feature/auth/presentation/screen/splash_screen.dart';
@@ -17,12 +15,16 @@ import 'package:health_compass/feature/auth/presentation/screen/doctor_info.dart
 import 'package:health_compass/feature/auth/presentation/screen/family_member_info.dart';
 import 'package:health_compass/feature/chatbot/ui/screens/chat_bot_screen.dart';
 import 'package:health_compass/feature/family_invite/family_invite.dart';
+import 'package:health_compass/feature/family_member/logic/family_cubit.dart';
 import 'package:health_compass/feature/health_dashboard/ui/screens/health_dashboard_screen.dart';
 import 'package:health_compass/feature/home/presentation/PatientView_body.dart';
 import 'package:health_compass/feature/achievements/preesntation/screens/achievements_page.dart';
 import 'package:health_compass/feature/profile/patient_profile.dart';
 
-// --- استيراد الكيوبت والـ DI ---
+import 'package:health_compass/feature/family_member/data/family_repository.dart';
+import 'package:health_compass/feature/family_member/presentation/screens/family_member_home_screen.dart';
+import 'package:health_compass/feature/family_member/presentation/screens/link_patient_screen.dart';
+import 'package:health_compass/feature/family_member/presentation/screens/family_profile_screen.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/login_cubit.dart';
 import 'package:health_compass/feature/auth/di/auth_di.dart';
 
@@ -52,7 +54,7 @@ class AppRouter {
         );
 
       case AppRoutes.signup:
-        return MaterialPageRoute(builder: (_) => const signup_page());
+        return MaterialPageRoute(builder: (_) => const SignupPage());
 
       case AppRoutes.forgetPassword:
         return MaterialPageRoute(builder: (_) => ForgotPasswordScreen());
@@ -74,7 +76,17 @@ class AppRouter {
         );
 
       case AppRoutes.familyMemberInfo:
-        return MaterialPageRoute(builder: (_) => FamilyMemberInfoScreen());
+        final args = settings.arguments as Map<String, dynamic>;
+        return MaterialPageRoute(
+          builder: (context) => BlocProvider(
+            create: (context) =>
+                AuthDI.signupCubit, // أو طريقتك في توفير الكيوبت
+            child: FamilyMemberInfoScreen(
+              email: args['email'],
+              password: args['password'],
+            ),
+          ),
+        );
 
       case AppRoutes.patientHome:
         return MaterialPageRoute(builder: (_) => const Patientview_body());
@@ -101,8 +113,30 @@ class AppRouter {
 
       case AppRoutes.healthDashboard:
         return MaterialPageRoute(builder: (_) => const HealthDashboardScreen());
+
       case AppRoutes.chatBot:
         return MaterialPageRoute(builder: (_) => const ChatBotScreen());
+
+      case AppRoutes.familyHome:
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider(
+            create: (context) => FamilyCubit(FamilyRepository()),
+            child: const FamilyMemberHomeScreen(),
+          ),
+        );
+
+      // 2. صفحة ربط المريض (إدخال الكود)
+      case AppRoutes.linkPatient:
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider(
+            create: (context) => FamilyCubit(FamilyRepository()),
+            child: const LinkPatientScreen(), // تأكد من وجود const هنا
+          ),
+        );
+
+      // 3. صفحة إعدادات الحساب الشخصي لفرد العائلة
+      case AppRoutes.familyProfile:
+        return MaterialPageRoute(builder: (_) => const FamilyProfileScreen());
 
       default:
         return MaterialPageRoute(

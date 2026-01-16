@@ -3,6 +3,7 @@ import 'package:health_compass/feature/auth/data/repository/auth_repository_impl
 import 'package:health_compass/feature/auth/domain/repository/auth_repository.dart';
 import 'package:health_compass/feature/auth/domain/usecases/login_usecase.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/login_cubit.dart';
+import 'package:health_compass/feature/auth/presentation/cubit/cubit/signup_cubit.dart';
 
 class AuthDI {
   // DataSource
@@ -18,4 +19,6 @@ class AuthDI {
 
   // Cubits
   static LoginCubit get loginCubit => LoginCubit(loginUseCase: loginUseCase);
+
+  static SignupCubit get signupCubit => SignupCubit(authRepository);
 }
