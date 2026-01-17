@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:health_compass/core/cache/shared_pref_helper.dart';
 import 'package:health_compass/core/core.dart';
 import 'package:health_compass/core/themes/app_gradient.dart';
 import 'package:health_compass/feature/auth/presentation/screen/login_page.dart';
+import 'package:health_compass/feature/doctor/doctor_main_screen.dart';
+import 'package:health_compass/feature/doctor/home/pages/doctor_home_page.dart';
+import 'package:health_compass/feature/family_member/data/family_repository.dart';
+import 'package:health_compass/feature/family_member/logic/family_cubit.dart';
+import 'package:health_compass/feature/family_member/presentation/screens/family_member_home_screen.dart';
 import 'package:health_compass/feature/home/presentation/PatientView_body.dart';
 import 'package:health_compass/feature/auth/presentation/screen/splash_screens.dart';
 
@@ -76,29 +82,40 @@ class _SplashScreenState extends State<SplashScreen>
     });
   }
 
-  Future<void> _checkAuthStatus() async {
-    // Wait for 2.5 seconds (splash duration)
-    await Future.delayed(const Duration(milliseconds: 2500));
+ Future<void> _checkAuthStatus() async {
+  await Future.delayed(const Duration(milliseconds: 2500));
 
-    // Check if user is logged in
-    final isLoggedIn = await SharedPrefHelper.isUserLoggedIn();
+  final isLoggedIn = await SharedPrefHelper.isUserLoggedIn();
 
-    if (!mounted) return;
+  if (!mounted) return;
 
-    if (isLoggedIn) {
-      // User is logged in, navigate to home
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const Patientview_body()),
+  if (isLoggedIn) {
+    final userType = await SharedPrefHelper.getString('user_type');
+
+    Widget startScreen;
+
+    if (userType == 'doctor') {
+      startScreen = const DoctorMainScreen(); 
+    } else if (userType == 'family_member') {
+      startScreen = BlocProvider(
+          create: (context) => FamilyCubit(FamilyRepository()),
+          child: const FamilyMemberHomeScreen(),
       );
     } else {
-      // User is not logged in, navigate to login
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => SplashScreens()),
-      );
+      startScreen = const Patientview_body();
     }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => startScreen),
+    );
+  } else {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => SplashScreens()),
+    );
   }
+}
 
   @override
   void dispose() {

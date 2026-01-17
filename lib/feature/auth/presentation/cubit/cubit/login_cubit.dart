@@ -70,6 +70,7 @@ class LoginCubit extends Cubit<LoginState> {
         email: user?.email,
         userId: user?.uid,
       );
+      await SharedPrefHelper.setData('user_type', userType);
 
       // 4. إرسال حالة النجاح مع الصلاحية
       emit(
