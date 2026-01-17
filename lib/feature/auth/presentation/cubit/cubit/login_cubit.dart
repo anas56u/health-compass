@@ -1,6 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:health_compass/core/cache/shared_pref_helper.dart';
 import 'package:health_compass/core/routes/routes.dart';
 import 'package:health_compass/feature/auth/domain/usecases/login_usecase.dart';
@@ -28,6 +29,14 @@ class LoginCubit extends Cubit<LoginState> {
       String route = AppRoutes.patientHome;
 
       String permission = 'interactive';
+      final token = await FirebaseMessaging.instance.getToken();
+
+if (user != null && token != null) {
+  // تحديث وثيقة المستخدم لإضافة التوكن
+  await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+    'fcmToken': token, // نخزن التوكن هنا
+  });
+}
 
       if (user != null) {
         try {
@@ -39,7 +48,6 @@ class LoginCubit extends Cubit<LoginState> {
           if (userDoc.exists && userDoc.data() != null) {
             final data = userDoc.data()!;
 
-            // ✅✅ التعديل هنا: استخدام user_type بدلاً من userType
             userType = data['user_type'] ?? 'patient';
 
             if (userType == 'family_member') {

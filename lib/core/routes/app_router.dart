@@ -4,6 +4,7 @@ import 'package:health_compass/core/routes/routes.dart';
 import 'package:health_compass/feature/Reminders/presentation/screens/Reminders_page.dart';
 import 'package:health_compass/feature/auth/presentation/screen/AppointmentBooking.dart';
 import 'package:health_compass/feature/auth/presentation/screen/chatscreen.dart';
+import 'package:health_compass/feature/auth/presentation/screen/my_doctors.dart';
 import 'package:health_compass/feature/auth/presentation/screen/splash_screen.dart';
 import 'package:health_compass/feature/auth/presentation/screen/splash_screens.dart';
 import 'package:health_compass/feature/auth/presentation/screen/login_page.dart';
@@ -108,14 +109,16 @@ class AppRouter {
       case AppRoutes.reamindersPage:
         return MaterialPageRoute(builder: (_) => const RemindersPage());
 
-      case AppRoutes.chatScreen:
-        return MaterialPageRoute(builder: (_) => const ChatScreen());
+      
 
       case AppRoutes.healthDashboard:
         return MaterialPageRoute(builder: (_) => const HealthDashboardScreen());
 
       case AppRoutes.chatBot:
         return MaterialPageRoute(builder: (_) => const ChatBotScreen());
+
+        case AppRoutes.my_doctors:
+        return MaterialPageRoute(builder: (_) => const MyDoctorsScreen());
 
       case AppRoutes.familyHome:
         return MaterialPageRoute(

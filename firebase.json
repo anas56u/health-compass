@@ -1,1 +1,38 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"health-compass-12e1c","appId":"1:156019165379:android:a8057619ddd099a189fa76","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"health-compass-12e1c","configurations":{"android":"1:156019165379:android:a8057619ddd099a189fa76","ios":"1:156019165379:ios:f4fdd6a97ba7ae2e89fa76","macos":"1:156019165379:ios:f4fdd6a97ba7ae2e89fa76","web":"1:156019165379:web:a7fe0a2bfb5e961289fa76"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "health-compass-12e1c",
+          "appId": "1:156019165379:android:a8057619ddd099a189fa76",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "health-compass-12e1c",
+          "configurations": {
+            "android": "1:156019165379:android:a8057619ddd099a189fa76",
+            "ios": "1:156019165379:ios:f4fdd6a97ba7ae2e89fa76",
+            "macos": "1:156019165379:ios:f4fdd6a97ba7ae2e89fa76",
+            "web": "1:156019165379:web:a7fe0a2bfb5e961289fa76"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}

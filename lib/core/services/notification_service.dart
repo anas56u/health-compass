@@ -1,12 +1,19 @@
 import 'dart:io' show Platform;
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  debugPrint("Handling a background message: ${message.messageId}");
+}
 
 class NotificationService {
+  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+  
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
   NotificationService._internal();
@@ -15,6 +22,33 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   Future<void> init() async {
+    NotificationSettings settings = await _firebaseMessaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      debugPrint('User granted permission');
+    }
+
+    // 2. إعداد معالجة الرسائل القادمة والتطبيق مفتوح (Foreground)
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      debugPrint('Got a message whilst in the foreground!');
+      debugPrint('Message data: ${message.data}');
+
+      if (message.notification != null) {
+        // عرض الإشعار باستخدام Local Notifications ليظهر كنافذة منبثقة
+        showNotification(
+          id: message.hashCode,
+          title: message.notification!.title ?? 'رسالة جديدة',
+          body: message.notification!.body ?? '',
+        );
+      }
+    });
+
+    // 3. إعداد معالجة الرسائل في الخلفية
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     debugPrint("🔥 NotificationService INIT CALLED");
 
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
@@ -23,6 +57,7 @@ class NotificationService {
       description: 'Important reminders channel',
       importance: Importance.max,
     );
+    
 
 
 
@@ -32,6 +67,17 @@ class NotificationService {
         ?.createNotificationChannel(channel);
 
     tz.initializeTimeZones();
+    // 1. تعريف قناة الدردشة (إضافة جديدة)
+const AndroidNotificationChannel chatChannel = AndroidNotificationChannel(
+  'chat_channel_id', // يجب أن يطابق الـ ID المستخدم في showNotification
+  'Chat Notifications',
+  description: 'Notifications for new messages',
+  importance: Importance.max,
+);
+await flutterLocalNotificationsPlugin
+    .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>()
+    ?.createNotificationChannel(chatChannel);
 
     try {
       final String timeZoneName =
@@ -83,6 +129,30 @@ class NotificationService {
           ?.requestExactAlarmsPermission();
     }
   }
+  Future<void> showNotification({required int id, required String title, required String body}) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'chat_channel_id', // ID قناة جديد للدردشة
+      'Chat Notifications',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+    const NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+    
+    await flutterLocalNotificationsPlugin.show(
+      id,
+      title,
+      body,
+      platformChannelSpecifics,
+    );
+  }
+
+  // دالة للحصول على الـ Token الخاص بالجهاز
+  Future<String?> getDeviceToken() async {
+    return await _firebaseMessaging.getToken();
+  }
+
 
   Future<void> scheduleAnnoyingReminder({
     required int id,

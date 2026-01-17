@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:health_compass/core/routes/routes.dart';
+import 'package:health_compass/feature/auth/presentation/screen/AvailableDoctorsScreen.dart';
+import 'package:health_compass/feature/auth/presentation/screen/my_doctors.dart';
 // import 'package:health_compass/core/widgets/AccessItem.dart'; // سنقوم ببناء التصميم مباشرة لضمان الشكل الجديد
 
 class AccessibilityFacilities extends StatelessWidget {
@@ -10,10 +12,11 @@ class AccessibilityFacilities extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<Map<String, dynamic>> accessItems = [
       {
-        'icon': Icons.location_on_rounded,
+      'icon': Icons.location_on_rounded,
         'label': 'تواصل مع طبيبك',
-        'color': Colors.blue, // لون مميز
-        'route': AppRoutes.chatScreen,
+        'color': Colors.blue,
+        'route': null, // نجعله null لأننا سنعالجه يدوياً
+        'isCustomAction': true, // علامة لتمييز هذا العنصر
       },
       {
         'icon': Icons.watch_later_rounded,
@@ -118,10 +121,23 @@ class AccessibilityFacilities extends StatelessWidget {
                       color: Colors.transparent,
                       child: InkWell(
                         borderRadius: BorderRadius.circular(16),
-                        onTap: () {
-                          if (item['route'] != null) {
+                       onTap: () {
+                          // التحقق الخاص بـ "تواصل مع طبيبك"
+                          if (item['label'] == 'تواصل مع طبيبك') {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                // تأكد أن هذا الاسم يطابق اسم كلاس صفحة الأطباء لديك
+                                builder: (context) => const MyDoctorsScreen(), 
+                              ),
+                            );
+                          } 
+                          // التحقق من الروابط الأخرى
+                          else if (item['route'] != null) {
                             Navigator.pushNamed(context, item['route']);
-                          } else {
+                          } 
+                          // إجراءات العناصر التي ليس لها صفحة بعد
+                          else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text("جاري فتح: ${item['label']}"),

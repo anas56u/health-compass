@@ -21,8 +21,7 @@ class _DoctorHomePageState extends State<DoctorHomePage> {
   @override
   void initState() {
     super.initState();
-    // ✅ التأكد من جلب بيانات المستخدم الجديد عند بناء الصفحة
-    // استخدمنا addPostFrameCallback لضمان أن السياق (context) جاهز
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
         context.read<UserCubit>().getUserData();
     });

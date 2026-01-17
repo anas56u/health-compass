@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:health_compass/feature/doctor/widgets/my_patientscreen.dart';
 import 'widgets/doctor_bottom_nav.dart';
 import 'home/pages/doctor_home_page.dart';
 import 'home/pages/notifications_page.dart';
-import 'home/pages/chat_page.dart';
 import 'appointment/pages/appointments_page.dart';
 
 class DoctorMainScreen extends StatelessWidget {
@@ -22,7 +22,7 @@ class DoctorMainScreenContent extends StatelessWidget {
   static final List<Widget> _pages = [
     const DoctorHomePage(),
     const NotificationsPage(),
-    const ChatPage(),
+    MyPatientsScreen(),
     const AppointmentsPage(),
     
   ];
@@ -60,7 +60,7 @@ class _DoctorMainScreenWithIndex extends StatelessWidget {
   static final List<Widget> _pages = [
     const DoctorHomePage(),
     const NotificationsPage(),
-    const ChatPage(),
+    MyPatientsScreen(),
     const AppointmentsPage(),
   
   ];

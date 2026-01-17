@@ -20,7 +20,7 @@ class AppRoutes {
   static const String familyInvite = '/family_invite';
   static const String profileSettings = '/profile_settings';
   static const String reamindersPage = '/reminders_page';
-  static const String chatScreen = '/chat_screen';
+  static const String my_doctors = '/my_doctors';
   static const String doctorContact = '/doctor_contact';
   static const String healthDashboard = '/healthDashboard';
 }

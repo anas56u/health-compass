@@ -5,7 +5,7 @@ enum ChatStatus { initial, loading, success, failure }
 
 class ChatState extends Equatable {
   final ChatStatus status;
-  final List<MessageModel> messages;
+  final List<bot_MessageModel> messages;
   final String errorMessage;
 
   const ChatState({
@@ -16,7 +16,7 @@ class ChatState extends Equatable {
 
   ChatState copyWith({
     ChatStatus? status,
-    List<MessageModel>? messages,
+    List<bot_MessageModel>? messages,
     String? errorMessage,
   }) {
     return ChatState(

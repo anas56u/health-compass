@@ -25,29 +25,30 @@ void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1. تهيئة Hive
+  // 1. تهيئة Firebase (يجب أن تكون الأولى دائماً لأن الإشعارات تعتمد عليها)
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // 2. تهيئة Hive
   await Hive.initFlutter();
   Hive.registerAdapter(ReminderModelAdapter());
   final Box<ReminderModel> reminderBox = await Hive.openBox<ReminderModel>(
     'reminders',
   );
 
-  // 2. تهيئة الإشعارات
+  // 3. تهيئة الإشعارات (الآن ستعمل لأن Firebase جاهز)
   final notificationService = NotificationService();
   await notificationService.init();
 
-  // 3. تهيئة تنسيق التاريخ
+  // 4. تهيئة تنسيق التاريخ
   await initializeDateFormatting();
-
-  // 4. تهيئة Firebase
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(
     MyApp(reminderBox: reminderBox, notificationService: notificationService),
   );
 }
 
-class MyApp extends StatelessWidget {  
+class MyApp extends StatelessWidget {
+  // ... (باقي الكلاس كما هو بدون تغيير)
   final Box<ReminderModel> reminderBox;
   final NotificationService notificationService;
 
@@ -90,7 +91,6 @@ class MyApp extends StatelessWidget {
             BlocProvider(create: (context) => FamilyCubit(familyRepository)),
             BlocProvider(
               create: (context) => DoctorHomeCubit(),
-              
             )
           ],
           child: MaterialApp(
@@ -102,9 +102,8 @@ class MyApp extends StatelessWidget {
               scaffoldBackgroundColor: const Color(0xFFF5F7FA),
             ),
             // إعدادات التوجيه (Routing)
-            initialRoute: AppRoutes.splash, // أو AppRoutes.login حسب رغبتك
+            initialRoute: AppRoutes.splash,
             onGenerateRoute: AppRouter().generateRoute,
-            
           ),
         );
       },
