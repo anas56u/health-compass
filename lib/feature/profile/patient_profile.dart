@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:health_compass/core/cache/shared_pref_helper.dart';
+import 'package:health_compass/core/routes/routes.dart';
 import 'package:health_compass/feature/auth/data/model/PatientModel.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/user_cubit.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/user_state.dart';
@@ -328,13 +329,16 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
     );
 
     if (shouldLogout == true && mounted) {
-      await SharedPrefHelper.clearLoginData();
+   
+      context.read<UserCubit>().clearUserData();
+         await SharedPrefHelper.clearLoginData();
       
       if (!mounted) return;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
+     Navigator.pushNamedAndRemoveUntil(
+        context, 
+        AppRoutes.login,
+        (route) => false
       );
     }
   }

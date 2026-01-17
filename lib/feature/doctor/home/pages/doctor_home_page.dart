@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:health_compass/feature/auth/presentation/cubit/cubit/user_cubit.dart';
 // تأكد من مسار الاستدعاء الصحيح للـ Cubit والـ States
 import 'package:health_compass/feature/doctor/requests/cubits/DoctorHomeCubit.dart';
 import 'package:health_compass/feature/doctor/requests/cubits/DoctorHomeState.dart'; 
@@ -9,9 +10,23 @@ import '../widgets/doctor_header.dart';
 import '../widgets/doctor_stats_card.dart';
 import '../widgets/appointment_list_item.dart';
 
-class DoctorHomePage extends StatelessWidget {
+class DoctorHomePage extends StatefulWidget {
   const DoctorHomePage({super.key});
 
+  @override
+  State<DoctorHomePage> createState() => _DoctorHomePageState();
+}
+
+class _DoctorHomePageState extends State<DoctorHomePage> {
+  @override
+  void initState() {
+    super.initState();
+    // ✅ التأكد من جلب بيانات المستخدم الجديد عند بناء الصفحة
+    // استخدمنا addPostFrameCallback لضمان أن السياق (context) جاهز
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<UserCubit>().getUserData();
+    });
+  }
   @override
   Widget build(BuildContext context) {
     return BlocProvider(

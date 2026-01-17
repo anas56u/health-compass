@@ -7,6 +7,9 @@ class UserCubit extends Cubit<UserState> {
   final AuthRepository authRepository;
 
   UserCubit({required this.authRepository}) : super(UserInitial());
+  void clearUserData() {
+    emit(UserInitial()); 
+  }
 
   Future<void> getUserData() async {
     emit(UserLoading());

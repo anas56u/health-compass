@@ -132,6 +132,8 @@ class DoctorHeader extends StatelessWidget {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
+              context.read<UserCubit>().clearUserData();
+              await SharedPrefHelper.clearLoginData();
               
               await SharedPrefHelper.removeData("is_logged_in");
               await SharedPrefHelper.removeData("user_type");
@@ -139,10 +141,10 @@ class DoctorHeader extends StatelessWidget {
 
               if (context.mounted) {
                 Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  AppRoutes.login, 
-                  (route) => false,
-                );
+        context, 
+        AppRoutes.login, 
+        (route) => false
+      );
               }
             },
             style: ElevatedButton.styleFrom(

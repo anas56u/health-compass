@@ -10,6 +10,7 @@ import 'package:health_compass/core/widgets/header_patientview.dart';
 import 'package:health_compass/feature/achievements/preesntation/cubits/hometask_cubit.dart';
 import 'package:health_compass/feature/achievements/preesntation/cubits/hometask_state.dart';
 import 'package:health_compass/feature/achievements/preesntation/screens/achievements_page.dart';
+import 'package:health_compass/feature/auth/presentation/cubit/cubit/user_cubit.dart';
 import 'package:health_compass/feature/auth/presentation/screen/login_page.dart';
 import 'package:health_compass/feature/chatbot/ui/screens/chat_bot_screen.dart';
 import 'package:health_compass/feature/family_invite/family_invite.dart';
@@ -23,6 +24,14 @@ class Patientview_body extends StatefulWidget {
 }
 
 class _Patientview_bodyState extends State<Patientview_body> {
+  @override
+  void initState() {  
+    super.initState();
+  
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<UserCubit>().getUserData();
+    });
+  }
   int _selectedIndex = 0;
   final Color _backgroundColor = const Color(0xFFF9FAFB);
 
