@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -102,10 +103,11 @@ class DoctorHeader extends StatelessWidget {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
+void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      barrierDismissible: false, // منع إغلاق النافذة بالضغط خارجها أثناء التحميل
+      builder: (dialogContext) => AlertDialog( // نستخدم dialogContext لتجنب مشاكل الـ context
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
@@ -123,30 +125,13 @@ class DoctorHeader extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext), // إغلاق الديالوج
             child: Text(
               "إلغاء",
               style: GoogleFonts.tajawal(color: Colors.grey),
             ),
           ),
           ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              context.read<UserCubit>().clearUserData();
-              await SharedPrefHelper.clearLoginData();
-              
-              await SharedPrefHelper.removeData("is_logged_in");
-              await SharedPrefHelper.removeData("user_type");
-              await SharedPrefHelper.removeData("uid"); 
-
-              if (context.mounted) {
-                Navigator.pushNamedAndRemoveUntil(
-        context, 
-        AppRoutes.login, 
-        (route) => false
-      );
-              }
-            },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
@@ -154,6 +139,55 @@ class DoctorHeader extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
+            onPressed: () async {
+              try {
+                // 1. إظهار مؤشر تحميل لإخبار المستخدم أن هناك عملية تجري
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  ),
+                );
+
+                // 2. تسجيل الخروج من Firebase (مهم جداً!)
+                await FirebaseAuth.instance.signOut(); //
+
+                // 3. مسح البيانات من Cubit
+                if (context.mounted) {
+                  context.read<UserCubit>().clearUserData(); //
+                }
+
+                // 4. مسح البيانات المحلية
+                // ملاحظة: دالة clearLoginData تقوم بالفعل بمسح is_logged_in و uid
+                // فلا داعي لتكرار استدعاء removeData لنفس المفاتيح بعدها
+                await SharedPrefHelper.clearLoginData(); //
+                
+                // مسح أي بيانات إضافية إن وجدت
+                await SharedPrefHelper.removeData("user_type");
+
+                // 5. التوجيه لصفحة تسجيل الدخول
+                if (context.mounted) {
+                  // إغلاق مؤشر التحميل والديالوغ السابق
+                  Navigator.of(context).popUntil((route) => route.isFirst); 
+                  
+                  // الانتقال لصفحة الدخول ومسح كل الصفحات السابقة
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    AppRoutes.login,
+                    (route) => false,
+                  );
+                }
+              } catch (e) {
+                // في حال حدوث خطأ، قم بإغلاق مؤشر التحميل وأظهر رسالة
+                if (context.mounted) {
+                  Navigator.pop(context); // إغلاق الـ Loading
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('حدث خطأ أثناء الخروج: $e')),
+                  );
+                }
+              }
+            },
             child: Text(
               "خروج",
               style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),

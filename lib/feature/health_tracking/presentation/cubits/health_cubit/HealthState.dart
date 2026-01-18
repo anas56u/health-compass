@@ -11,6 +11,9 @@ class HealthError extends HealthState {
   HealthError(this.message);
 }
 
+// في ملف HealthState.dart
+
+// الحالة الأساسية للبيانات (تأكد أنها موجودة كما هي)
 class HealthLoaded extends HealthState {
   final double heartRate;
   final int systolic;
@@ -23,4 +26,33 @@ class HealthLoaded extends HealthState {
     required this.diastolic,
     required this.bloodGlucose,
   });
+
+  @override
+  List<Object> get props => [heartRate, systolic, diastolic, bloodGlucose];
+}
+
+// ✅ التعديل هنا: HealthCritical يرث الآن من HealthLoaded
+class HealthCritical extends HealthLoaded {
+  final String message;
+  final double criticalValue; // القيمة الخطرة
+  final String vitalType;     // نوع القياس الخطر
+
+  HealthCritical({
+    required this.message,
+    required this.criticalValue,
+    required this.vitalType,
+    // يجب تمرير القيم الأساسية للأب (HealthLoaded)
+    required double heartRate,
+    required int systolic,
+    required int diastolic,
+    required double bloodGlucose,
+  }) : super( // نمرر البيانات للكلاس الأب ليحفظها
+          heartRate: heartRate,
+          systolic: systolic,
+          diastolic: diastolic,
+          bloodGlucose: bloodGlucose,
+        );
+
+  @override
+  List<Object> get props => [message, criticalValue, vitalType, heartRate, systolic, diastolic, bloodGlucose];
 }

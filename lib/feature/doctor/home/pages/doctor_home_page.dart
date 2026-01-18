@@ -133,7 +133,6 @@ class _DoctorHomePageState extends State<DoctorHomePage> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    // ملاحظة: يفضل أيضاً وضع هذه القائمة داخل BlocBuilder مستقبلاً
                     const AppointmentListItem(
                       patientName: 'هدى الرفاعي',
                       patientImage: '',

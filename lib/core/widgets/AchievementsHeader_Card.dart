@@ -98,7 +98,7 @@ final int points;
                       ),
                     ),
                     Text(
-                      'للانتقال\nللمستوى 9',
+                      'للانتقال\nللمستوى 3',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.tajawal(
                         color: Colors.black87,
@@ -149,7 +149,7 @@ final int points;
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '3250',
+                   ' $points' ,
                     style: GoogleFonts.tajawal(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
