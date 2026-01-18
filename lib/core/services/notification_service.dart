@@ -1,4 +1,6 @@
 import 'dart:io' show Platform;
+import 'package:cloud_firestore/cloud_firestore.dart'; // 👈 إضافة
+import 'package:firebase_auth/firebase_auth.dart';     // 👈 إضافة
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +8,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
+
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint("Handling a background message: ${message.messageId}");
@@ -22,6 +25,7 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   Future<void> init() async {
+    // 1. طلب الإذن
     NotificationSettings settings = await _firebaseMessaging.requestPermission(
       alert: true,
       badge: true,
@@ -32,13 +36,19 @@ class NotificationService {
       debugPrint('User granted permission');
     }
 
+    // 🔥🔥🔥 خطوة جديدة هامة جداً: حفظ التوكن عند فتح التطبيق 🔥🔥🔥
+    await _saveTokenToDatabase();
+
+    // الاستماع لتحديثات التوكن (في حال تغير التوكن أثناء عمل التطبيق)
+    _firebaseMessaging.onTokenRefresh.listen((newToken) {
+      _saveTokenToDatabase(token: newToken);
+    });
+
     // 2. إعداد معالجة الرسائل القادمة والتطبيق مفتوح (Foreground)
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint('Got a message whilst in the foreground!');
-      debugPrint('Message data: ${message.data}');
-
+      
       if (message.notification != null) {
-        // عرض الإشعار باستخدام Local Notifications ليظهر كنافذة منبثقة
         showNotification(
           id: message.hashCode,
           title: message.notification!.title ?? 'رسالة جديدة',
@@ -49,47 +59,45 @@ class NotificationService {
 
     // 3. إعداد معالجة الرسائل في الخلفية
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-    debugPrint("🔥 NotificationService INIT CALLED");
 
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    // 4. إنشاء قنوات الإشعارات
+    const AndroidNotificationChannel remindersChannel = AndroidNotificationChannel(
       'reminders_channel_id_v2',
       'Reminders Notifications',
       description: 'Important reminders channel',
       importance: Importance.max,
     );
-    
 
-
+    // قناة الدردشة
+    const AndroidNotificationChannel chatChannel = AndroidNotificationChannel(
+      'chat_channel_id', 
+      'Chat Notifications',
+      description: 'Notifications for new messages',
+      importance: Importance.max,
+      playSound: true, // تأكد من تفعيل الصوت
+    );
 
     await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
+        ?.createNotificationChannel(remindersChannel);
 
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(chatChannel); // إنشاء القناة الثانية
+
+    // تهيئة Timezone
     tz.initializeTimeZones();
-    // 1. تعريف قناة الدردشة (إضافة جديدة)
-const AndroidNotificationChannel chatChannel = AndroidNotificationChannel(
-  'chat_channel_id', // يجب أن يطابق الـ ID المستخدم في showNotification
-  'Chat Notifications',
-  description: 'Notifications for new messages',
-  importance: Importance.max,
-);
-await flutterLocalNotificationsPlugin
-    .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>()
-    ?.createNotificationChannel(chatChannel);
-
     try {
       final String timeZoneName =
           await FlutterTimezone.getLocalTimezone().then((info) => info.identifier);
       tz.setLocalLocation(tz.getLocation(timeZoneName));
-      debugPrint("✅ Timezone set to Device Location: $timeZoneName");
     } catch (e) {
-      debugPrint(
-          "⚠️ Failed to get device timezone. Setting to Amman. Error: $e");
       tz.setLocalLocation(tz.getLocation('Asia/Amman'));
     }
 
+    // إعدادات التهيئة
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
@@ -110,7 +118,6 @@ await flutterLocalNotificationsPlugin
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         debugPrint("Notification Clicked: ${response.payload}");
       },
-      
     );
 
     if (Platform.isAndroid) {
@@ -121,21 +128,37 @@ await flutterLocalNotificationsPlugin
     }
   }
 
-  Future<void> requestExactAlarmsPermission() async {
-    if (Platform.isAndroid) {
-      await flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
-          ?.requestExactAlarmsPermission();
+  // 🔥 دالة حفظ التوكن الجديدة
+  Future<void> _saveTokenToDatabase({String? token}) async {
+    try {
+      // 1. الحصول على المستخدم الحالي
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      // 2. الحصول على التوكن (إما الممرر أو جلبه من فايربيز)
+      final fcmToken = token ?? await _firebaseMessaging.getToken();
+      
+      if (fcmToken != null) {
+        // 3. تحديث قاعدة البيانات
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+          'fcmToken': fcmToken,
+        });
+        debugPrint("✅ Token updated successfully for user: ${user.uid}");
+      }
+    } catch (e) {
+      debugPrint("❌ Error saving token: $e");
     }
   }
+
+  // دالة عرض الإشعار
   Future<void> showNotification({required int id, required String title, required String body}) async {
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      'chat_channel_id', // ID قناة جديد للدردشة
+      'chat_channel_id', // نفس الـ ID المعرف في الأعلى
       'Chat Notifications',
       importance: Importance.max,
       priority: Priority.high,
+      icon: '@mipmap/ic_launcher', // تأكد من وجود الأيقونة
     );
     const NotificationDetails platformChannelSpecifics =
         NotificationDetails(android: androidPlatformChannelSpecifics);
@@ -148,12 +171,16 @@ await flutterLocalNotificationsPlugin
     );
   }
 
-  // دالة للحصول على الـ Token الخاص بالجهاز
-  Future<String?> getDeviceToken() async {
-    return await _firebaseMessaging.getToken();
+  Future<void> requestExactAlarmsPermission() async {
+    if (Platform.isAndroid) {
+      await flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestExactAlarmsPermission();
+    }
   }
 
-
+  // ... (باقي دوال الجدولة scheduleAnnoyingReminder وغيرها تبقى كما هي)
   Future<void> scheduleAnnoyingReminder({
     required int id,
     required String title,
@@ -162,64 +189,29 @@ await flutterLocalNotificationsPlugin
     required List<int> days,
   }) async {
     await requestExactAlarmsPermission();
-
     for (int day in days) {
-      final scheduledTime = _nextInstanceOfDayAndTime(day, time);
-      debugPrint("📅 Scheduling for day: $day at: $scheduledTime");
-
       await _scheduleForDay(id, day, time, title, body);
-
       await _scheduleForDay(
           id + 1000, day, time.add(const Duration(minutes: 5)), "تذكير: $title", "تنبيه 1: لم تقم بالمهمة!");
       await _scheduleForDay(
           id + 2000, day, time.add(const Duration(minutes: 10)), "تذكير: $title", "تنبيه 2: لا تنسَ صحتك!");
     }
   }
-  /// دالة لجدولة تذكير الدواء
+
   Future<void> scheduleMedicationReminder({
-    required int id, // notificationId من الموديل
+    required int id,
     required String title,
     required String body,
-    required TimeOfDay time, // وقت الدواء
-    required List<int> days, // أيام الأسبوع (1 = الاثنين ... 7 = الأحد)
+    required TimeOfDay time,
+    required List<int> days,
   }) async {
-    // التأكد من الصلاحيات (Android 12+)
     await requestExactAlarmsPermission();
-
-    // تحويل TimeOfDay إلى DateTime لغايات الجدولة
     final now = DateTime.now();
-    final scheduleTime = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      time.hour,
-      time.minute,
-    );
+    final scheduleTime = DateTime(now.year, now.month, now.day, time.hour, time.minute);
 
-    // المرور على الأيام المختارة وجدولة إشعار لكل يوم
     for (int day in days) {
-      // ملاحظة: DateTime في فلاتر يعتبر (1 = الاثنين) و (7 = الأحد)
-      // تأكد أن List<int> days القادمة من الموديل متوافقة مع هذا الترتيب
-      // في الكود الحالي لديك يبدو أنك تستخدم index القائمة (0-6)، سنحتاج لضبط ذلك.
-      
-      // flutter_local_notifications يستخدم 1 للاثنين وتصل لـ 7 للأحد
-      // إذا كانت مصفوفة الأيام لديك تبدأ من 0 للأحد، يجب عمل mapping
-      int notificationDay = day; 
-      
-      // نقوم بتوليد ID فريد لكل يوم بناءً على ID الدواء الأصلي
-      // مثلاً: الدواء رقم 55، يوم الاثنين (1) يصبح رقمه 5501
-      // هذا يمنع تضارب الـ IDs
       final int uniqueNotificationId = int.parse("$id$day");
-
-     
-
-      await _scheduleForDay(
-        uniqueNotificationId, 
-        day, // اليوم المستهدف
-        scheduleTime, 
-        title, 
-        body
-      );
+      await _scheduleForDay(uniqueNotificationId, day, scheduleTime, title, body);
     }
   }
 
@@ -228,24 +220,30 @@ await flutterLocalNotificationsPlugin
        final int uniqueNotificationId = int.parse("$id$day");
        await flutterLocalNotificationsPlugin.cancel(uniqueNotificationId);
     }
-    debugPrint("🗑️ تم حذف جميع تذكيرات الدواء رقم: $id");
   }
 
   Future<void> cancelTodayAnnoyance(int baseId, int day) async {
     final id1 = (baseId + 1000) + (day * 100); 
     final id2 = (baseId + 2000) + (day * 100); 
-
     await flutterLocalNotificationsPlugin.cancel(id1);
     await flutterLocalNotificationsPlugin.cancel(id2);
-    
-    debugPrint("🛑 تم إيقاف الإشعارات المزعجة لهذا اليوم (IDs: $id1, $id2)");
+  }
+
+  Future<void> cancelAnnoyingReminder(int id, List<int> days) async {
+    for (int day in days) {
+      final List<int> idsToCancel = [
+        id + (day * 100),          
+        (id + 1000) + (day * 100), 
+        (id + 2000) + (day * 100), 
+      ];
+      for (var finalId in idsToCancel) {
+        await flutterLocalNotificationsPlugin.cancel(finalId);
+      }
+    }
   }
 
   Future<void> _scheduleForDay(
       int baseId, int day, DateTime time, String title, String? body) async {
-        final scheduledDate = _nextInstanceOfDayAndTime(day, time);
-    
-    debugPrint("🔔 تمت الجدولة: ID=$baseId | اليوم=$day | التاريخ والموعد=${scheduledDate.toString()}");
     await flutterLocalNotificationsPlugin.zonedSchedule(
       baseId + (day * 100),
       title,
@@ -284,21 +282,5 @@ await flutterLocalNotificationsPlugin
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
     return scheduledDate;
-  }
-  Future<void> cancelAnnoyingReminder(int id, List<int> days) async {
-    for (int day in days) {
-      // 1. حساب الـ IDs بنفس معادلة الإنشاء بالضبط
-      final List<int> idsToCancel = [
-        id + (day * 100),          // ID التذكير الأساسي
-        (id + 1000) + (day * 100), // ID التنبيه الأول
-        (id + 2000) + (day * 100), // ID التنبيه الثاني
-      ];
-
-      // 2. المرور عليهم وحذفهم جميعاً
-      for (var finalId in idsToCancel) {
-        await flutterLocalNotificationsPlugin.cancel(finalId);
-        debugPrint("🗑 تم حذف الإشعار المجدول رقم: $finalId");
-      }
-    }
   }
 }

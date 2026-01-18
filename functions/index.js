@@ -1,9 +1,7 @@
 /**
- * ملف السيرفر (Backend) - الحل النهائي
+ * ملف السيرفر (Backend) - متوافق مع firebase-admin v12+
  */
-
-// ✅ التغيير هنا: نستدعي النسخة الأولى (v1) مباشرة لتجنب المشاكل
-const functions = require("firebase-functions/v1");
+const functions = require("firebase-functions/v1"); // نستخدم v1 لضمان استقرار التريغر
 const admin = require("firebase-admin");
 
 admin.initializeApp();
@@ -12,7 +10,6 @@ exports.sendChatNotification = functions.firestore
   .document("chat_rooms/{roomId}/messages/{messageId}")
   .onCreate(async (snapshot, context) => {
     
-    // 1. الحصول على البيانات
     const messageData = snapshot.data();
     if (!messageData) return;
 
@@ -21,50 +18,66 @@ exports.sendChatNotification = functions.firestore
     const text = messageData.text;
 
     if (!receiverId || !senderId) {
-      console.log("بيانات الرسالة غير مكتملة");
+      console.log("بيانات ناقصة");
       return null;
     }
 
     try {
-      // 2. جلب اسم المرسل
+      // جلب اسم المرسل
       const senderDoc = await admin.firestore().collection("users").doc(senderId).get();
       const senderName = senderDoc.exists ? (senderDoc.data().fullName || "مستخدم") : "مستخدم";
 
-      // 3. جلب توكن المستلم
+      // جلب توكن المستلم
       const receiverDoc = await admin.firestore().collection("users").doc(receiverId).get();
       
-      if (!receiverDoc.exists) {
-         console.log("المستلم غير موجود");
-         return null;
-      }
+      if (!receiverDoc.exists) return null;
 
       const fcmToken = receiverDoc.data().fcmToken;
 
       if (!fcmToken) {
-        console.log("المستلم ليس لديه توكن");
+        console.log("المستلم ليس لديه توكن:", receiverId);
         return null;
       }
 
-      // 4. تجهيز الإشعار
-      const payload = {
+      // 🔥🔥🔥 التغيير الجذري هنا: بناء الرسالة بالشكل الجديد 🔥🔥🔥
+      const message = {
+        token: fcmToken, // التوكن يوضع هنا مباشرة
         notification: {
           title: senderName,
           body: text,
-          sound: "default",
-          clickAction: "FLUTTER_NOTIFICATION_CLICK"
         },
         data: {
+          // ملاحظة: يجب أن تكون كل القيم هنا نصوص (String)
           type: "chat",
           senderId: senderId,
-          roomId: context.params.roomId
+          roomId: context.params.roomId,
+          click_action: "FLUTTER_NOTIFICATION_CLICK"
+        },
+        // إعدادات خاصة للأندرويد
+        android: {
+          priority: "high",
+          notification: {
+            channelId: "chat_channel_id", // القناة التي أنشأناها في Flutter
+            clickAction: "FLUTTER_NOTIFICATION_CLICK",
+            sound: "default"
+          }
+        },
+        // إعدادات خاصة للآيفون
+        apns: {
+          payload: {
+            aps: {
+              sound: "default",
+              contentAvailable: true
+            }
+          }
         }
       };
 
-      // 5. إرسال الإشعار
-      await admin.messaging().sendToDevice(fcmToken, payload);
-      console.log("تم إرسال الإشعار للمستخدم:", receiverId);
+      // استخدام الدالة الجديدة send بدلاً من sendToDevice
+      await admin.messaging().send(message);
+      console.log("تم الإرسال بنجاح (V1 API) إلى:", receiverId);
 
     } catch (error) {
-      console.error("حدث خطأ:", error);
+      console.error("خطأ أثناء الإرسال:", error);
     }
   });
