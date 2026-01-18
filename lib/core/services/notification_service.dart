@@ -158,7 +158,7 @@ class NotificationService {
       'Chat Notifications',
       importance: Importance.max,
       priority: Priority.high,
-      icon: '@mipmap/ic_launcher', // تأكد من وجود الأيقونة
+      icon: '@drawable/notification_icon', // تأكد من وجود الأيقونة
     );
     const NotificationDetails platformChannelSpecifics =
         NotificationDetails(android: androidPlatformChannelSpecifics);

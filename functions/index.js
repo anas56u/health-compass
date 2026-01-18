@@ -25,7 +25,7 @@ exports.sendChatNotification = functions.firestore
     try {
       // جلب اسم المرسل
       const senderDoc = await admin.firestore().collection("users").doc(senderId).get();
-      const senderName = senderDoc.exists ? (senderDoc.data().fullName || "مستخدم") : "مستخدم";
+      const senderName = senderDoc.exists ? (senderDoc.data().full_name || "مستخدم") : "مستخدم";
 
       // جلب توكن المستلم
       const receiverDoc = await admin.firestore().collection("users").doc(receiverId).get();
