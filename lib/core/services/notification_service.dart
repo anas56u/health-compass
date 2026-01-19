@@ -1,13 +1,13 @@
 import 'dart:io' show Platform;
-import 'package:cloud_firestore/cloud_firestore.dart'; // 👈 إضافة
-import 'package:firebase_auth/firebase_auth.dart';     // 👈 إضافة
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:health_compass/core/widgets/EmergencyScreen.dart';
-import 'package:health_compass/main.dart';
+import 'package:health_compass/main.dart'; // تأكد أن الـ navigatorKey متاح هنا
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
 
@@ -27,7 +27,6 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   Future<void> init({bool requestPermission = true}) async {
-    // 1. تهيئة Timezone (آمن في الخلفية)
     tz.initializeTimeZones();
     try {
       final String timeZoneName =
@@ -37,7 +36,6 @@ class NotificationService {
       tz.setLocalLocation(tz.getLocation('Asia/Amman'));
     }
 
-    // 2. إنشاء قنوات الإشعارات (ضروري جداً للأندرويد لكي يظهر الإشعار)
     const AndroidNotificationChannel remindersChannel = AndroidNotificationChannel(
       'reminders_channel_id_v2',
       'Reminders Notifications',
@@ -53,19 +51,26 @@ class NotificationService {
       playSound: true,
     );
 
-    // نستخدم الـ Implementation الخاص بالأندرويد لإنشاء القنوات
+    // قناة الطوارئ - حرجة جداً
+    const AndroidNotificationChannel emergencyChannel = AndroidNotificationChannel(
+      'emergency_channel_01', 
+      'Critical Alerts',
+      description: 'Used for critical health alerts',
+      importance: Importance.max, // High importance for full screen intent
+      playSound: true,
+    );
+
     final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
         flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>();
 
     await androidImplementation?.createNotificationChannel(remindersChannel);
     await androidImplementation?.createNotificationChannel(chatChannel);
+    await androidImplementation?.createNotificationChannel(emergencyChannel);
 
-    // 3. إعدادات التهيئة (Init Settings)
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    // ⚠️ تعديل هام: نضبط هذه القيم على false لمنع الطلب التلقائي في iOS
     const DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
       requestSoundPermission: false,
@@ -78,46 +83,31 @@ class NotificationService {
       iOS: initializationSettingsIOS,
     );
 
-    // 4. تهيئة البلاجن (Initialize Plugin)
     await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        if (response.payload == 'emergency') {
-          // التوجيه لشاشة الطوارئ
-          navigatorKey.currentState?.push(
-            MaterialPageRoute(
-              builder: (context) => const EmergencyScreen(
-                message: "تم رصد حالة حرجة في الخلفية",
-                value: 150,
-              ),
-            ),
-          );
-        }
+        _handleNotificationTap(response);
       },
     );
 
-    // 5. 🔥🔥🔥 منطقة الخطر: طلب الأذونات 🔥🔥🔥
-    // لن يتم تنفيذ هذا الكود إذا كنا في الخلفية (requestPermission = false)
     if (requestPermission) {
       debugPrint("🔔 Requesting Permissions (Foreground Mode)...");
-      
-      // أ) طلب إذن Firebase
       NotificationSettings settings = await _firebaseMessaging.requestPermission(
         alert: true,
         badge: true,
         sound: true,
+        provisional: false, // Critical alerts usually need request
       );
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         debugPrint('✅ User granted Firebase permission');
       }
 
-      // ب) طلب إذن Local Notifications للأندرويد 13+
       if (Platform.isAndroid) {
         await androidImplementation?.requestNotificationsPermission();
+        await androidImplementation?.requestExactAlarmsPermission();
       }
       
-      // ج) طلب إذن iOS يدوياً
       if (Platform.isIOS) {
         await flutterLocalNotificationsPlugin
             .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
@@ -129,8 +119,6 @@ class NotificationService {
       }
     }
 
-    // 6. التعامل مع التوكن والرسائل (آمن)
-    // نضع حفظ التوكن داخل try-catch لتجنب أي مشاكل اتصال
     try {
       await _saveTokenToDatabase();
       _firebaseMessaging.onTokenRefresh.listen((newToken) {
@@ -140,9 +128,7 @@ class NotificationService {
       debugPrint("⚠️ Token setup warning: $e");
     }
 
-    // 7. الاستماع للرسائل
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint('Got a message whilst in the foreground!');
       if (message.notification != null) {
         showNotification(
           id: message.hashCode,
@@ -154,69 +140,105 @@ class NotificationService {
 
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   }
-  Future<void> showCriticalAlert() async {
+
+  // ✅ دالة معالجة الضغط على الإشعار لفتح الشاشة
+  void _handleNotificationTap(NotificationResponse response) {
+    if (response.payload != null && response.payload!.contains('emergency')) {
+      // استخراج القيمة من الـ payload: example: "emergency_150.0"
+      final parts = response.payload!.split('_');
+      double value = 0.0;
+      if (parts.length > 1) {
+        value = double.tryParse(parts[1]) ?? 0.0;
+      }
+
+      // التأكد من أن التوجيه يتم في الـ Main Thread
+      if (navigatorKey.currentState != null) {
+        navigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => EmergencyScreen(
+              message: "تنبيه: تم رصد مؤشر حيوي خطير!",
+              value: value,
+            ),
+          ),
+          (route) => false, // إزالة كل الشاشات السابقة للتركيز على الطوارئ
+        );
+      }
+    }
+  }
+
+  // 🔥 الدالة المعدلة لإطلاق إنذار الطوارئ
+  Future<void> showCriticalAlert({
+    required String title, 
+    required String body, 
+    required double detectedValue
+  }) async {
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      'emergency_channel_01', // ID مختلف للطوارئ
-      'Critical Alerts',      // اسم القناة
+      'emergency_channel_01', 
+      'Critical Alerts',
       channelDescription: 'Used for critical health alerts',
-      importance: Importance.max, // أقصى أهمية (يصدر صوت ويظهر فوق التطبيقات)
-      priority: Priority.max,     // أقصى أولوية
+      importance: Importance.max,
+      priority: Priority.max,
       ticker: 'تنبيه صحي حرج!',
       
-      // 🔥🔥🔥 هذا هو السطر السحري 🔥🔥🔥
-      fullScreenIntent: true, 
+      // ✅ تفعيل الظهور الكامل فوق شاشة القفل
+      fullScreenIntent: true,
       
       // خصائص التنبيه
       playSound: true,
       enableVibration: true,
-      category: AndroidNotificationCategory.alarm, // يعامل كمنبه
-      visibility: NotificationVisibility.public, // يظهر حتى والشاشة مقفلة
+      category: AndroidNotificationCategory.alarm,
+      visibility: NotificationVisibility.public,
+      
+      // جعل الإشعار يستمر ولا يختفي بسهولة
+      ongoing: true,
+      autoCancel: false,
+      
+      // إضافة أزرار للإشعار تظهر على الشاشة
+      actions: <AndroidNotificationAction>[
+        AndroidNotificationAction(
+          'open_app', 
+          'فتح التطبيق حالاً',
+          showsUserInterface: true, // هذا يفتح التطبيق عند الضغط
+        ),
+      ],
     );
 
     const NotificationDetails platformChannelSpecifics =
         NotificationDetails(android: androidPlatformChannelSpecifics);
 
     await flutterLocalNotificationsPlugin.show(
-      999, // ID ثابت للإشعار
-      'خطر صحي!', 
-      'تم رصد مؤشرات حيوية غير طبيعية. اضغط للمساعدة.',
+      999,
+      title, 
+      body,
       platformChannelSpecifics,
-      payload: 'emergency', // سنستخدم هذا للتوجيه
+      payload: 'emergency_$detectedValue', // تمرير القيمة في الـ Payload
     );
   }
 
-  // 🔥 دالة حفظ التوكن الجديدة
   Future<void> _saveTokenToDatabase({String? token}) async {
     try {
-      // 1. الحصول على المستخدم الحالي
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
-
-      // 2. الحصول على التوكن (إما الممرر أو جلبه من فايربيز)
       final fcmToken = token ?? await _firebaseMessaging.getToken();
-      
       if (fcmToken != null) {
-        // 3. تحديث قاعدة البيانات
         await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
           'fcmToken': fcmToken,
         });
-        debugPrint("✅ Token updated successfully for user: ${user.uid}");
       }
     } catch (e) {
       debugPrint("❌ Error saving token: $e");
     }
   }
 
-  // دالة عرض الإشعار
   Future<void> showNotification({required int id, required String title, required String body}) async {
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      'chat_channel_id', // نفس الـ ID المعرف في الأعلى
+      'chat_channel_id',
       'Chat Notifications',
       importance: Importance.max,
       priority: Priority.high,
-      icon: '@drawable/notification_icon', // تأكد من وجود الأيقونة
+      icon: '@drawable/notification_icon',
     );
     const NotificationDetails platformChannelSpecifics =
         NotificationDetails(android: androidPlatformChannelSpecifics);
@@ -229,6 +251,7 @@ class NotificationService {
     );
   }
 
+  // ... (باقي الدوال كما هي)
   Future<void> requestExactAlarmsPermission() async {
     if (Platform.isAndroid) {
       await flutterLocalNotificationsPlugin
@@ -238,7 +261,6 @@ class NotificationService {
     }
   }
 
-  // ... (باقي دوال الجدولة scheduleAnnoyingReminder وغيرها تبقى كما هي)
   Future<void> scheduleAnnoyingReminder({
     required int id,
     required String title,

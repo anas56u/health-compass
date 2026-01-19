@@ -1,15 +1,15 @@
 import 'dart:async';
-import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:health/health.dart';
 import 'package:health_compass/core/services/notification_service.dart';
-
-// 👇 1. إضافة استيراد Firebase والخيارات (تأكد من صحة المسار)
 import 'package:firebase_core/firebase_core.dart';
-import '../../firebase_options.dart'; 
+import '../../firebase_options.dart';
+// 1. استيراد مكتبة الـ Intent
+import 'package:android_intent_plus/android_intent.dart';
+import 'package:android_intent_plus/flag.dart';
 
 Future<void> initializeBackgroundService() async {
   final service = FlutterBackgroundService();
@@ -34,8 +34,8 @@ Future<void> initializeBackgroundService() async {
       autoStart: true,
       isForegroundMode: true,
       notificationChannelId: 'my_foreground',
-      initialNotificationTitle: 'تطبيق Health Compass يعمل',
-      initialNotificationContent: 'يتم مراقبة حالتك الصحية',
+      initialNotificationTitle: 'Health Compass يعمل',
+      initialNotificationContent: 'مراقبة المؤشرات الحيوية نشطة',
       foregroundServiceNotificationId: 888,
     ),
     iosConfiguration: IosConfiguration(
@@ -58,6 +58,7 @@ void onStart(ServiceInstance service) async {
   }
 
   final notificationService = NotificationService();
+  // لا نطلب الأذونات هنا لأننا في الخلفية
   await notificationService.init(requestPermission: false);
 
   if (service is AndroidServiceInstance) {
@@ -73,27 +74,24 @@ void onStart(ServiceInstance service) async {
     service.stopSelf();
   });
 
-  debugPrint("🚀 خدمة المراقبة الشاملة (قلب، ضغط، سكري) بدأت...");
+  debugPrint("🚀 خدمة المراقبة الشاملة بدأت...");
 
   final Health health = Health(); 
 
-  // المؤقت يعمل كل دقيقة
   Timer.periodic(const Duration(minutes: 1), (timer) async {
     if (service is AndroidServiceInstance) {
       if (await service.isForegroundService()) {
-        
         try {
-          // 1. تحديد البيانات المطلوبة (قلب، ضغط انقباضي، سكري)
           var types = [
             HealthDataType.HEART_RATE,
-            HealthDataType.BLOOD_PRESSURE_SYSTOLIC, // الضغط العالي هو الأخطر عادة في الطوارئ
+            HealthDataType.BLOOD_PRESSURE_SYSTOLIC,
             HealthDataType.BLOOD_GLUCOSE,
           ];
           
           final now = DateTime.now();
-          final earlier = now.subtract(const Duration(minutes: 5));
+          final earlier = now.subtract(const Duration(minutes: 2)); 
 
-          // 2. جلب البيانات
+          // محاولة جلب البيانات
           List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(
             startTime: earlier,
             endTime: now, 
@@ -103,70 +101,91 @@ void onStart(ServiceInstance service) async {
           healthData = health.removeDuplicates(healthData);
 
           if (healthData.isNotEmpty) {
-            
-            // متغيرات لتخزين آخر القيم (للعرض في الإشعار)
             String statusText = "الوضع مستقر";
             bool dangerDetected = false;
+            String dangerTitle = "";
+            String dangerBody = "";
+            double criticalValue = 0.0;
 
-            // 3. فحص كل قراءة وتحديد الخطر
             for (var point in healthData) {
               double value = 0.0;
-              
-              // استخراج القيمة الرقمية
               if (point.value is NumericHealthValue) {
                  value = (point.value as NumericHealthValue).numericValue.toDouble();
               } else {
                  value = double.tryParse(point.value.toString()) ?? 0.0;
               }
 
-              // --- منطق فحص القلب ---
+              // --- تسارع القلب ---
               if (point.type == HealthDataType.HEART_RATE) {
-                debugPrint("💓 HR: $value");
-                if (value > 120) { // حد الخطر للقلب
+                if (value > 120) {
                   dangerDetected = true;
-                  statusText = "خطر: تسارع نبضات القلب ($value)";
+                  dangerTitle = "خطر: تسارع شديد في القلب!";
+                  dangerBody = "نبضات القلب وصلت إلى $value bpm. يرجى التوقف للراحة.";
+                  criticalValue = value;
+                  statusText = dangerTitle;
                 }
               }
-              
-              // --- منطق فحص الضغط (Systolic) ---
+              // --- ارتفاع ضغط الدم ---
               else if (point.type == HealthDataType.BLOOD_PRESSURE_SYSTOLIC) {
-                debugPrint("🩸 BP: $value");
-                if (value > 140) { // حد الخطر للضغط (140 يعتبر مرتفع)
+                if (value > 160) {
                   dangerDetected = true;
-                  statusText = "خطر: ضغط دم مرتفع جداً ($value)";
+                  dangerTitle = "خطر: ارتفاع ضغط الدم!";
+                  dangerBody = "الضغط الانقباضي وصل إلى $value mmHg.";
+                  criticalValue = value;
+                  statusText = dangerTitle;
                 }
               }
-
-              // --- منطق فحص السكري ---
+              // --- السكري ---
               else if (point.type == HealthDataType.BLOOD_GLUCOSE) {
-                debugPrint("🍬 Glucose: $value");
-                // ملاحظة: وحدة القياس تعتمد على المصدر (mg/dL أو mmol/L)
-                // هنا نفترض mg/dL (الشائع في الأجهزة)
-                if (value > 300 || value < 70) { // سكري مرتفع جداً أو هبوط حاد
+                if (value > 300 || value < 70) {
                   dangerDetected = true;
-                  statusText = "خطر: مستوى السكر غير طبيعي ($value)";
+                  dangerTitle = "خطر: مستوى السكر حرج!";
+                  dangerBody = "مستوى الجلوكوز $value. يرجى اتخاذ إجراء فوري.";
+                  criticalValue = value;
+                  statusText = dangerTitle;
                 }
               }
             }
 
-            // تحديث الإشعار الثابت
             service.setForegroundNotificationInfo(
               title: "Health Compass: مراقبة نشطة",
               content: statusText,
             );
 
-            // 🔥 إطلاق الإنذار إذا وجد خطر في أي منهم 🔥
             if (dangerDetected) {
-               debugPrint("🚨 CRITICAL HEALTH VALUE DETECTED - ALERTING 🚨");
-               await notificationService.showCriticalAlert();
+               debugPrint("🚨 CRITICAL DETECTED: $criticalValue - FORCE OPENING APP");
+               
+               // 1. إظهار الإشعار (للصوت والاهتزاز)
+               await notificationService.showCriticalAlert(
+                 title: dangerTitle,
+                 body: dangerBody,
+                 detectedValue: criticalValue
+               );
+
+               // 2. 🔥 الحل الجذري: إجبار التطبيق على الفتح 🔥
+               AndroidIntent intent = const AndroidIntent(
+                 action: 'android.intent.action.MAIN',
+                 // لقد تأكدت من اسم الباكيج من ملفاتك المرفقة وهو صحيح
+                 package: 'com.example.health_compass', 
+                 componentName: 'com.example.health_compass.MainActivity',
+                 category: 'android.intent.category.LAUNCHER',
+                 flags: [
+                   Flag.FLAG_ACTIVITY_NEW_TASK, // يفتح مهمة جديدة
+                   Flag.FLAG_ACTIVITY_REORDER_TO_FRONT, // يجلبه للأمام إذا كان مفتوحاً
+                   Flag.FLAG_ACTIVITY_SINGLE_TOP, // لا يكرر الشاشة
+                   Flag.FLAG_ACTIVITY_CLEAR_TOP, // ينظف الستاك القديم
+                 ],
+                 arguments: <String, dynamic>{
+                   'from_background': true, // مؤشر يمكن التقاطه لاحقاً
+                 },
+               );
+               
+               await intent.launch();
             }
 
-          } else {
-            debugPrint("⚠️ لا توجد بيانات حديثة (آخر 5 دقائق)");
-          }
-
+          } 
         } catch (e) {
-          debugPrint("❌ Error reading health data: $e");
+          debugPrint("❌ Background Service Error: $e");
         }
       }
     }

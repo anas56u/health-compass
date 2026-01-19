@@ -20,65 +20,74 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:health_compass/core/routes/routes.dart';
 import 'package:health_compass/feature/family_member/data/family_repository.dart';
 import 'package:health_compass/feature/family_member/logic/family_cubit.dart';
-      final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+// الاستيرادات الضرورية للطوارئ
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:health_compass/core/widgets/EmergencyScreen.dart';
+import 'package:health_compass/feature/auth/presentation/screen/splash_screen.dart';
 
+// تعريف المفتاح العام
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   Bloc.observer = SimpleBlocObserver();
-
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1. تهيئة Firebase (يجب أن تكون الأولى دائماً لأن الإشعارات تعتمد عليها)
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // 2. تهيئة Hive
   await Hive.initFlutter();
   Hive.registerAdapter(ReminderModelAdapter());
-  final Box<ReminderModel> reminderBox = await Hive.openBox<ReminderModel>(
-    'reminders',
-  );
+  final Box<ReminderModel> reminderBox = await Hive.openBox<ReminderModel>('reminders');
 
-  // 3. تهيئة الإشعارات (الآن ستعمل لأن Firebase جاهز)
   final notificationService = NotificationService();
   await notificationService.init();
-try {
+
+  // 🔥 1. التقاط تفاصيل الإطلاق (هل هو طوارئ؟)
+  final NotificationAppLaunchDetails? notificationAppLaunchDetails =
+      await notificationService.flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
+
+  try {
     debugPrint("Attemping to start background service...");
     await initializeBackgroundService();
-    debugPrint("Background service initialization called.");
   } catch (e) {
     debugPrint("❌ Failed to start background service: $e");
   }
-  // 4. تهيئة تنسيق التاريخ
+
   await initializeDateFormatting();
 
   runApp(
-    MyApp(reminderBox: reminderBox, notificationService: notificationService),
+    MyApp(
+      reminderBox: reminderBox, 
+      notificationService: notificationService,
+      // تمرير التفاصيل للتطبيق
+      launchDetails: notificationAppLaunchDetails, 
+    ),
   );
 }
 
-class MyApp extends StatelessWidget {
-  // ... (باقي الكلاس كما هو بدون تغيير)
+// حولنا MyApp إلى StatefulWidget لمراقبة الحالة (اختياري ولكنه أفضل)
+class MyApp extends StatefulWidget {
   final Box<ReminderModel> reminderBox;
   final NotificationService notificationService;
-
-
+  final NotificationAppLaunchDetails? launchDetails;
 
   const MyApp({
     super.key,
     required this.reminderBox,
     required this.notificationService,
+    this.launchDetails,
   });
 
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     final authRepository = AuthRepositoryImpl(
       remoteDataSource: AuthRemoteDataSourceImpl(),
     );
-
-    // ✅ إنشاء مستودع العائلة
     final familyRepository = FamilyRepository();
-
-    
 
     return ScreenUtilInit(
       designSize: const Size(375, 812),
@@ -87,10 +96,9 @@ class MyApp extends StatelessWidget {
       builder: (context, child) {
         return MultiBlocProvider(
           providers: [
-            // --- الكيوبتات القديمة ---
             BlocProvider(
               create: (context) =>
-                  RemindersCubit(reminderBox, notificationService),
+                  RemindersCubit(widget.reminderBox, widget.notificationService),
             ),
             BlocProvider(create: (context) => HealthCubit()),
             BlocProvider(
@@ -98,15 +106,13 @@ class MyApp extends StatelessWidget {
                   UserCubit(authRepository: authRepository)..getUserData(),
             ),
             BlocProvider(create: (context) => SignupCubit(authRepository)),
-
-            // ✅✅ إضافة FamilyCubit الجديد هنا ليصبح متاحاً للتطبيق بالكامل ✅✅
             BlocProvider(create: (context) => FamilyCubit(familyRepository)),
             BlocProvider(
               create: (context) => DoctorHomeCubit(),
             )
           ],
           child: MaterialApp(
-            navigatorKey: navigatorKey, // 👈 اربطه هنا
+            navigatorKey: navigatorKey,
             debugShowCheckedModeBanner: false,
             title: 'Health Compass',
             theme: ThemeData(
@@ -114,12 +120,41 @@ class MyApp extends StatelessWidget {
               primaryColor: const Color(0xFF41BFAA),
               scaffoldBackgroundColor: const Color(0xFFF5F7FA),
             ),
-            // إعدادات التوجيه (Routing)
-            initialRoute: AppRoutes.splash,
+            
+            // 🔥 التعديل الجوهري هنا 🔥
+            // حذفنا initialRoute واستخدمنا home مع دالة الفحص
+            home: _determineHomeScreen(),
+            
             onGenerateRoute: AppRouter().generateRoute,
           ),
         );
       },
     );
+  }
+
+  // هذه الدالة تقرر أي شاشة تظهر أولاً
+  Widget _determineHomeScreen() {
+    // هل تم فتح التطبيق بسبب إشعار طوارئ؟
+    if (widget.launchDetails?.didNotificationLaunchApp ?? false) {
+      final payload = widget.launchDetails?.notificationResponse?.payload;
+      if (payload != null && payload.contains('emergency')) {
+        debugPrint("🚨 Emergency Launch Detected! Opening Emergency Screen...");
+        
+        // استخراج القيمة
+        final parts = payload.split('_');
+        double value = 0.0;
+        if (parts.length > 1) {
+          value = double.tryParse(parts[1]) ?? 0.0;
+        }
+
+        return EmergencyScreen(
+          message: "تنبيه: تم رصد مؤشر حيوي خطير!",
+          value: value,
+        );
+      }
+    }
+
+    // الوضع الطبيعي
+    return const SplashScreen();
   }
 }
