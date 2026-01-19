@@ -195,42 +195,42 @@ class VitalsHistoryScreen extends StatelessWidget {
     );
   }
 
-  // ✅ دالة عرض نافذة التأكيد
   void _confirmDelete(BuildContext context, VitalModel vital) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          "حذف القراءة؟",
-          style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
-          textAlign: TextAlign.right,
-        ),
-        content: Text(
-          "هل أنت متأكد من حذف هذه القراءة (${vital.value} ${vital.unit})؟",
-          style: GoogleFonts.tajawal(),
-          textAlign: TextAlign.right,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              "إلغاء",
-              style: GoogleFonts.tajawal(color: Colors.grey),
+      builder: (ctx) => Directionality(
+        // 👈 الإضافة هنا: تحديد اتجاه النص للنافذة
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          title: Text(
+            "حذف القراءة؟",
+            style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            "هل أنت متأكد من حذف هذه القراءة (${vital.value} ${vital.unit})؟",
+            style: GoogleFonts.tajawal(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(
+                "إلغاء",
+                style: GoogleFonts.tajawal(color: Colors.grey),
+              ),
             ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _deleteVitalFromFirestore(context, vital.id);
-            },
-            child: Text("حذف", style: GoogleFonts.tajawal(color: Colors.red)),
-          ),
-        ],
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _deleteVitalFromFirestore(context, vital.id);
+              },
+              child: Text("حذف", style: GoogleFonts.tajawal(color: Colors.red)),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // ✅ دالة الحذف الفعلية من Firebase
   Future<void> _deleteVitalFromFirestore(
     BuildContext context,
     String? docId,
@@ -240,24 +240,33 @@ class VitalsHistoryScreen extends StatelessWidget {
     try {
       await FirebaseFirestore.instance
           .collection('users')
-          .doc(patientId) // معرف المريض
-          .collection('vitals') // اسم المجموعة في Firebase
-          .doc(docId) // معرف المستند
+          .doc(patientId)
+          .collection('vitals')
+          .doc(docId)
           .delete();
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("تم حذف القراءة بنجاح"),
+          SnackBar(
+            content: Directionality(
+              textDirection: TextDirection.rtl,
+              child: const Text("تم حذف القراءة بنجاح"),
+            ),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("فشل الحذف: $e"), backgroundColor: Colors.red),
+          SnackBar(
+            content: Directionality(
+              textDirection: TextDirection.rtl,
+              child: Text("فشل الحذف: $e"),
+            ),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }

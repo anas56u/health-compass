@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AddVitalsBottomSheet extends StatefulWidget {
-  const AddVitalsBottomSheet({super.key});
+  final String? patientId; // ✅ استقبال معرف المريض (اختياري)
+
+  const AddVitalsBottomSheet({super.key, this.patientId});
 
   @override
   State<AddVitalsBottomSheet> createState() => _AddVitalsBottomSheetState();
@@ -17,9 +21,9 @@ class _AddVitalsBottomSheetState extends State<AddVitalsBottomSheet> {
 
   final Color primaryColor = const Color(0xFF41BFAA);
 
-  // المتغيرات الجديدة لتحسين UX
   DateTime selectedDate = DateTime.now();
   String selectedSugarContext = 'random'; // random, fasting, after_meal
+  bool _isLoading = false; // ✅ حالة التحميل
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +43,6 @@ class _AddVitalsBottomSheetState extends State<AddVitalsBottomSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // مقبض السحب
             Center(
               child: Container(
                 width: 50,
@@ -52,7 +55,6 @@ class _AddVitalsBottomSheetState extends State<AddVitalsBottomSheet> {
             ),
             const SizedBox(height: 20),
 
-            // الرأس مع التاريخ
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -63,8 +65,6 @@ class _AddVitalsBottomSheetState extends State<AddVitalsBottomSheet> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
-                // زر تغيير التاريخ/الوقت
                 InkWell(
                   onTap: () => _pickDateTime(context),
                   child: Container(
@@ -85,7 +85,10 @@ class _AddVitalsBottomSheetState extends State<AddVitalsBottomSheet> {
                         ),
                         const SizedBox(width: 5),
                         Text(
-                          intl.DateFormat('h:mm a, d MMM').format(selectedDate),
+                          intl.DateFormat(
+                            'h:mm a, d MMM',
+                            'en',
+                          ).format(selectedDate),
                           style: GoogleFonts.tajawal(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -100,7 +103,6 @@ class _AddVitalsBottomSheetState extends State<AddVitalsBottomSheet> {
             ),
             const SizedBox(height: 30),
 
-            // قسم الضغط
             _buildSectionHeader(Icons.speed_rounded, "ضغط الدم"),
             Row(
               children: [
@@ -123,7 +125,6 @@ class _AddVitalsBottomSheetState extends State<AddVitalsBottomSheet> {
             ),
             const SizedBox(height: 25),
 
-            // قسم السكر والسياق
             _buildSectionHeader(Icons.water_drop_rounded, "سكر الدم"),
             Row(
               children: [
@@ -137,7 +138,6 @@ class _AddVitalsBottomSheetState extends State<AddVitalsBottomSheet> {
               ],
             ),
             const SizedBox(height: 10),
-            // خيارات سياق السكر (Chips)
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -153,7 +153,6 @@ class _AddVitalsBottomSheetState extends State<AddVitalsBottomSheet> {
 
             const SizedBox(height: 25),
 
-            // قسم النبض
             _buildSectionHeader(Icons.favorite_rounded, "نبض القلب"),
             Row(
               children: [
@@ -169,15 +168,11 @@ class _AddVitalsBottomSheetState extends State<AddVitalsBottomSheet> {
 
             const SizedBox(height: 35),
 
-            // زر الحفظ
             SizedBox(
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  // TODO: منطق الحفظ
-                },
+                onPressed: _isLoading ? null : _saveVitals, // ✅ ربط زر الحفظ
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryColor,
                   elevation: 0,
@@ -185,14 +180,16 @@ class _AddVitalsBottomSheetState extends State<AddVitalsBottomSheet> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: Text(
-                  "حفظ القراءة",
-                  style: GoogleFonts.tajawal(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text(
+                        "حفظ القراءة",
+                        style: GoogleFonts.tajawal(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -307,6 +304,91 @@ class _AddVitalsBottomSheetState extends State<AddVitalsBottomSheet> {
           );
         });
       }
+    }
+  }
+
+  // ✅✅ منطق الحفظ في Firebase
+  Future<void> _saveVitals() async {
+    // 1. التأكد من وجود بيانات للحفظ
+    if (_systolicController.text.isEmpty &&
+        _sugarController.text.isEmpty &&
+        _heartRateController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("يرجى إدخال قيمة واحدة على الأقل")),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final String? targetUid =
+          widget.patientId ?? FirebaseAuth.instance.currentUser?.uid;
+      if (targetUid == null) throw "لم يتم العثور على المستخدم";
+
+      final batch = FirebaseFirestore.instance.batch();
+      final collection = FirebaseFirestore.instance
+          .collection('users')
+          .doc(targetUid)
+          .collection('vitals');
+
+      // 2. حفظ ضغط الدم (إذا وجد)
+      if (_systolicController.text.isNotEmpty &&
+          _diastolicController.text.isNotEmpty) {
+        final docRef = collection.doc();
+        batch.set(docRef, {
+          'type': 'pressure',
+          'value': "${_systolicController.text}/${_diastolicController.text}",
+          'unit': 'mmHg',
+          'date': Timestamp.fromDate(selectedDate),
+          'status': 'normal', // يمكن إضافة منطق لحساب الحالة
+        });
+      }
+
+      // 3. حفظ السكر (إذا وجد)
+      if (_sugarController.text.isNotEmpty) {
+        final docRef = collection.doc();
+        batch.set(docRef, {
+          'type': 'sugar',
+          'value': _sugarController.text,
+          'unit': 'mg/dL',
+          'context': selectedSugarContext, // حفظ السياق (صائم/فاطر)
+          'date': Timestamp.fromDate(selectedDate),
+          'status': 'normal',
+        });
+      }
+
+      // 4. حفظ النبض (إذا وجد)
+      if (_heartRateController.text.isNotEmpty) {
+        final docRef = collection.doc();
+        batch.set(docRef, {
+          'type': 'heart',
+          'value': _heartRateController.text,
+          'unit': 'bpm',
+          'date': Timestamp.fromDate(selectedDate),
+          'status': 'normal',
+        });
+      }
+
+      await batch.commit();
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("تم حفظ القراءات بنجاح ✅"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("خطأ: $e"), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 }

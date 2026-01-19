@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:health_compass/core/models/medication_model.dart';
 import 'package:health_compass/feature/family_member/data/family_repository.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // ✅ استيراد Firestore
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'add_edit_medication_screen.dart';
 
 class MedicationScreen extends StatelessWidget {
@@ -82,10 +82,7 @@ class MedicationScreen extends StatelessWidget {
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
                         final med = snapshot.data![index];
-                        return _buildMedCard(
-                          context, // ✅ تمرير الـ Context لفتح النافذة
-                          med, // ✅ تمرير كائن الدواء بالكامل
-                        );
+                        return _buildMedCard(context, med);
                       }, childCount: snapshot.data!.length),
                     ),
                   ),
@@ -148,17 +145,7 @@ class MedicationScreen extends StatelessWidget {
               ],
             ),
           ),
-
-          // ✅ أزرار التحكم (تظهر فقط للمراقب)
           if (canEdit) ...[
-            // زر التعديل
-            IconButton(
-              icon: Icon(Icons.edit_rounded, color: Colors.grey[400]),
-              onPressed: () {
-                // TODO: الانتقال لصفحة التعديل
-              },
-            ),
-            // ✅ زر الحذف
             IconButton(
               icon: const Icon(
                 Icons.delete_outline_rounded,
@@ -172,49 +159,55 @@ class MedicationScreen extends StatelessWidget {
     );
   }
 
-  // ✅ دالة عرض نافذة تأكيد الحذف
+  // ✅ تم التعديل: تغليف الـ Dialog بـ Directionality لمنع الخطأ
   void _confirmDelete(BuildContext context, MedicationModel med) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          "حذف الدواء؟",
-          style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
-          textAlign: TextAlign.right,
-        ),
-        content: Text(
-          "هل أنت متأكد من حذف '${med.name}'؟ لا يمكن التراجع عن هذا الإجراء.",
-          style: GoogleFonts.tajawal(),
-          textAlign: TextAlign.right,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              "إلغاء",
-              style: GoogleFonts.tajawal(color: Colors.grey),
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          title: Text(
+            "حذف الدواء؟",
+            style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            "هل أنت متأكد من حذف '${med.name}'؟ لا يمكن التراجع عن هذا الإجراء.",
+            style: GoogleFonts.tajawal(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(
+                "إلغاء",
+                style: GoogleFonts.tajawal(color: Colors.grey),
+              ),
             ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _deleteMedicationFromFirestore(context, med.id); // استدعاء الحذف
-            },
-            child: Text("حذف", style: GoogleFonts.tajawal(color: Colors.red)),
-          ),
-        ],
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _deleteMedicationFromFirestore(context, med.id);
+              },
+              child: Text("حذف", style: GoogleFonts.tajawal(color: Colors.red)),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // ✅ دالة الحذف من Firebase
+  // ✅ تم التعديل: تغليف الـ SnackBar بـ Directionality لمنع الانهيار
   Future<void> _deleteMedicationFromFirestore(
     BuildContext context,
     String? docId,
   ) async {
     if (docId == null || docId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("خطأ: لا يمكن العثور على معرف الدواء")),
+        SnackBar(
+          content: Directionality(
+            textDirection: TextDirection.rtl,
+            child: const Text("خطأ: لا يمكن العثور على معرف الدواء"),
+          ),
+        ),
       );
       return;
     }
@@ -227,16 +220,29 @@ class MedicationScreen extends StatelessWidget {
           .doc(docId)
           .delete();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("تم حذف الدواء بنجاح"),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Directionality(
+              textDirection: TextDirection.rtl,
+              child: const Text("تم حذف الدواء بنجاح"),
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("فشل الحذف: $e"), backgroundColor: Colors.red),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Directionality(
+              textDirection: TextDirection.rtl,
+              child: Text("فشل الحذف: $e"),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }

@@ -237,7 +237,7 @@ class _AddEditMedicationScreenState extends State<AddEditMedicationScreen> {
         );
       }
 
-      // 2. الحفظ في Firebase (تصحيح الهيكلية: مستند لكل وقت)
+      // 2. الحفظ في Firebase
       final batch = FirebaseFirestore.instance.batch();
       for (var time in selectedTimes) {
         final docRef = FirebaseFirestore.instance
@@ -251,14 +251,13 @@ class _AddEditMedicationScreenState extends State<AddEditMedicationScreen> {
         final String periodStr = time.period == DayPeriod.am ? 'ص' : 'م';
 
         batch.set(docRef, {
-          'medicationName': _nameController.text, // ✅ الاسم الصحيح للمريض
+          'medicationName': _nameController.text,
           'dosage': _doseController.text,
           'instructions': _typeController.text,
-          'time': timeStr, // ✅ وقت مفرد
-          'period': periodStr, // ✅ فترة مفردة
+          'time': timeStr,
+          'period': periodStr,
           'daysOfWeek': [0, 1, 2, 3, 4, 5, 6],
-          'isActive': true,
-          'createdAt': FieldValue.serverTimestamp(),
+          'created_at': FieldValue.serverTimestamp(),
           'notificationId': Random().nextInt(1000000),
           'added_by_uid': FirebaseAuth.instance.currentUser?.uid,
         });
@@ -268,7 +267,7 @@ class _AddEditMedicationScreenState extends State<AddEditMedicationScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("✅ تم الحفظ بنجاح"),
+            content: Text("تم الحفظ بنجاح"),
             backgroundColor: Colors.green,
           ),
         );
@@ -276,6 +275,11 @@ class _AddEditMedicationScreenState extends State<AddEditMedicationScreen> {
       }
     } catch (e) {
       print("Error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("حدث خطأ: $e"), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 }
