@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:health_compass/core/widgets/doctor_link_guard.dart';
 import 'package:health_compass/feature/auth/data/model/doctormodel.dart';
 import 'package:health_compass/feature/patient/data/repo/patient_repo.dart';
 import 'package:health_compass/feature/auth/presentation/screen/chatscreen.dart'; // استدعاء صفحة الشات
@@ -8,44 +9,48 @@ class MyDoctorsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(
-          "أطبائي",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+    return DoctorLinkGuard(
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: const Text(
+            "أطبائي",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          ),
+          backgroundColor: const Color(0xFF0D9488),
+          foregroundColor: Colors.white,
+          elevation: 0,
         ),
-        backgroundColor: const Color(0xFF0D9488),
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      // سنستخدم FutureBuilder لجلب الأطباء (يفترض استخدام دالة تجلب الأطباء المرتبطين فقط)
-      // ملاحظة: هنا استخدمت getAllDoctors كمثال، يجب استبدالها بدالة تجلب "Linked Doctors" إذا توفرت
-      body: FutureBuilder<List<DoctorModel>>(
-        future: PatientRepo().getAllDoctors(), 
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Color(0xFF0D9488)));
-          }
+        // سنستخدم FutureBuilder لجلب الأطباء (يفترض استخدام دالة تجلب الأطباء المرتبطين فقط)
+        // ملاحظة: هنا استخدمت getAllDoctors كمثال، يجب استبدالها بدالة تجلب "Linked Doctors" إذا توفرت
+        body: FutureBuilder<List<DoctorModel>>(
+          future: PatientRepo().getAllDoctors(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(color: Color(0xFF0D9488)),
+              );
+            }
 
-          if (snapshot.hasError) {
-            return Center(child: Text("حدث خطأ: ${snapshot.error}"));
-          }
+            if (snapshot.hasError) {
+              return Center(child: Text("حدث خطأ: ${snapshot.error}"));
+            }
 
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return _buildEmptyState();
-          }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return _buildEmptyState();
+            }
 
-          final doctors = snapshot.data!;
+            final doctors = snapshot.data!;
 
-          return ListView.builder(
-            itemCount: doctors.length,
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            itemBuilder: (context, index) {
-              return _buildDoctorChatCard(context, doctors[index]);
-            },
-          );
-        },
+            return ListView.builder(
+              itemCount: doctors.length,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              itemBuilder: (context, index) {
+                return _buildDoctorChatCard(context, doctors[index]);
+              },
+            );
+          },
+        ),
       ),
     );
   }
@@ -72,19 +77,23 @@ class MyDoctorsScreen extends StatelessWidget {
                 CircleAvatar(
                   radius: 28,
                   backgroundColor: Colors.grey[200],
-                  backgroundImage: (doctor.profileImage != null && doctor.profileImage!.isNotEmpty)
+                  backgroundImage:
+                      (doctor.profileImage != null &&
+                          doctor.profileImage!.isNotEmpty)
                       ? NetworkImage(doctor.profileImage!)
                       : null,
-                  child: (doctor.profileImage == null || doctor.profileImage!.isEmpty)
+                  child:
+                      (doctor.profileImage == null ||
+                          doctor.profileImage!.isEmpty)
                       ? const Icon(Icons.person, color: Colors.grey, size: 30)
                       : null,
                 ),
+
                 // نقطة الحالة (أونلاين) - ديكور إضافي اختياري
-               
               ],
             ),
             const SizedBox(width: 16),
-            
+
             // معلومات الطبيب
             Expanded(
               child: Column(
@@ -101,14 +110,18 @@ class MyDoctorsScreen extends StatelessWidget {
                           color: Colors.black87,
                         ),
                       ),
+
                       // الوقت (يمكن جعله ديناميكي لاحقاً)
-                    
                     ],
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.done_all, size: 16, color: Colors.blue), // علامة الصحين
+                      const Icon(
+                        Icons.done_all,
+                        size: 16,
+                        color: Colors.blue,
+                      ), // علامة الصحين
                       const SizedBox(width: 5),
                       Expanded(
                         child: Text(

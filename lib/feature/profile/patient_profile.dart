@@ -61,13 +61,7 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
                         ),
                         const SizedBox(height: 10),
                         _buildActionButtons(),
-                        const SizedBox(height: 25),
-                        Text(
-                          'اعدادات التطبيق:',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 10),
-                        _buildSettingsSection(),
+                       
                       ],
                     ),
                   ),
@@ -256,12 +250,7 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
           print('إضافة قراءة يدوية');
         }
       },
-      {
-        'text': 'اضافة ربط مع العائلة',
-        'action': () {
-          print('ربط مع العائلة');
-        }
-      },
+     
       {
         'text': 'اضافة او تعديل اوقات الصيام',
         'action': () {
@@ -343,65 +332,7 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
     }
   }
 
-  Widget _buildSettingsSection() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            children: [
-              _buildSwitchRow(
-                'اللغة الانجليزية',
-                _isEnglish,
-                (v) => setState(() => _isEnglish = v),
-              ),
-              _buildSwitchRow(
-                'نظام النقاط',
-                _isPointsSystem,
-                (v) => setState(() => _isPointsSystem = v),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            children: [
-              _buildSwitchRow(
-                'المساعد الصوتي',
-                _isVoiceAssistant,
-                (v) => setState(() => _isVoiceAssistant = v),
-              ),
-              _buildSwitchRow(
-                'الاشعارات',
-                _isNotifications,
-                (v) => setState(() => _isNotifications = v),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+  
 
-  Widget _buildSwitchRow(String text, bool value, Function(bool) onChanged) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 13, color: Colors.grey),
-            ),
-          ),
-          Transform.scale(
-            scale: 0.8,
-            child: Switch(value: value, onChanged: onChanged),
-          ),
-        ],
-      ),
-    );
-  }
+ 
 }

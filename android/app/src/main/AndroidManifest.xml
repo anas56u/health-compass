@@ -8,6 +8,13 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.BLUETOOTH"/>
 
@@ -23,6 +30,13 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/notification_icon" />
+            
+        <service
+            android:name="id.flutter.flutter_background_service.BackgroundService"
+            android:foregroundServiceType="dataSync"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

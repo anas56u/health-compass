@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:health_compass/core/core.dart';
+import 'package:health_compass/core/services/background_service.dart';
 import 'package:health_compass/core/services/notification_service.dart';
 import 'package:health_compass/feature/Reminders/data/model/reminders_model.dart';
 import 'package:health_compass/feature/Reminders/presentation/cubits/reminder_cubit.dart';
@@ -19,6 +20,8 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:health_compass/core/routes/routes.dart';
 import 'package:health_compass/feature/family_member/data/family_repository.dart';
 import 'package:health_compass/feature/family_member/logic/family_cubit.dart';
+      final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 
 void main() async {
   Bloc.observer = SimpleBlocObserver();
@@ -38,7 +41,13 @@ void main() async {
   // 3. تهيئة الإشعارات (الآن ستعمل لأن Firebase جاهز)
   final notificationService = NotificationService();
   await notificationService.init();
-
+try {
+    debugPrint("Attemping to start background service...");
+    await initializeBackgroundService();
+    debugPrint("Background service initialization called.");
+  } catch (e) {
+    debugPrint("❌ Failed to start background service: $e");
+  }
   // 4. تهيئة تنسيق التاريخ
   await initializeDateFormatting();
 
@@ -51,6 +60,8 @@ class MyApp extends StatelessWidget {
   // ... (باقي الكلاس كما هو بدون تغيير)
   final Box<ReminderModel> reminderBox;
   final NotificationService notificationService;
+
+
 
   const MyApp({
     super.key,
@@ -66,6 +77,8 @@ class MyApp extends StatelessWidget {
 
     // ✅ إنشاء مستودع العائلة
     final familyRepository = FamilyRepository();
+
+    
 
     return ScreenUtilInit(
       designSize: const Size(375, 812),
@@ -93,6 +106,7 @@ class MyApp extends StatelessWidget {
             )
           ],
           child: MaterialApp(
+            navigatorKey: navigatorKey, // 👈 اربطه هنا
             debugShowCheckedModeBanner: false,
             title: 'Health Compass',
             theme: ThemeData(

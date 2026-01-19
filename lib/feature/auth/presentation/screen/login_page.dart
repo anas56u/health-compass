@@ -201,6 +201,7 @@ class _LoginViewState extends State<LoginView> {
                                   obscureText: !_isPasswordVisible,
                                   onChanged: (value) {},
                                 ),
+                                
                                 IconButton(
                                   onPressed: () {
                                     setState(() {

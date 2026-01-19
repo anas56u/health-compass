@@ -24,18 +24,7 @@ class AccessibilityFacilities extends StatelessWidget {
         'color': const Color(0xFF0D9488),
         'route': AppRoutes.healthDashboard,
       },
-      {
-        'icon': Icons.volume_up_rounded,
-        'label': 'اتصل بالطوارئ',
-        'color': Colors.redAccent, // أحمر للطوارئ
-        'route': null,
-      },
-      {
-        'icon': Icons.chat_bubble_outline_rounded,
-        'label': 'راسل دليل',
-        'color': const Color(0xFF0D9488), // لون الهوية
-        'route': AppRoutes.chatBot,
-      },
+     
       {
         'icon': Icons.calendar_today_rounded,
         'label': 'احجز موعد',

@@ -68,7 +68,6 @@ class _FamilyInvitePageState extends State<FamilyInvitePage> {
         appBar: AppBar(
           backgroundColor: bgColor,
           elevation: 0,
-          leading: const BackButton(color: Colors.black),
           title: Text(
             "دعوة العائلة",
             style: GoogleFonts.tajawal(

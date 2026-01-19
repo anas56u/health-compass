@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:audioplayers/audioplayers.dart'; // 1. استيراد المكتبة
 
 class EmergencyScreen extends StatefulWidget {
   final String message;
@@ -7,7 +8,13 @@ class EmergencyScreen extends StatefulWidget {
   final String? familyPhoneNumber;
   final String? doctorPhoneNumber;
 
-  const EmergencyScreen({Key? key, required this.message, required this.value ,this.doctorPhoneNumber,this.familyPhoneNumber}) : super(key: key);
+  const EmergencyScreen({
+    Key? key, 
+    required this.message, 
+    required this.value,
+    this.doctorPhoneNumber,
+    this.familyPhoneNumber
+  }) : super(key: key);
 
   @override
   State<EmergencyScreen> createState() => _EmergencyScreenState();
@@ -16,27 +23,60 @@ class EmergencyScreen extends StatefulWidget {
 class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
+  
+  // 2. تعريف مشغل الصوت
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
     super.initState();
-    // إعداد أنيميشن النبض للزر الأحمر
+    
+    // إعداد أنيميشن النبض
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
+    
     _animation = Tween<double>(begin: 1.0, end: 1.1).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
+
+    // 3. بدء تشغيل الصوت عند تهيئة الشاشة
+    _playAlarmSound();
+  }
+
+  // دالة منفصلة لتنظيم كود الصوت
+  Future<void> _playAlarmSound() async {
+    try {
+      // تحديد مصدر الصوت (تأكد أن الاسم يطابق ملفك)
+      // في الإصدارات الحديثة من audioplayers، نستخدم AssetSource
+      await _audioPlayer.setSource(AssetSource('sounds/alarm.mp3'));
+      
+      // جعل الصوت يتكرر (Loop)
+      await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+      
+      // بدء التشغيل
+      await _audioPlayer.resume();
+    } catch (e) {
+      debugPrint("Error playing sound: $e");
+    }
   }
 
   @override
   void dispose() {
+    // 4. أفضل الممارسات: تنظيف الموارد
+    // يجب إيقاف الصوت والتخلص من المشغل عند الخروج من الشاشة
+    _audioPlayer.stop();
+    _audioPlayer.dispose();
+    
     _controller.dispose();
     super.dispose();
   }
 
   Future<void> _makePhoneCall(String phoneNumber) async {
+    // اختياري: هل تريد إيقاف الصوت عند بدء المكالمة؟
+    // await _audioPlayer.stop(); 
+    
     final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
     if (await canLaunchUrl(launchUri)) {
       await launchUrl(launchUri);
@@ -45,7 +85,6 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
-    // تحديد لون الخلفية بناءً على خطورة الموقف (تدرج أحمر)
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -66,7 +105,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // الجزء العلوي: الأيقونة والعنوان
+                // ... (بقية الكود كما هو في الجزء العلوي والوسط) ...
                 Column(
                   children: [
                     const SizedBox(height: 40),
@@ -89,7 +128,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                         fontSize: 28,
                         fontWeight: FontWeight.w900,
                         color: Colors.red.shade900,
-                        fontFamily: 'Tajawal', // يفضل استخدام خط عربي واضح
+                        fontFamily: 'Tajawal',
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -105,7 +144,6 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                   ],
                 ),
 
-                // الجزء الأوسط: بطاقة القيمة الحيوية
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
@@ -149,7 +187,6 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                           Padding(
                             padding: const EdgeInsets.only(bottom: 8.0),
                             child: Text(
-                              // يمكنك جعل الوحدة ديناميكية بناءً على نوع القياس
                               "BPM", 
                               style: TextStyle(
                                 fontSize: 20,
@@ -167,7 +204,6 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                 // الجزء السفلي: أزرار التحكم
                 Column(
                   children: [
-                    // زر الطوارئ المتحرك
                     ScaleTransition(
                       scale: _animation,
                       child: Container(
@@ -182,7 +218,11 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                           ],
                         ),
                         child: ElevatedButton(
-                          onPressed: () => _makePhoneCall('911'),
+                          // عند الاتصال بالطوارئ، يفضل إيقاف الصوت لكي يسمع المستخدم المكالمة
+                          onPressed: () async {
+                            await _audioPlayer.stop(); // إيقاف الصوت قبل الاتصال
+                            _makePhoneCall('911');
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red.shade600,
                             foregroundColor: Colors.white,
@@ -203,7 +243,6 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                     ),
                     const SizedBox(height: 30),
                     
-                    // أزرار الاتصال السريع (العائلة والطبيب)
                     Row(
                       children: [
                         Expanded(
@@ -212,13 +251,15 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                             label: "العائلة",
                             color: Colors.blue.shade700,
                             onTap: widget.familyPhoneNumber != null 
-            ? () => _makePhoneCall(widget.familyPhoneNumber!) 
-            : () {
-                // إظهار رسالة إذا لم يوجد رقم
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("لا يوجد رقم عائلة مسجل")),
-                );
-              },
+                              ? () async {
+                                  await _audioPlayer.stop(); // إيقاف الصوت
+                                  _makePhoneCall(widget.familyPhoneNumber!);
+                                }
+                              : () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("لا يوجد رقم عائلة مسجل")),
+                                  );
+                                },
                           ),
                         ),
                         const SizedBox(width: 15),
@@ -228,21 +269,27 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                             label: "طبيبي",
                             color: Colors.green.shade700,
                             onTap: widget.doctorPhoneNumber != null 
-            ? () => _makePhoneCall(widget.doctorPhoneNumber!) 
-            : () {
-                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("لا يوجد طبيب مرتبط")),
-                );
-              },
+                              ? () async {
+                                  await _audioPlayer.stop(); // إيقاف الصوت
+                                  _makePhoneCall(widget.doctorPhoneNumber!);
+                                }
+                              : () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("لا يوجد طبيب مرتبط")),
+                                  );
+                                },
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 20),
 
-                    // زر الإلغاء
                     TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () {
+                        // عند الضغط على "أنا بخير" يتم الخروج
+                        // دالة dispose ستتكفل بإيقاف الصوت تلقائياً
+                        Navigator.pop(context);
+                      },
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
@@ -266,7 +313,6 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
     );
   }
 
-  // ودجت مساعد للأزرار الثانوية لتقليل التكرار
   Widget _buildSecondaryButton({
     required IconData icon,
     required String label,

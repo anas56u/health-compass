@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:health_compass/core/widgets/EmergencyScreen.dart';
+import 'package:health_compass/main.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
 
@@ -24,70 +26,8 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  Future<void> init() async {
-    // 1. طلب الإذن
-    NotificationSettings settings = await _firebaseMessaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-
-    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      debugPrint('User granted permission');
-    }
-
-    // 🔥🔥🔥 خطوة جديدة هامة جداً: حفظ التوكن عند فتح التطبيق 🔥🔥🔥
-    await _saveTokenToDatabase();
-
-    // الاستماع لتحديثات التوكن (في حال تغير التوكن أثناء عمل التطبيق)
-    _firebaseMessaging.onTokenRefresh.listen((newToken) {
-      _saveTokenToDatabase(token: newToken);
-    });
-
-    // 2. إعداد معالجة الرسائل القادمة والتطبيق مفتوح (Foreground)
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint('Got a message whilst in the foreground!');
-      
-      if (message.notification != null) {
-        showNotification(
-          id: message.hashCode,
-          title: message.notification!.title ?? 'رسالة جديدة',
-          body: message.notification!.body ?? '',
-        );
-      }
-    });
-
-    // 3. إعداد معالجة الرسائل في الخلفية
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-    // 4. إنشاء قنوات الإشعارات
-    const AndroidNotificationChannel remindersChannel = AndroidNotificationChannel(
-      'reminders_channel_id_v2',
-      'Reminders Notifications',
-      description: 'Important reminders channel',
-      importance: Importance.max,
-    );
-
-    // قناة الدردشة
-    const AndroidNotificationChannel chatChannel = AndroidNotificationChannel(
-      'chat_channel_id', 
-      'Chat Notifications',
-      description: 'Notifications for new messages',
-      importance: Importance.max,
-      playSound: true, // تأكد من تفعيل الصوت
-    );
-
-    await flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(remindersChannel);
-
-    await flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(chatChannel); // إنشاء القناة الثانية
-
-    // تهيئة Timezone
+  Future<void> init({bool requestPermission = true}) async {
+    // 1. تهيئة Timezone (آمن في الخلفية)
     tz.initializeTimeZones();
     try {
       final String timeZoneName =
@@ -97,15 +37,40 @@ class NotificationService {
       tz.setLocalLocation(tz.getLocation('Asia/Amman'));
     }
 
-    // إعدادات التهيئة
+    // 2. إنشاء قنوات الإشعارات (ضروري جداً للأندرويد لكي يظهر الإشعار)
+    const AndroidNotificationChannel remindersChannel = AndroidNotificationChannel(
+      'reminders_channel_id_v2',
+      'Reminders Notifications',
+      description: 'Important reminders channel',
+      importance: Importance.max,
+    );
+
+    const AndroidNotificationChannel chatChannel = AndroidNotificationChannel(
+      'chat_channel_id',
+      'Chat Notifications',
+      description: 'Notifications for new messages',
+      importance: Importance.max,
+      playSound: true,
+    );
+
+    // نستخدم الـ Implementation الخاص بالأندرويد لإنشاء القنوات
+    final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+        flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+
+    await androidImplementation?.createNotificationChannel(remindersChannel);
+    await androidImplementation?.createNotificationChannel(chatChannel);
+
+    // 3. إعدادات التهيئة (Init Settings)
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
+    // ⚠️ تعديل هام: نضبط هذه القيم على false لمنع الطلب التلقائي في iOS
     const DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
-      requestSoundPermission: true,
-      requestBadgePermission: true,
-      requestAlertPermission: true,
+      requestSoundPermission: false,
+      requestBadgePermission: false,
+      requestAlertPermission: false,
     );
 
     const InitializationSettings initializationSettings = InitializationSettings(
@@ -113,19 +78,112 @@ class NotificationService {
       iOS: initializationSettingsIOS,
     );
 
+    // 4. تهيئة البلاجن (Initialize Plugin)
     await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        debugPrint("Notification Clicked: ${response.payload}");
+        if (response.payload == 'emergency') {
+          // التوجيه لشاشة الطوارئ
+          navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (context) => const EmergencyScreen(
+                message: "تم رصد حالة حرجة في الخلفية",
+                value: 150,
+              ),
+            ),
+          );
+        }
       },
     );
 
-    if (Platform.isAndroid) {
-      await flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
-          ?.requestNotificationsPermission();
+    // 5. 🔥🔥🔥 منطقة الخطر: طلب الأذونات 🔥🔥🔥
+    // لن يتم تنفيذ هذا الكود إذا كنا في الخلفية (requestPermission = false)
+    if (requestPermission) {
+      debugPrint("🔔 Requesting Permissions (Foreground Mode)...");
+      
+      // أ) طلب إذن Firebase
+      NotificationSettings settings = await _firebaseMessaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        debugPrint('✅ User granted Firebase permission');
+      }
+
+      // ب) طلب إذن Local Notifications للأندرويد 13+
+      if (Platform.isAndroid) {
+        await androidImplementation?.requestNotificationsPermission();
+      }
+      
+      // ج) طلب إذن iOS يدوياً
+      if (Platform.isIOS) {
+        await flutterLocalNotificationsPlugin
+            .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+            ?.requestPermissions(
+              alert: true,
+              badge: true,
+              sound: true,
+            );
+      }
     }
+
+    // 6. التعامل مع التوكن والرسائل (آمن)
+    // نضع حفظ التوكن داخل try-catch لتجنب أي مشاكل اتصال
+    try {
+      await _saveTokenToDatabase();
+      _firebaseMessaging.onTokenRefresh.listen((newToken) {
+        _saveTokenToDatabase(token: newToken);
+      });
+    } catch (e) {
+      debugPrint("⚠️ Token setup warning: $e");
+    }
+
+    // 7. الاستماع للرسائل
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      debugPrint('Got a message whilst in the foreground!');
+      if (message.notification != null) {
+        showNotification(
+          id: message.hashCode,
+          title: message.notification!.title ?? 'رسالة جديدة',
+          body: message.notification!.body ?? '',
+        );
+      }
+    });
+
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  }
+  Future<void> showCriticalAlert() async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'emergency_channel_01', // ID مختلف للطوارئ
+      'Critical Alerts',      // اسم القناة
+      channelDescription: 'Used for critical health alerts',
+      importance: Importance.max, // أقصى أهمية (يصدر صوت ويظهر فوق التطبيقات)
+      priority: Priority.max,     // أقصى أولوية
+      ticker: 'تنبيه صحي حرج!',
+      
+      // 🔥🔥🔥 هذا هو السطر السحري 🔥🔥🔥
+      fullScreenIntent: true, 
+      
+      // خصائص التنبيه
+      playSound: true,
+      enableVibration: true,
+      category: AndroidNotificationCategory.alarm, // يعامل كمنبه
+      visibility: NotificationVisibility.public, // يظهر حتى والشاشة مقفلة
+    );
+
+    const NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    await flutterLocalNotificationsPlugin.show(
+      999, // ID ثابت للإشعار
+      'خطر صحي!', 
+      'تم رصد مؤشرات حيوية غير طبيعية. اضغط للمساعدة.',
+      platformChannelSpecifics,
+      payload: 'emergency', // سنستخدم هذا للتوجيه
+    );
   }
 
   // 🔥 دالة حفظ التوكن الجديدة
