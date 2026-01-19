@@ -52,7 +52,7 @@ class ChatCubit extends Cubit<ChatState> {
     emit(
       state.copyWith(
         messages: [
-          bot_MessageModel(
+          ChatMessageModel(
             text: "هلا بك! أنا دليل، كيف بقدر أساعدك اليوم؟",
             isBot: true,
             timestamp: DateTime.now(),
@@ -96,7 +96,7 @@ class ChatCubit extends Cubit<ChatState> {
         .snapshots()
         .listen((snapshot) {
           final messages = snapshot.docs
-              .map((doc) => bot_MessageModel.fromMap(doc.data()))
+              .map((doc) => ChatMessageModel.fromMap(doc.data()))
               .toList();
 
           // ملاحظة: هنا نبدأ جلسة جديدة مع الذكاء الاصطناعي (ذاكرة نظيفة)
@@ -113,7 +113,7 @@ class ChatCubit extends Cubit<ChatState> {
 
     if (text.isEmpty || user == null) return;
 
-    final userMessage = bot_MessageModel(
+    final userMessage = ChatMessageModel(
       text: text,
       isBot: false,
       timestamp: DateTime.now(),
@@ -136,7 +136,7 @@ class ChatCubit extends Cubit<ChatState> {
       final response = await _chatSession.sendMessage(Content.text(text));
       final botText = response.text ?? "عذراً، لم أفهم.";
 
-      final botMessage = bot_MessageModel(
+      final botMessage = ChatMessageModel(
         text: botText,
         isBot: true,
         timestamp: DateTime.now(),
@@ -160,7 +160,7 @@ class ChatCubit extends Cubit<ChatState> {
     }
   }
 
-  Future<void> _saveMessageToFirebase(bot_MessageModel msg) async {
+  Future<void> _saveMessageToFirebase(ChatMessageModel msg) async {
     final user = _auth.currentUser;
     await _firestore
         .collection('users')

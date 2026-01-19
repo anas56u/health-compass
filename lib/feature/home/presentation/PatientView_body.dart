@@ -19,8 +19,8 @@ import 'package:health_compass/feature/medications/pages/medications_page_fireba
 import 'package:health_compass/feature/health_tracking/presentation/cubits/health_cubit/health_cubit.dart';
 import 'package:health_compass/feature/health_tracking/presentation/cubits/health_cubit/HealthState.dart';
 import 'package:health_compass/feature/patient/data/repo/patient_repo.dart';
-import 'package:health_compass/feature/auth/presentation/cubit/cubit/user_state.dart'; 
-import 'package:health_compass/feature/auth/data/model/PatientModel.dart'; 
+import 'package:health_compass/feature/auth/presentation/cubit/cubit/user_state.dart';
+import 'package:health_compass/feature/auth/data/model/PatientModel.dart';
 
 class Patientview_body extends StatefulWidget {
   const Patientview_body({super.key});
@@ -65,23 +65,24 @@ class _Patientview_bodyState extends State<Patientview_body> {
       // ✅ 2. تحويل الـ listener إلى async لنتمكن من انتظار جلب البيانات
       listener: (context, state) async {
         if (state is HealthCritical) {
-          
           // متغيرات لتخزين الأرقام
           String? fetchedDoctorPhone;
           String? fetchedFamilyPhone;
 
           // أ. الحصول على بيانات المستخدم الحالي من UserCubit
           final userState = context.read<UserCubit>().state;
-          
+
           if (userState is UserLoaded && userState.userModel is PatientModel) {
             // ب. إذا كان المستخدم مريضاً ومحملاً، نقوم بجلب الأرقام
             final currentPatient = userState.userModel as PatientModel;
             final patientRepo = PatientRepo(); // إنشاء نسخة من الريبو
-            
+
             // ج. استدعاء الدالة وانتظار النتيجة
             // ملاحظة: هذا الإجراء سريع جداً عادةً، لكن يمكن إضافة مؤشر تحميل إذا أردت
-            final contacts = await patientRepo.getEmergencyContacts(currentPatient);
-            
+            final contacts = await patientRepo.getEmergencyContacts(
+              currentPatient,
+            );
+
             fetchedDoctorPhone = contacts['doctor'];
             fetchedFamilyPhone = contacts['family'];
           }
@@ -177,7 +178,7 @@ class HomeContent extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             AccessibilityFacilities(),
-           
+
             const SizedBox(height: 30),
           ],
         ),

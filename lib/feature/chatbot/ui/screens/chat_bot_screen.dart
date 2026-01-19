@@ -46,7 +46,6 @@ class _ChatViewState extends State<_ChatView> {
   @override
   void initState() {
     super.initState();
-    // ✅ مراقبة النص لتغيير لون زر الإرسال
     _controller.addListener(() {
       setState(() {
         _isTyping = _controller.text.trim().isNotEmpty;
@@ -69,10 +68,11 @@ class _ChatViewState extends State<_ChatView> {
   void _handleSend([String? text]) {
     final messageText = text ?? _controller.text.trim();
     if (messageText.isEmpty) return;
-
     context.read<ChatCubit>().sendMessage(messageText);
     _controller.clear();
-    // ستعود حالة الكتابة تلقائياً لـ false بسبب الليسنر
+    setState(() {
+      _isTyping = false;
+    });
   }
 
   void _openHistory(BuildContext context) {
@@ -115,8 +115,6 @@ class _ChatViewState extends State<_ChatView> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF5F7FA),
         drawer: const ChatDrawer(),
-
-        // --- 1. الشريط العلوي ---
         appBar: AppBar(
           backgroundColor: _primaryColor,
           elevation: 0,
@@ -211,14 +209,12 @@ class _ChatViewState extends State<_ChatView> {
                   }
                 },
                 builder: (context, state) {
-                  // --- 2. حالة الشاشة الفارغة ---
                   if (state.messages.isEmpty) {
                     return _buildEmptyState();
                   }
 
                   return ListView.builder(
                     controller: _scrollController,
-                    // إضافة فيزياء للحركة الطبيعية
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -237,8 +233,6 @@ class _ChatViewState extends State<_ChatView> {
                 },
               ),
             ),
-
-            // مؤشر الكتابة
             BlocBuilder<ChatCubit, ChatState>(
               builder: (context, state) {
                 if (state.status == ChatStatus.loading) {
@@ -273,8 +267,6 @@ class _ChatViewState extends State<_ChatView> {
                 return const SizedBox.shrink();
               },
             ),
-
-            // --- 3. منطقة الإدخال ---
             SafeArea(
               child: Container(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
@@ -290,7 +282,6 @@ class _ChatViewState extends State<_ChatView> {
                 ),
                 child: Row(
                   children: [
-                    // زر المحادثة الصوتية
                     Container(
                       decoration: BoxDecoration(
                         color: _primaryColor.withOpacity(0.1),
@@ -307,8 +298,6 @@ class _ChatViewState extends State<_ChatView> {
                       ),
                     ),
                     const SizedBox(width: 10),
-
-                    // حقل الكتابة
                     Expanded(
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -336,11 +325,9 @@ class _ChatViewState extends State<_ChatView> {
 
                     const SizedBox(width: 10),
 
-                    // ✅ زر الإرسال التفاعلي
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       decoration: BoxDecoration(
-                        // تغيير اللون بناءً على حالة الكتابة
                         color: _isTyping ? _primaryColor : Colors.grey.shade300,
                         shape: BoxShape.circle,
                         boxShadow: _isTyping
@@ -359,7 +346,6 @@ class _ChatViewState extends State<_ChatView> {
                           color: Colors.white,
                           size: 22,
                         ),
-                        // تعطيل الزر إذا كان النص فارغاً
                         onPressed: _isTyping ? () => _handleSend() : null,
                       ),
                     ),
@@ -373,7 +359,6 @@ class _ChatViewState extends State<_ChatView> {
     );
   }
 
-  // ودجت الشاشة الفارغة
   Widget _buildEmptyState() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),

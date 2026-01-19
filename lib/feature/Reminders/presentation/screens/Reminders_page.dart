@@ -134,11 +134,14 @@ class ReminderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     bool isDoneToday = false;
-if (reminder.lastCompletedDate != null) {
-  final now = DateTime.now();
-  final last = reminder.lastCompletedDate!;
-  isDoneToday = last.year == now.year && last.month == now.month && last.day == now.day;
-}
+    if (reminder.lastCompletedDate != null) {
+      final now = DateTime.now();
+      final last = reminder.lastCompletedDate!;
+      isDoneToday =
+          last.year == now.year &&
+          last.month == now.month &&
+          last.day == now.day;
+    }
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -189,20 +192,23 @@ if (reminder.lastCompletedDate != null) {
           Row(
             children: [
               IconButton(
-
-         icon: Icon(
-           isDoneToday ? Icons.check_circle : Icons.circle_outlined,
-           color: isDoneToday ? Colors.green : Colors.grey,
-           size: 28,
-         ),
-         onPressed: isDoneToday 
-           ? null 
-           : () {
-               context.read<RemindersCubit>().markAsDone(reminder);
-             },
-       ),
+                icon: Icon(
+                  isDoneToday ? Icons.check_circle : Icons.circle_outlined,
+                  color: isDoneToday ? Colors.green : Colors.grey,
+                  size: 28,
+                ),
+                onPressed: isDoneToday
+                    ? null // إذا انتهت لا تفعل شيئاً
+                    : () {
+                        context.read<RemindersCubit>().markAsDone(reminder);
+                      },
+              ),
               IconButton(
-                icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
+                icon: const Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: Colors.grey,
+                ),
                 onPressed: () {
                   context.read<RemindersCubit>().deleteReminder(reminder);
                 },

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:health_compass/core/routes/routes.dart'; // تأكد من استيراد ملف Routes
+import 'package:health_compass/core/routes/routes.dart';
 
 class FamilyProfileScreen extends StatefulWidget {
   const FamilyProfileScreen({super.key});
@@ -68,13 +68,6 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
                   // TODO: فتح حوار تغيير كلمة المرور
                 },
               ),
-              _buildSettingsTile(
-                title: "الإشعارات",
-                icon: Icons.notifications_none_rounded,
-                color: Colors.purple,
-                onTap: () {},
-              ),
-
               SizedBox(height: 25.h),
 
               _buildSectionTitle("عن التطبيق"),

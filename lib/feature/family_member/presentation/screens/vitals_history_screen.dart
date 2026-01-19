@@ -1,180 +1,115 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:health_compass/core/models/vital_model.dart';
 import 'package:health_compass/feature/family_member/data/family_repository.dart';
-// ✅ الحل: إخفاء TextDirection من intl لمنع التعارض مع Flutter
 import 'package:intl/intl.dart' hide TextDirection;
 
-class VitalsHistoryScreen extends StatefulWidget {
-  // ✅ نحتاج معرفة المريض لجلب بياناته
-  final String patientId;
+class VitalsHistoryScreen extends StatelessWidget {
+  final String patientId; // المعرف الخاص بالمريض
 
   const VitalsHistoryScreen({super.key, required this.patientId});
 
   @override
-  State<VitalsHistoryScreen> createState() => _VitalsHistoryScreenState();
-}
-
-class _VitalsHistoryScreenState extends State<VitalsHistoryScreen> {
-  final Color primaryColor = const Color(0xFF41BFAA);
-  String selectedFilter = 'all'; // افتراضياً عرض الكل
-
-  @override
   Widget build(BuildContext context) {
     return Directionality(
-      textDirection: TextDirection.rtl, // الآن سيعمل هذا السطر بدون مشاكل
+      textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: const Color(0xFFF5F7FA),
-        body: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // 1. الشريط العلوي
-            SliverAppBar(
-              backgroundColor: Colors.white,
-              elevation: 0,
-              pinned: true,
-              leading: const BackButton(color: Colors.black),
-              title: Text(
-                "سجل القراءات",
-                style: GoogleFonts.tajawal(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              centerTitle: true,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: const BackButton(color: Colors.black),
+          title: Text(
+            "سجل العلامات الحيوية",
+            style: GoogleFonts.tajawal(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
             ),
+          ),
+          centerTitle: true,
+        ),
+        body: StreamBuilder<List<VitalModel>>(
+          // ✅ 1. جلب البيانات من Repository
+          stream: FamilyRepository().getPatientVitals(patientId),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(color: Color(0xFF41BFAA)),
+              );
+            }
 
-            // 2. فلاتر التصفية
-            SliverToBoxAdapter(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.all(16),
-                child: Row(
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _buildFilterChip("الكل", "all"),
-                    _buildFilterChip("ضغط الدم", "pressure"),
-                    _buildFilterChip("سكري", "sugar"),
-                    _buildFilterChip("نبض القلب", "heart"),
-                    _buildFilterChip("الوزن", "weight"),
+                    Icon(
+                      Icons.monitor_heart_outlined,
+                      size: 60,
+                      color: Colors.grey[300],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      "لا توجد قراءات مسجلة",
+                      style: GoogleFonts.tajawal(
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
+                    ),
                   ],
                 ),
-              ),
-            ),
+              );
+            }
 
-            // 3. ✅✅ قائمة القراءات الحقيقية (FutureBuilder)
-            SliverFillRemaining(
-              child: FutureBuilder<List<VitalModel>>(
-                // عند تغيير الفلتر، سيتم استدعاء الدالة مجدداً
-                future: FamilyRepository().getVitalsHistory(
-                  widget.patientId,
-                  type: selectedFilter,
-                ),
-                builder: (context, snapshot) {
-                  // حالة التحميل
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  // حالة الخطأ
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Text(
-                        "خطأ: ${snapshot.error}",
-                        style: GoogleFonts.tajawal(),
-                      ),
-                    );
-                  }
-                  // حالة القائمة الفارغة
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.history_toggle_off,
-                            size: 50,
-                            color: Colors.grey[300],
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            "لا توجد قراءات مسجلة",
-                            style: GoogleFonts.tajawal(color: Colors.grey[500]),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
+            // ترتيب البيانات من الأحدث للأقدم
+            final vitals = snapshot.data!;
+            // vitals.sort((a, b) => b.date.compareTo(a.date));
 
-                  // عرض البيانات
-                  final vitals = snapshot.data!;
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: vitals.length,
-                    itemBuilder: (context, index) {
-                      return _buildHistoryItem(vitals[index]);
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
+            return ListView.builder(
+              padding: const EdgeInsets.all(20),
+              itemCount: vitals.length,
+              itemBuilder: (context, index) {
+                final vital = vitals[index];
+                return _buildVitalCard(context, vital);
+              },
+            );
+          },
         ),
       ),
     );
   }
 
-  // ودجت الفلتر
-  Widget _buildFilterChip(String label, String value) {
-    bool isSelected = selectedFilter == value;
-    return Padding(
-      padding: const EdgeInsets.only(left: 8),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (bool selected) {
-          if (selected) setState(() => selectedFilter = value);
-        },
-        selectedColor: primaryColor,
-        labelStyle: GoogleFonts.tajawal(
-          color: isSelected ? Colors.white : Colors.black,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        ),
-        backgroundColor: Colors.white,
-      ),
-    );
-  }
-
-  // ✅ ودجت بناء العنصر (باستخدام البيانات الحقيقية)
-  Widget _buildHistoryItem(VitalModel vital) {
-    // تنسيق التاريخ
-    String dateStr = DateFormat(
-      'dd MMM yyyy • hh:mm a',
-      'ar',
-    ).format(vital.date);
-
-    // تحديد الألوان حسب النوع
+  Widget _buildVitalCard(BuildContext context, VitalModel vital) {
+    // تحديد الأيقونة واللون بناءً على نوع القياس
     IconData icon;
     Color color;
+    String title;
 
     switch (vital.type) {
       case 'pressure':
+        title = "ضغط الدم";
         icon = Icons.speed_rounded;
-        color = Colors.indigo;
+        color = Colors.redAccent;
         break;
       case 'sugar':
-        icon = Icons.bloodtype_rounded;
-        color = Colors.pink;
+        title = "السكر";
+        icon = Icons.water_drop_rounded;
+        color = Colors.blueAccent;
         break;
       case 'heart':
+        title = "نبض القلب";
         icon = Icons.favorite_rounded;
-        color = Colors.red;
+        color = Colors.pinkAccent;
         break;
       default:
-        icon = Icons.monitor_weight_rounded;
-        color = Colors.teal;
+        title = "قياس آخر";
+        icon = Icons.health_and_safety;
+        color = Colors.orange;
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -185,36 +120,146 @@ class _VitalsHistoryScreenState extends State<VitalsHistoryScreen> {
       ),
       child: Row(
         children: [
+          // الأيقونة الجانبية
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: color, size: 20),
+            child: Icon(icon, color: color, size: 28),
           ),
           const SizedBox(width: 15),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "${vital.value} ${vital.unit}",
-                style: GoogleFonts.tajawal(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+
+          // تفاصيل القراءة
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.tajawal(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[700],
+                  ),
                 ),
-              ),
-              Text(
-                dateStr, // التاريخ الحقيقي
-                style: GoogleFonts.tajawal(
-                  color: Colors.grey[500],
-                  fontSize: 12,
+                const SizedBox(height: 4),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      vital.value,
+                      style: GoogleFonts.tajawal(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Text(
+                        vital.unit,
+                        style: GoogleFonts.tajawal(
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  // ✅ الآن سيعمل DateFormat بشكل صحيح
+                  DateFormat('yyyy/MM/dd - hh:mm a', 'en').format(vital.date),
+                  style: GoogleFonts.tajawal(
+                    fontSize: 12,
+                    color: Colors.grey[400],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ✅ زر الحذف
+          IconButton(
+            onPressed: () => _confirmDelete(context, vital),
+            icon: const Icon(
+              Icons.delete_outline_rounded,
+              color: Colors.redAccent,
+            ),
           ),
         ],
       ),
     );
+  }
+
+  // ✅ دالة عرض نافذة التأكيد
+  void _confirmDelete(BuildContext context, VitalModel vital) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          "حذف القراءة؟",
+          style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
+          textAlign: TextAlign.right,
+        ),
+        content: Text(
+          "هل أنت متأكد من حذف هذه القراءة (${vital.value} ${vital.unit})؟",
+          style: GoogleFonts.tajawal(),
+          textAlign: TextAlign.right,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              "إلغاء",
+              style: GoogleFonts.tajawal(color: Colors.grey),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _deleteVitalFromFirestore(context, vital.id);
+            },
+            child: Text("حذف", style: GoogleFonts.tajawal(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ دالة الحذف الفعلية من Firebase
+  Future<void> _deleteVitalFromFirestore(
+    BuildContext context,
+    String? docId,
+  ) async {
+    if (docId == null || docId.isEmpty) return;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(patientId) // معرف المريض
+          .collection('vitals') // اسم المجموعة في Firebase
+          .doc(docId) // معرف المستند
+          .delete();
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("تم حذف القراءة بنجاح"),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("فشل الحذف: $e"), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 }

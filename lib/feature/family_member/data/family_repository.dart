@@ -35,7 +35,6 @@ class FamilyRepository {
       final doc = await _firestore.collection('users').doc(user.uid).get();
 
       if (doc.exists && doc.data() != null) {
-        // ✅ تصحيح: التحقق من النوع قبل الإرجاع
         final data = doc.data() as Map<String, dynamic>;
         if (data.containsKey('connectionCode')) {
           return data['connectionCode'] as String?;
@@ -65,7 +64,6 @@ class FamilyRepository {
   Future<Map<String, dynamic>> getPatientProfile(String patientId) async {
     final doc = await _firestore.collection('users').doc(patientId).get();
     if (doc.exists) {
-      // ✅ تصحيح: إضافة as Map<String, dynamic>
       return doc.data() as Map<String, dynamic>;
     } else {
       throw "المريض غير موجود";
@@ -108,16 +106,16 @@ class FamilyRepository {
         .snapshots()
         .map((snapshot) {
           return snapshot.docs.map((doc) {
-            // ✅✅ تصحيح: إضافة as Map<String, dynamic> هنا
+            // ✅ تمرير doc.id ليتمكن المستخدم من الحذف
             return MedicationModel.fromMap(
-              doc.data() as Map<String, dynamic>,
+              doc.data(), // في التحديثات الجديدة Firebase يعيد Map<String, dynamic>
               doc.id,
             );
           }).toList();
         });
   }
 
-  // 7. جلب العلامات الحيوية الأخيرة
+  // 7. جلب العلامات الحيوية الأخيرة (للوحة التحكم)
   Future<List<VitalModel>> getRecentVitals(String patientId) async {
     final snapshot = await _firestore
         .collection('users')
@@ -128,8 +126,8 @@ class FamilyRepository {
         .get();
 
     return snapshot.docs.map((doc) {
-      // ✅✅ تصحيح: إضافة as Map<String, dynamic> هنا
-      return VitalModel.fromMap(doc.data() as Map<String, dynamic>);
+      // ✅ تمرير doc.id
+      return VitalModel.fromMap(doc.data(), doc.id);
     }).toList();
   }
 
@@ -144,29 +142,19 @@ class FamilyRepository {
     }
   }
 
-  // 9. جلب سجل القراءات كاملاً
-  Future<List<VitalModel>> getVitalsHistory(
-    String patientId, {
-    String? type,
-  }) async {
-    try {
-      Query query = _firestore
-          .collection('users')
-          .doc(patientId)
-          .collection('vitals')
-          .orderBy('date', descending: true);
-
-      if (type != null && type != 'all') {
-        query = query.where('type', isEqualTo: type);
-      }
-
-      final snapshot = await query.get();
-      return snapshot.docs.map((doc) {
-        // ✅✅ تصحيح: إضافة as Map<String, dynamic> هنا
-        return VitalModel.fromMap(doc.data() as Map<String, dynamic>);
-      }).toList();
-    } catch (e) {
-      throw "فشل جلب السجل: $e";
-    }
+  // 9. جلب سجل القراءات كاملاً (Stream) - ✅ هذه الدالة التي يستخدمها VitalsHistoryScreen
+  Stream<List<VitalModel>> getPatientVitals(String patientId) {
+    return _firestore
+        .collection('users')
+        .doc(patientId)
+        .collection('vitals')
+        .orderBy('date', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            // ✅ تمرير البيانات + المعرف
+            return VitalModel.fromMap(doc.data(), doc.id);
+          }).toList();
+        });
   }
 }

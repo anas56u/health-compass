@@ -1,19 +1,19 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class bot_MessageModel {
+class ChatMessageModel {
   final String text;
   final bool isBot;
   final DateTime timestamp;
 
-  const bot_MessageModel({
+  const ChatMessageModel({
     required this.text,
     required this.isBot,
     required this.timestamp,
   });
 
   // تحويل البيانات من Firebase إلى الموديل
-  factory bot_MessageModel.fromMap(Map<String, dynamic> map) {
-    return bot_MessageModel(
+  factory ChatMessageModel.fromMap(Map<String, dynamic> map) {
+    return ChatMessageModel(
       text: map['text'] ?? '',
       isBot: map['isBot'] ?? false,
       // تحويل Timestamp الخاص بفايربيس إلى DateTime عادي

@@ -1,13 +1,15 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-// تأكد من استيراد الـ Service الخاص بك
 import 'package:health_compass/core/services/notification_service.dart';
 import 'package:health_compass/core/widgets/custom_button.dart';
 
 class AddEditMedicationScreen extends StatefulWidget {
-  const AddEditMedicationScreen({super.key});
+  final String userId;
+
+  const AddEditMedicationScreen({super.key, required this.userId});
 
   @override
   State<AddEditMedicationScreen> createState() =>
@@ -15,11 +17,12 @@ class AddEditMedicationScreen extends StatefulWidget {
 }
 
 class _AddEditMedicationScreenState extends State<AddEditMedicationScreen> {
-  final Color primaryColor = const Color(0xFF0D9488); // تم توحيد اللون مع الثيم
-
+  final Color primaryColor = const Color(0xFF0D9488);
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _doseController = TextEditingController();
   final TextEditingController _typeController = TextEditingController();
+
+  // قائمة الأوقات المختارة
   List<TimeOfDay> selectedTimes = [const TimeOfDay(hour: 9, minute: 0)];
 
   @override
@@ -46,45 +49,28 @@ class _AddEditMedicationScreenState extends State<AddEditMedicationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildLabel("اسم الدواء"),
+              _buildLabel("بيانات الدواء"),
               _buildTextField(
                 _nameController,
-                "مثال: Panadol",
-                Icons.medication_outlined,
+                "اسم الدواء (مثال: Panadol)",
+                Icons.medication,
               ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel("الجرعة"),
-                        _buildTextField(
-                          _doseController,
-                          "500mg",
-                          Icons.scale_outlined,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel("الشكل"),
-                        _buildTextField(
-                          _typeController,
-                          "أقراص",
-                          Icons.category_outlined,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 15),
+              _buildTextField(
+                _doseController,
+                "الجرعة (مثال: 500mg)",
+                Icons.scale,
               ),
+              const SizedBox(height: 15),
+              _buildTextField(
+                _typeController,
+                "تعليمات (مثال: بعد الأكل)",
+                Icons.info_outline,
+              ),
+
               const SizedBox(height: 25),
+
+              // ✅✅ هذا هو الجزء الذي كان مفقوداً ✅✅
               _buildLabel("مواعيد التذكير"),
               Container(
                 padding: const EdgeInsets.all(16),
@@ -94,11 +80,12 @@ class _AddEditMedicationScreenState extends State<AddEditMedicationScreen> {
                 ),
                 child: Column(
                   children: [
-                    ...selectedTimes
-                        .map((time) => _buildTimeTile(time))
-                        .toList(),
+                    // عرض الأوقات المضافة سابقاً
+                    ...selectedTimes.map((time) => _buildTimeTile(time)),
+
+                    // زر إضافة وقت جديد
                     InkWell(
-                      onTap: _pickTime,
+                      onTap: _pickTime, // استدعاء دالة اختيار الوقت
                       child: Padding(
                         padding: const EdgeInsets.all(10),
                         child: Row(
@@ -124,8 +111,10 @@ class _AddEditMedicationScreenState extends State<AddEditMedicationScreen> {
                   ],
                 ),
               ),
+
+              // ✅✅ نهاية الجزء المفقود ✅✅
               const SizedBox(height: 40),
-              // زر الحفظ
+
               custom_button(
                 buttonText: "حفظ وجدولة التنبيه",
                 width: double.infinity,
@@ -138,73 +127,7 @@ class _AddEditMedicationScreenState extends State<AddEditMedicationScreen> {
     );
   }
 
-  Future<void> _pickTime() async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-    if (picked != null && !selectedTimes.contains(picked)) {
-      setState(() => selectedTimes.add(picked));
-    }
-  }
-
-  Future<void> _saveAndSchedule() async {
-    if (_nameController.text.isEmpty) return;
-
-    try {
-      // ✅ 1. جدولة التنبيهات باستخدام السيرفس
-      int baseId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      for (var time in selectedTimes) {
-        final now = DateTime.now();
-        final scheduledDate = DateTime(
-          now.year,
-          now.month,
-          now.day,
-          time.hour,
-          time.minute,
-        );
-
-        await NotificationService().scheduleAnnoyingReminder(
-          id: baseId,
-          title: "وقت دواء: ${_nameController.text}",
-          body: "الجرعة: ${_doseController.text}",
-          time: scheduledDate,
-          days: [1, 2, 3, 4, 5, 6, 7], // يومياً
-        );
-        baseId += 10;
-      }
-
-      // ✅ 2. حفظ البيانات في Firebase Firestore
-      final User? user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await FirebaseFirestore.instance
-            .collection('users') // أو collection('family_members')...
-            .doc(user.uid)
-            .collection('medications')
-            .add({
-              'name': _nameController.text,
-              'dose': _doseController.text,
-              'type': _typeController.text,
-              'times': selectedTimes
-                  .map((t) => '${t.hour}:${t.minute}')
-                  .toList(),
-              'created_at': FieldValue.serverTimestamp(),
-            });
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("تم الحفظ وتفعيل التنبيهات ✅"),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      print("Error: $e");
-    }
-  }
+  // --- دوال مساعدة للواجهة ---
 
   Widget _buildLabel(String text) => Padding(
     padding: const EdgeInsets.only(bottom: 8),
@@ -213,6 +136,7 @@ class _AddEditMedicationScreenState extends State<AddEditMedicationScreen> {
       style: GoogleFonts.tajawal(
         fontWeight: FontWeight.bold,
         color: Colors.grey[800],
+        fontSize: 16,
       ),
     ),
   );
@@ -228,7 +152,7 @@ class _AddEditMedicationScreenState extends State<AddEditMedicationScreen> {
         hintText: hint,
         filled: true,
         fillColor: const Color(0xFFF5F7FA),
-        prefixIcon: Icon(icon, color: Colors.grey[400]),
+        prefixIcon: Icon(icon, color: primaryColor),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -250,7 +174,7 @@ class _AddEditMedicationScreenState extends State<AddEditMedicationScreen> {
           Icon(Icons.access_time_filled, color: primaryColor),
           const SizedBox(width: 12),
           Text(
-            "${time.hour}:${time.minute.toString().padLeft(2, '0')}",
+            "${time.hour}:${time.minute.toString().padLeft(2, '0')}", // تنسيق الوقت
             style: GoogleFonts.tajawal(
               fontWeight: FontWeight.bold,
               fontSize: 16,
@@ -264,5 +188,94 @@ class _AddEditMedicationScreenState extends State<AddEditMedicationScreen> {
         ],
       ),
     );
+  }
+
+  // --- المنطق ---
+
+  Future<void> _pickTime() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(
+            context,
+          ).copyWith(colorScheme: ColorScheme.light(primary: primaryColor)),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && !selectedTimes.contains(picked)) {
+      setState(() => selectedTimes.add(picked));
+    }
+  }
+
+  Future<void> _saveAndSchedule() async {
+    if (_nameController.text.isEmpty) return;
+
+    try {
+      // 1. جدولة التنبيهات محلياً
+      int baseId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      for (var time in selectedTimes) {
+        final now = DateTime.now();
+        var scheduledDate = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          time.hour,
+          time.minute,
+        );
+        if (scheduledDate.isBefore(now))
+          scheduledDate = scheduledDate.add(const Duration(days: 1));
+
+        await NotificationService().scheduleAnnoyingReminder(
+          id: baseId++,
+          title: "موعد دواء: ${_nameController.text}",
+          body: "الجرعة: ${_doseController.text}",
+          time: scheduledDate,
+          days: [1, 2, 3, 4, 5, 6, 7],
+        );
+      }
+
+      // 2. الحفظ في Firebase (تصحيح الهيكلية: مستند لكل وقت)
+      final batch = FirebaseFirestore.instance.batch();
+      for (var time in selectedTimes) {
+        final docRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.userId)
+            .collection('medications')
+            .doc();
+
+        final String timeStr =
+            "${time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod}:${time.minute.toString().padLeft(2, '0')}";
+        final String periodStr = time.period == DayPeriod.am ? 'ص' : 'م';
+
+        batch.set(docRef, {
+          'medicationName': _nameController.text, // ✅ الاسم الصحيح للمريض
+          'dosage': _doseController.text,
+          'instructions': _typeController.text,
+          'time': timeStr, // ✅ وقت مفرد
+          'period': periodStr, // ✅ فترة مفردة
+          'daysOfWeek': [0, 1, 2, 3, 4, 5, 6],
+          'isActive': true,
+          'createdAt': FieldValue.serverTimestamp(),
+          'notificationId': Random().nextInt(1000000),
+          'added_by_uid': FirebaseAuth.instance.currentUser?.uid,
+        });
+      }
+      await batch.commit();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("✅ تم الحفظ بنجاح"),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      print("Error: $e");
+    }
   }
 }

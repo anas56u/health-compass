@@ -6,7 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:health_compass/core/routes/routes.dart';
 import 'package:health_compass/core/models/vital_model.dart';
-import 'package:health_compass/core/models/medication_model.dart'; // ✅ تأكد من وجود الموديل
+import 'package:health_compass/core/models/medication_model.dart';
 import 'package:health_compass/feature/family_member/data/family_repository.dart';
 import 'package:health_compass/feature/family_member/logic/family_cubit.dart';
 
@@ -179,13 +179,19 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
 
                       // --- قسم الأدوية ---
                       _buildSectionHeader("الأدوية القادمة", () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                MedicationScreen(canEdit: canEdit),
-                          ),
-                        );
+                        // ✅✅ التعديل هنا: التأكد من ID وتمريره للشاشة
+                        if (_currentPatientId != null) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => MedicationScreen(
+                                canEdit: canEdit,
+                                userId:
+                                    _currentPatientId!, // ✅ تمرير الـ ID بنجاح
+                              ),
+                            ),
+                          );
+                        }
                       }),
                       SizedBox(height: 15.h),
 
@@ -241,7 +247,7 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
 
         return Column(
           children: displayList.map((med) {
-            // منطق بسيط للحالة (يمكن تطويره حسب الوقت الفعلي)
+            // منطق بسيط للحالة
             MedicationStatus status = MedicationStatus.pending;
 
             return Padding(
@@ -643,7 +649,6 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
           backgroundColor: bgColor,
           elevation: 0,
           pinned: false,
-          // ✅ هذا السطر يمنع ظهور زر الرجوع التلقائي
           automaticallyImplyLeading: false,
           title: Text(
             "مرحباً بك 👋",
@@ -654,7 +659,6 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
             ),
           ),
           actions: [
-            // زر الوصول للبروفايل
             IconButton(
               icon: const Icon(
                 Icons.person_outline_rounded,
@@ -672,8 +676,6 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
             SizedBox(width: 10.w),
           ],
         ),
-
-        // محتوى الحالة الفارغة
         SliverFillRemaining(
           hasScrollBody: false,
           child: Center(

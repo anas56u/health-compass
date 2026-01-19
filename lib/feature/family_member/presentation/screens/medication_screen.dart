@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:health_compass/core/models/medication_model.dart';
+import 'package:health_compass/feature/family_member/data/family_repository.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // ✅ استيراد Firestore
 import 'add_edit_medication_screen.dart';
 
 class MedicationScreen extends StatelessWidget {
-  final bool canEdit; // للتحكم بظهور زر الإضافة (للمراقب فقط)
+  final bool canEdit;
+  final String userId;
 
-  const MedicationScreen({super.key, this.canEdit = true});
+  const MedicationScreen({
+    super.key,
+    this.canEdit = true,
+    required this.userId,
+  });
 
   final Color primaryColor = const Color(0xFF41BFAA);
 
@@ -15,16 +23,14 @@ class MedicationScreen extends StatelessWidget {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: const Color(0xFFF5F7FA),
-
-        // ✅ 2. الزر العائم (يظهر فقط إذا كان canEdit = true)
         floatingActionButton: canEdit
             ? FloatingActionButton(
                 onPressed: () {
-                  // الانتقال إلى شاشة إضافة دواء جديد
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const AddEditMedicationScreen(),
+                      builder: (context) =>
+                          AddEditMedicationScreen(userId: userId),
                     ),
                   );
                 },
@@ -32,102 +38,69 @@ class MedicationScreen extends StatelessWidget {
                 child: const Icon(Icons.add, color: Colors.white),
               )
             : null,
+        body: StreamBuilder<List<MedicationModel>>(
+          stream: FamilyRepository().getPatientMedications(userId),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(
+                child: CircularProgressIndicator(color: primaryColor),
+              );
+            }
 
-        body: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // --- الشريط العلوي المرن ---
-            SliverAppBar(
-              backgroundColor: Colors.white,
-              elevation: 0,
-              pinned: true, // يثبت الشريط عند التمرير لأسفل
-              leading: const BackButton(color: Colors.black),
-              title: Text(
-                "الأدوية الحالية",
-                style: GoogleFonts.tajawal(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
+            return CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                SliverAppBar(
+                  backgroundColor: Colors.white,
+                  elevation: 0,
+                  pinned: true,
+                  leading: const BackButton(color: Colors.black),
+                  title: Text(
+                    "الأدوية الحالية",
+                    style: GoogleFonts.tajawal(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  centerTitle: true,
                 ),
-              ),
-              centerTitle: true,
-            ),
-
-            // --- قائمة الأدوية ---
-            SliverPadding(
-              padding: const EdgeInsets.all(20),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  // قسم الصباح
-                  _buildSectionHeader("أدوية الصباح"),
-                  _buildMedCard(
-                    "Panadol Extra",
-                    "حبة بعد الفطور",
-                    "09:00 ص",
-                    Icons.wb_sunny_rounded,
-                    Colors.orange,
+                if (!snapshot.hasData || snapshot.data!.isEmpty)
+                  SliverFillRemaining(
+                    child: Center(
+                      child: Text(
+                        "لا توجد أدوية مسجلة حالياً",
+                        style: GoogleFonts.tajawal(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.all(20),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final med = snapshot.data![index];
+                        return _buildMedCard(
+                          context, // ✅ تمرير الـ Context لفتح النافذة
+                          med, // ✅ تمرير كائن الدواء بالكامل
+                        );
+                      }, childCount: snapshot.data!.length),
+                    ),
                   ),
-                  _buildMedCard(
-                    "Vitamin D",
-                    "حبة واحدة",
-                    "10:00 ص",
-                    Icons.wb_sunny_rounded,
-                    Colors.orange,
-                  ),
-
-                  const SizedBox(height: 25),
-
-                  // قسم المساء
-                  _buildSectionHeader("أدوية المساء"),
-                  _buildMedCard(
-                    "Aspirin 81mg",
-                    "حبة قبل النوم",
-                    "10:00 م",
-                    Icons.nights_stay_rounded,
-                    Colors.indigo,
-                  ),
-                  _buildMedCard(
-                    "Atorvastatin",
-                    "حبة واحدة",
-                    "10:30 م",
-                    Icons.nights_stay_rounded,
-                    Colors.indigo,
-                  ),
-
-                  const SizedBox(
-                    height: 80,
-                  ), // مساحة إضافية في الأسفل عشان الزر العائم ما يغطي آخر عنصر
-                ]),
-              ),
-            ),
-          ],
+                const SliverToBoxAdapter(child: SizedBox(height: 80)),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-  // --- Widgets مساعدة للتصميم ---
+  // --- Widgets والدوال المساعدة ---
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Text(
-        title,
-        style: GoogleFonts.tajawal(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Colors.grey[700],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMedCard(
-    String name,
-    String instruction,
-    String time,
-    IconData icon,
-    Color iconColor,
-  ) {
+  Widget _buildMedCard(BuildContext context, MedicationModel med) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -143,10 +116,14 @@ class MedicationScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: primaryColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: iconColor, size: 24),
+            child: Icon(
+              Icons.medication_rounded,
+              color: primaryColor,
+              size: 24,
+            ),
           ),
           const SizedBox(width: 15),
           Expanded(
@@ -154,7 +131,7 @@ class MedicationScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name,
+                  med.name,
                   style: GoogleFonts.tajawal(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -162,7 +139,7 @@ class MedicationScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "$instruction • $time",
+                  "${med.dose} • ${med.times.isNotEmpty ? med.times.first : '--:--'}",
                   style: GoogleFonts.tajawal(
                     fontSize: 12,
                     color: Colors.grey[500],
@@ -171,16 +148,95 @@ class MedicationScreen extends StatelessWidget {
               ],
             ),
           ),
-          // زر تعديل (يظهر فقط إذا كان مسموح التعديل)
-          if (canEdit)
+
+          // ✅ أزرار التحكم (تظهر فقط للمراقب)
+          if (canEdit) ...[
+            // زر التعديل
             IconButton(
               icon: Icon(Icons.edit_rounded, color: Colors.grey[400]),
               onPressed: () {
-                // TODO: يمكن إضافة الانتقال لصفحة التعديل هنا مستقبلاً
+                // TODO: الانتقال لصفحة التعديل
               },
             ),
+            // ✅ زر الحذف
+            IconButton(
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                color: Colors.redAccent,
+              ),
+              onPressed: () => _confirmDelete(context, med),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  // ✅ دالة عرض نافذة تأكيد الحذف
+  void _confirmDelete(BuildContext context, MedicationModel med) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          "حذف الدواء؟",
+          style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
+          textAlign: TextAlign.right,
+        ),
+        content: Text(
+          "هل أنت متأكد من حذف '${med.name}'؟ لا يمكن التراجع عن هذا الإجراء.",
+          style: GoogleFonts.tajawal(),
+          textAlign: TextAlign.right,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              "إلغاء",
+              style: GoogleFonts.tajawal(color: Colors.grey),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _deleteMedicationFromFirestore(context, med.id); // استدعاء الحذف
+            },
+            child: Text("حذف", style: GoogleFonts.tajawal(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ دالة الحذف من Firebase
+  Future<void> _deleteMedicationFromFirestore(
+    BuildContext context,
+    String? docId,
+  ) async {
+    if (docId == null || docId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("خطأ: لا يمكن العثور على معرف الدواء")),
+      );
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('medications')
+          .doc(docId)
+          .delete();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("تم حذف الدواء بنجاح"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("فشل الحذف: $e"), backgroundColor: Colors.red),
+      );
+    }
   }
 }
