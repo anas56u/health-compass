@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:audioplayers/audioplayers.dart'; // 1. استيراد المكتبة
+import 'package:audioplayers/audioplayers.dart';
 
 class EmergencyScreen extends StatefulWidget {
   final String message;
@@ -24,7 +24,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
   late AnimationController _controller;
   late Animation<double> _animation;
   
-  // 2. تعريف مشغل الصوت
+  // تعريف مشغل الصوت
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
@@ -41,22 +41,22 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
 
-    // 3. بدء تشغيل الصوت عند تهيئة الشاشة
+    // بدء تشغيل الصوت بطريقة آمنة
     _playAlarmSound();
   }
 
-  // دالة منفصلة لتنظيم كود الصوت
+  // --- [التعديل الجوهري 1]: حماية التطبيق من الانهيار ---
   Future<void> _playAlarmSound() async {
     try {
-      // تحديد مصدر الصوت (تأكد أن الاسم يطابق ملفك)
-      // في الإصدارات الحديثة من audioplayers، نستخدم AssetSource
-      await _audioPlayer.setSource(AssetSource('sounds/alarm.mp3'));
-      
-      // جعل الصوت يتكرر (Loop)
+      // إعداد التكرار أولاً
       await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+
+      // التحقق: هل خرج المستخدم من الشاشة أثناء إعداد الصوت؟
+      if (!mounted) return; 
+
+      // تشغيل الصوت (استخدام play يختصر setSource + resume)
+      await _audioPlayer.play(AssetSource('sounds/alarm.mp3'));
       
-      // بدء التشغيل
-      await _audioPlayer.resume();
     } catch (e) {
       debugPrint("Error playing sound: $e");
     }
@@ -64,22 +64,29 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
 
   @override
   void dispose() {
-    // 4. أفضل الممارسات: تنظيف الموارد
-    // يجب إيقاف الصوت والتخلص من المشغل عند الخروج من الشاشة
+    // --- [التعديل الجوهري 2]: ترتيب تنظيف الموارد ---
+    // إيقاف الصوت فوراً قبل حذف المشغل
     _audioPlayer.stop();
     _audioPlayer.dispose();
-    
     _controller.dispose();
     super.dispose();
   }
 
   Future<void> _makePhoneCall(String phoneNumber) async {
-    // اختياري: هل تريد إيقاف الصوت عند بدء المكالمة؟
-    // await _audioPlayer.stop(); 
-    
     final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
+    
+    // التحقق من إمكانية الاتصال قبل محاولة فتحه
     if (await canLaunchUrl(launchUri)) {
+      // إيقاف الصوت للسماح للمستخدم بالتحدث
+      await _audioPlayer.stop(); 
       await launchUrl(launchUri);
+    } else {
+      // إظهار رسالة خطأ للمستخدم في حال الفشل
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("تعذر إجراء الاتصال، يرجى المحاولة يدوياً")),
+        );
+      }
     }
   }
 
@@ -105,7 +112,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // ... (بقية الكود كما هو في الجزء العلوي والوسط) ...
+                // الجزء العلوي: أيقونة التحذير والنص
                 Column(
                   children: [
                     const SizedBox(height: 40),
@@ -144,6 +151,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                   ],
                 ),
 
+                // الجزء الأوسط: بطاقة القيمة
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
@@ -218,11 +226,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                           ],
                         ),
                         child: ElevatedButton(
-                          // عند الاتصال بالطوارئ، يفضل إيقاف الصوت لكي يسمع المستخدم المكالمة
-                          onPressed: () async {
-                            await _audioPlayer.stop(); // إيقاف الصوت قبل الاتصال
-                            _makePhoneCall('911');
-                          },
+                          onPressed: () => _makePhoneCall('911'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red.shade600,
                             foregroundColor: Colors.white,
@@ -251,10 +255,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                             label: "العائلة",
                             color: Colors.blue.shade700,
                             onTap: widget.familyPhoneNumber != null 
-                              ? () async {
-                                  await _audioPlayer.stop(); // إيقاف الصوت
-                                  _makePhoneCall(widget.familyPhoneNumber!);
-                                }
+                              ? () => _makePhoneCall(widget.familyPhoneNumber!)
                               : () {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(content: Text("لا يوجد رقم عائلة مسجل")),
@@ -269,10 +270,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                             label: "طبيبي",
                             color: Colors.green.shade700,
                             onTap: widget.doctorPhoneNumber != null 
-                              ? () async {
-                                  await _audioPlayer.stop(); // إيقاف الصوت
-                                  _makePhoneCall(widget.doctorPhoneNumber!);
-                                }
+                              ? () => _makePhoneCall(widget.doctorPhoneNumber!)
                               : () {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(content: Text("لا يوجد طبيب مرتبط")),
@@ -286,8 +284,8 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
 
                     TextButton(
                       onPressed: () {
-                        // عند الضغط على "أنا بخير" يتم الخروج
-                        // دالة dispose ستتكفل بإيقاف الصوت تلقائياً
+                        // عند الضغط على إلغاء، نخرج من الشاشة
+                        // دالة dispose تتكفل بالتنظيف
                         Navigator.pop(context);
                       },
                       style: TextButton.styleFrom(
