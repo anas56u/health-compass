@@ -7,6 +7,7 @@ import 'package:health_compass/core/widgets/EmergencyScreen.dart'; //
 import 'package:health_compass/core/widgets/WeeklyChallenge.dart';
 import 'package:health_compass/core/widgets/bottom_nav_bar.dart';
 import 'package:health_compass/core/widgets/daily_tasks.dart';
+import 'package:health_compass/core/widgets/fasting_card.dart';
 import 'package:health_compass/core/widgets/header_patientview.dart';
 import 'package:health_compass/feature/achievements/preesntation/cubits/hometask_cubit.dart';
 import 'package:health_compass/feature/achievements/preesntation/cubits/hometask_state.dart';
@@ -65,12 +66,13 @@ class _Patientview_bodyState extends State<Patientview_body> {
       // ✅ 2. تحويل الـ listener إلى async لنتمكن من انتظار جلب البيانات
       listener: (context, state) async {
         if (state is HealthCritical) {
+          final userState = context.read<UserCubit>().state;
+    
           // متغيرات لتخزين الأرقام
           String? fetchedDoctorPhone;
           String? fetchedFamilyPhone;
 
           // أ. الحصول على بيانات المستخدم الحالي من UserCubit
-          final userState = context.read<UserCubit>().state;
 
           if (userState is UserLoaded && userState.userModel is PatientModel) {
             // ب. إذا كان المستخدم مريضاً ومحملاً، نقوم بجلب الأرقام
@@ -137,6 +139,7 @@ class HomeContent extends StatelessWidget {
           children: [
             header_patientview(),
             const SizedBox(height: 20),
+            const FastingCard(),
             BlocBuilder<HometaskCubit, HometaskState>(
               builder: (context, state) {
                 if (state is HomeLoading) {

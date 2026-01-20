@@ -23,6 +23,9 @@ import 'package:health_compass/feature/family_member/logic/family_cubit.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:health_compass/core/widgets/EmergencyScreen.dart';
 import 'package:health_compass/feature/auth/presentation/screen/splash_screen.dart';
+import 'package:permission_handler/permission_handler.dart';
+// 👇 1. إضافة استيراد SharedPreferences
+import 'package:shared_preferences/shared_preferences.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -40,9 +43,16 @@ void main() async {
 
   final notificationService = NotificationService();
   await notificationService.init();
+<<<<<<< HEAD
+=======
+
+>>>>>>> 642d2154ffd9e553368e4187ecd29d338dfd575a
   final NotificationAppLaunchDetails? notificationAppLaunchDetails =
       await notificationService.flutterLocalNotificationsPlugin
           .getNotificationAppLaunchDetails();
+
+  // طلب الإذن الضروري للفتح من الخلفية
+  await _requestSystemAlertWindowPermission();
 
   try {
     debugPrint("Attemping to start background service...");
@@ -57,13 +67,25 @@ void main() async {
     MyApp(
       reminderBox: reminderBox,
       notificationService: notificationService,
+<<<<<<< HEAD
       // تمرير التفاصيل للتطبيق
       launchDetails: notificationAppLaunchDetails,
+=======
+      launchDetails: notificationAppLaunchDetails, 
+>>>>>>> 642d2154ffd9e553368e4187ecd29d338dfd575a
     ),
   );
 }
 
-// حولنا MyApp إلى StatefulWidget لمراقبة الحالة (اختياري ولكنه أفضل)
+Future<void> _requestSystemAlertWindowPermission() async {
+  if (!await Permission.systemAlertWindow.isGranted) {
+    debugPrint("⚠️ System Alert Window permission not granted. Requesting...");
+    await Permission.systemAlertWindow.request();
+  } else {
+    debugPrint("✅ System Alert Window permission is granted.");
+  }
+}
+
 class MyApp extends StatefulWidget {
   final Box<ReminderModel> reminderBox;
   final NotificationService notificationService;
@@ -80,13 +102,68 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+// 👇 2. إضافة WidgetsBindingObserver لمراقبة حالة التطبيق
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  
+  // متغيرات لتخزين حالة الطوارئ
+  bool _isEmergencyFromBackground = false;
+  double _emergencyValue = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    // تسجيل المراقب
+    WidgetsBinding.instance.addObserver(this);
+    // فحص فوري عند فتح التطبيق
+    _checkEmergencyState();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // هذه الدالة تعمل عندما يعود التطبيق للعمل (Resume)
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkEmergencyState();
+    }
+  }
+
+  // 👇 3. دالة قراءة الذاكرة (SharedPreferences)
+  Future<void> _checkEmergencyState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      // قراءة العلامة التي وضعتها Background Service
+      bool isEmergency = prefs.getBool('is_emergency_active') ?? false;
+      
+      if (isEmergency) {
+        double val = prefs.getDouble('emergency_value') ?? 0.0;
+        
+        debugPrint("🚨 FOUND EMERGENCY FLAG IN MEMORY: $val");
+
+        // تنظيف العلامة حتى لا تظهر للأبد
+        await prefs.setBool('is_emergency_active', false);
+
+        setState(() {
+          _isEmergencyFromBackground = true;
+          _emergencyValue = val;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error checking emergency state: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authRepository = AuthRepositoryImpl(
       remoteDataSource: AuthRemoteDataSourceImpl(),
     );
     final familyRepository = FamilyRepository();
+    final userCubit = UserCubit(authRepository: authRepository)..getUserData();
 
     return ScreenUtilInit(
       designSize: const Size(375, 812),
@@ -101,7 +178,7 @@ class _MyAppState extends State<MyApp> {
                 widget.notificationService,
               ),
             ),
-            BlocProvider(create: (context) => HealthCubit()),
+            BlocProvider(create: (context) => HealthCubit(userCubit)),
             BlocProvider(
               create: (context) =>
                   UserCubit(authRepository: authRepository)..getUserData(),
@@ -119,9 +196,14 @@ class _MyAppState extends State<MyApp> {
               primaryColor: const Color(0xFF41BFAA),
               scaffoldBackgroundColor: const Color(0xFFF5F7FA),
             ),
+<<<<<<< HEAD
 
             // 🔥 التعديل الجوهري هنا 🔥
             // حذفنا initialRoute واستخدمنا home مع دالة الفحص
+=======
+            
+            // 👇 4. استخدام الدالة المعدلة التي تفحص الذاكرة والإشعارات معاً
+>>>>>>> 642d2154ffd9e553368e4187ecd29d338dfd575a
             home: _determineHomeScreen(),
 
             onGenerateRoute: AppRouter().generateRoute,
@@ -131,21 +213,30 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  // هذه الدالة تقرر أي شاشة تظهر أولاً
   Widget _determineHomeScreen() {
-    // هل تم فتح التطبيق بسبب إشعار طوارئ؟
+    // الأولوية 1: الفتح الإجباري من الخلفية (عن طريق SharedPrefs)
+    if (_isEmergencyFromBackground) {
+      return EmergencyScreen(
+        message: "تنبيه: تم رصد مؤشر حيوي خطير أثناء العمل في الخلفية!",
+        value: _emergencyValue,
+      );
+    }
+
+    // الأولوية 2: الفتح عن طريق الضغط على الإشعار
     if (widget.launchDetails?.didNotificationLaunchApp ?? false) {
       final payload = widget.launchDetails?.notificationResponse?.payload;
       if (payload != null && payload.contains('emergency')) {
+<<<<<<< HEAD
         debugPrint("🚨 Emergency Launch Detected! Opening Emergency Screen...");
 
         // استخراج القيمة
+=======
+>>>>>>> 642d2154ffd9e553368e4187ecd29d338dfd575a
         final parts = payload.split('_');
         double value = 0.0;
         if (parts.length > 1) {
           value = double.tryParse(parts[1]) ?? 0.0;
         }
-
         return EmergencyScreen(
           message: "تنبيه: تم رصد مؤشر حيوي خطير!",
           value: value,

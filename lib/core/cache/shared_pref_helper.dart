@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SharedPrefHelper {
   // private constructor as I don't want to allow creating an instance of this class itself.
   SharedPrefHelper._();
+  static final ValueNotifier<bool> fastingUpdateNotifier = ValueNotifier(false);
 
   // استخدام إعدادات موحدة لـ FlutterSecureStorage في كل مكان
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage(
@@ -208,5 +209,41 @@ class SharedPrefHelper {
     await removeSecuredString(_userEmailKey);
     await removeSecuredString(_userIdKey);
     debugPrint('SharedPrefHelper : Login data cleared');
+  }
+
+  // ==================== Fasting Feature Keys ====================
+  static const String _fastingStartHour = 'fasting_start_hour';
+  static const String _fastingStartMinute = 'fasting_start_minute';
+  static const String _fastingDuration = 'fasting_duration';
+
+  /// دالة لحفظ بيانات الصيام دفعة واحدة
+  static Future<void> saveFastingData(TimeOfDay startTime, int duration) async {
+    await setData(_fastingStartHour, startTime.hour);
+    await setData(_fastingStartMinute, startTime.minute);
+    await setData(_fastingDuration, duration);
+    fastingUpdateNotifier.value = !fastingUpdateNotifier.value;
+    debugPrint('SharedPrefHelper : Fasting data saved');
+  }
+
+  /// دالة لاسترجاع وقت البدء (تعيد null إذا لم يتم الحفظ مسبقاً)
+  static Future<TimeOfDay?> getFastingStartTime() async {
+    int hour = await getInt(_fastingStartHour); // إذا لم يوجد سيعيد 0
+    int minute = await getInt(_fastingStartMinute);
+    
+    // لنتأكد هل تم الحفظ فعلاً أم أنها القيم الافتراضية؟ 
+    // (هنا سنفترض ببساطة أنه سيعيد الوقت، ولتجاوز التعقيد سنعتمد على القيم الموجودة)
+    // ملاحظة: SharedPreferences تعيد 0 كقيمة افتراضية للـ int
+    
+    // للتأكد 100% يفضل فحص إذا كان المفتاح موجوداً، لكن للتبسيط:
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (!prefs.containsKey(_fastingStartHour)) return null;
+    
+    return TimeOfDay(hour: hour, minute: minute);
+  }
+
+  /// دالة لاسترجاع مدة الصيام
+  static Future<int> getFastingDuration() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_fastingDuration) ?? 8; // القيمة الافتراضية 8 ساعات
   }
 }

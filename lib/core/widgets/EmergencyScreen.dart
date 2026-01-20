@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:health_compass/core/routes/routes.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:audioplayers/audioplayers.dart';
 
@@ -286,8 +287,11 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                       onPressed: () {
                         // عند الضغط على إلغاء، نخرج من الشاشة
                         // دالة dispose تتكفل بالتنظيف
-                        Navigator.pop(context);
-                      },
+// هذا يضمن عدم ظهور شاشة سوداء
+                        Navigator.of(context).pushNamedAndRemoveUntil(
+                          AppRoutes.patientHome, // تأكد أن هذا الاسم مطابق لما في AppRoutes
+                          (route) => false, // يحذف كل الصفحات السابقة (بما فيها الطوارئ)
+                        );                      },
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),

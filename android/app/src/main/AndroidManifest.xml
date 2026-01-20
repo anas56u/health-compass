@@ -45,7 +45,11 @@
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize"
             android:showWhenLocked="true"
+<<<<<<< HEAD
             android:turnScreenOn="true">
+=======
+            android:turnScreenOn="true"> 
+>>>>>>> 642d2154ffd9e553368e4187ecd29d338dfd575a
             
             <meta-data
               android:name="io.flutter.embedding.android.NormalTheme"
