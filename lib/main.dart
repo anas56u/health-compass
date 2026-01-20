@@ -43,10 +43,6 @@ void main() async {
 
   final notificationService = NotificationService();
   await notificationService.init();
-<<<<<<< HEAD
-=======
-
->>>>>>> 642d2154ffd9e553368e4187ecd29d338dfd575a
   final NotificationAppLaunchDetails? notificationAppLaunchDetails =
       await notificationService.flutterLocalNotificationsPlugin
           .getNotificationAppLaunchDetails();
@@ -67,12 +63,7 @@ void main() async {
     MyApp(
       reminderBox: reminderBox,
       notificationService: notificationService,
-<<<<<<< HEAD
-      // تمرير التفاصيل للتطبيق
       launchDetails: notificationAppLaunchDetails,
-=======
-      launchDetails: notificationAppLaunchDetails, 
->>>>>>> 642d2154ffd9e553368e4187ecd29d338dfd575a
     ),
   );
 }
@@ -104,7 +95,6 @@ class MyApp extends StatefulWidget {
 
 // 👇 2. إضافة WidgetsBindingObserver لمراقبة حالة التطبيق
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
-  
   // متغيرات لتخزين حالة الطوارئ
   bool _isEmergencyFromBackground = false;
   double _emergencyValue = 0.0;
@@ -138,10 +128,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       final prefs = await SharedPreferences.getInstance();
       // قراءة العلامة التي وضعتها Background Service
       bool isEmergency = prefs.getBool('is_emergency_active') ?? false;
-      
+
       if (isEmergency) {
         double val = prefs.getDouble('emergency_value') ?? 0.0;
-        
+
         debugPrint("🚨 FOUND EMERGENCY FLAG IN MEMORY: $val");
 
         // تنظيف العلامة حتى لا تظهر للأبد
@@ -196,14 +186,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               primaryColor: const Color(0xFF41BFAA),
               scaffoldBackgroundColor: const Color(0xFFF5F7FA),
             ),
-<<<<<<< HEAD
 
-            // 🔥 التعديل الجوهري هنا 🔥
-            // حذفنا initialRoute واستخدمنا home مع دالة الفحص
-=======
-            
             // 👇 4. استخدام الدالة المعدلة التي تفحص الذاكرة والإشعارات معاً
->>>>>>> 642d2154ffd9e553368e4187ecd29d338dfd575a
             home: _determineHomeScreen(),
 
             onGenerateRoute: AppRouter().generateRoute,
@@ -226,12 +210,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (widget.launchDetails?.didNotificationLaunchApp ?? false) {
       final payload = widget.launchDetails?.notificationResponse?.payload;
       if (payload != null && payload.contains('emergency')) {
-<<<<<<< HEAD
         debugPrint("🚨 Emergency Launch Detected! Opening Emergency Screen...");
 
         // استخراج القيمة
-=======
->>>>>>> 642d2154ffd9e553368e4187ecd29d338dfd575a
         final parts = payload.split('_');
         double value = 0.0;
         if (parts.length > 1) {

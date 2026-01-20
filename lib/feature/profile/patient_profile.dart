@@ -94,7 +94,6 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
       ),
     );
   }
-  
 
   ThemeData _buildPageTheme() {
     return ThemeData(
@@ -135,7 +134,6 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
       ),
     );
   }
-  
 
   Widget _buildHeader() {
     return SafeArea(
@@ -290,17 +288,8 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
       {
         'text': 'اضافة او تعديل اوقات الصيام',
         'action': () {
-<<<<<<< HEAD
           print('تعديل أوقات الصيام');
         },
-=======
-        _showFastingBottomSheet(context);
-        }
-      },
-      {
-        'text': 'تسجيل الخروج',
-        'action': _onLogoutPressed,
->>>>>>> 642d2154ffd9e553368e4187ecd29d338dfd575a
       },
       {'text': 'تسجيل الخروج', 'action': _onLogoutPressed},
     ];
@@ -399,9 +388,7 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
       );
     }
   }
-<<<<<<< HEAD
-}
-=======
+
   // دالة لإظهار نافذة إعدادات الصيام
   void _showFastingBottomSheet(BuildContext context) async {
     // تحميل البيانات المحفوظة
@@ -423,7 +410,6 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
       builder: (BuildContext bottomSheetContext) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            
             final endTime = _calculateEndTime(selectedTime, selectedDuration);
 
             return Padding(
@@ -451,7 +437,7 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       // ✅ التصحيح هنا: حذفنا PatientProfilePage.
-                      color: primaryTurquoise, 
+                      color: primaryTurquoise,
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -491,38 +477,49 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.watch_later_outlined, color: Colors.orange),
+                              const Icon(
+                                Icons.watch_later_outlined,
+                                color: Colors.orange,
+                              ),
                               const SizedBox(width: 10),
-                              Text('بدأت الصيام الساعة:', style: GoogleFonts.tajawal()),
+                              Text(
+                                'بدأت الصيام الساعة:',
+                                style: GoogleFonts.tajawal(),
+                              ),
                             ],
                           ),
                           Text(
                             selectedTime.format(context),
                             style: GoogleFonts.tajawal(
-                              fontWeight: FontWeight.bold, 
+                              fontWeight: FontWeight.bold,
                               fontSize: 16,
                               // ✅ وهنا
-                              color: primaryTurquoise
+                              color: primaryTurquoise,
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 25),
 
                   // --- القسم الثاني: المدة ---
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('مدة الصيام:', style: GoogleFonts.tajawal(fontWeight: FontWeight.bold)),
-                      Text('$selectedDuration ساعات', 
+                      Text(
+                        'مدة الصيام:',
+                        style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        '$selectedDuration ساعات',
                         style: GoogleFonts.tajawal(
-                            // ✅ وهنا
-                            color: primaryTurquoise, 
-                            fontWeight: FontWeight.bold
-                        )),
+                          // ✅ وهنا
+                          color: primaryTurquoise,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                   Slider(
@@ -549,13 +546,18 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
                     decoration: BoxDecoration(
                       color: const Color(0xFFECFDF5),
                       borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                      border: Border.all(
+                        color: const Color(0xFF10B981).withOpacity(0.3),
+                      ),
                     ),
                     child: Column(
                       children: [
                         Text(
                           'سينتهي صيامك عند الساعة',
-                          style: GoogleFonts.tajawal(color: Colors.black54, fontSize: 12),
+                          style: GoogleFonts.tajawal(
+                            color: Colors.black54,
+                            fontSize: 12,
+                          ),
                         ),
                         const SizedBox(height: 5),
                         Text(
@@ -586,14 +588,20 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
                         elevation: 0,
                       ),
                       onPressed: () async {
-                        await SharedPrefHelper.saveFastingData(selectedTime, selectedDuration);
-                        
+                        await SharedPrefHelper.saveFastingData(
+                          selectedTime,
+                          selectedDuration,
+                        );
+
                         if (!mounted) return;
                         Navigator.pop(context);
-                        
+
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('تم حفظ وقت الصيام بنجاح', style: GoogleFonts.tajawal()),
+                            content: Text(
+                              'تم حفظ وقت الصيام بنجاح',
+                              style: GoogleFonts.tajawal(),
+                            ),
                             backgroundColor: Colors.green,
                             behavior: SnackBarBehavior.floating,
                           ),
@@ -602,9 +610,9 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
                       child: Text(
                         'حفظ التذكير',
                         style: GoogleFonts.tajawal(
-                          fontSize: 16, 
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white
+                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -617,20 +625,13 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
       },
     );
   }
+
   TimeOfDay _calculateEndTime(TimeOfDay start, int durationHours) {
     int totalMinutes = (start.hour * 60) + start.minute + (durationHours * 60);
-    
+
     // التعامل مع تجاوز منتصف الليل (24 ساعة)
     int finalMinutes = totalMinutes % (24 * 60);
-    
-    return TimeOfDay(
-      hour: finalMinutes ~/ 60,
-      minute: finalMinutes % 60,
-    );
+
+    return TimeOfDay(hour: finalMinutes ~/ 60, minute: finalMinutes % 60);
   }
-
-  
-
- 
 }
->>>>>>> 642d2154ffd9e553368e4187ecd29d338dfd575a
