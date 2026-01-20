@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:health_compass/core/models/vital_model.dart';
 import 'package:health_compass/feature/family_member/data/family_repository.dart';
 import 'package:health_compass/feature/family_member/logic/family_cubit.dart';
+import 'package:health_compass/feature/family_member/logic/family_state.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 
 class VitalsHistoryScreen extends StatelessWidget {

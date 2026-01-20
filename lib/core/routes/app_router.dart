@@ -109,15 +109,13 @@ class AppRouter {
       case AppRoutes.reamindersPage:
         return MaterialPageRoute(builder: (_) => const RemindersPage());
 
-      
-
       case AppRoutes.healthDashboard:
         return MaterialPageRoute(builder: (_) => const HealthDashboardScreen());
 
       case AppRoutes.chatBot:
         return MaterialPageRoute(builder: (_) => const ChatBotScreen());
 
-        case AppRoutes.my_doctors:
+      case AppRoutes.my_doctors:
         return MaterialPageRoute(builder: (_) => const MyDoctorsScreen());
 
       case AppRoutes.familyHome:

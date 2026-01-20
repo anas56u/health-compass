@@ -8,7 +8,8 @@ import 'package:health_compass/feature/auth/data/model/PatientModel.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/user_cubit.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/user_state.dart';
 import 'package:health_compass/core/widgets/add_vitals_sheet.dart';
-import 'package:health_compass/feature/family_member/logic/family_cubit.dart'; // تأكد من استيراد الكيوبيت
+import 'package:health_compass/feature/family_member/logic/family_cubit.dart';
+import 'package:health_compass/feature/family_member/logic/family_state.dart'; // تأكد من استيراد الكيوبيت
 
 class PatientProfilePage extends StatefulWidget {
   const PatientProfilePage({super.key});

@@ -31,12 +31,15 @@ class LoginCubit extends Cubit<LoginState> {
       String permission = 'interactive';
       final token = await FirebaseMessaging.instance.getToken();
 
-if (user != null && token != null) {
-  // تحديث وثيقة المستخدم لإضافة التوكن
-  await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-    'fcmToken': token, // نخزن التوكن هنا
-  });
-}
+      if (user != null && token != null) {
+        // تحديث وثيقة المستخدم لإضافة التوكن
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({
+              'fcmToken': token, // نخزن التوكن هنا
+            });
+      }
 
       if (user != null) {
         try {

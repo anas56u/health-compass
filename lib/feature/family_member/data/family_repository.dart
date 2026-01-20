@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart'; // ✅ ضروري لعمل دالة DateFormat ومنع التكرار
+import 'package:intl/intl.dart';
 import 'package:health_compass/core/models/medication_model.dart';
 import 'package:health_compass/core/models/vital_model.dart';
 import 'package:health_compass/feature/auth/data/model/family_member_model.dart';
@@ -84,7 +84,6 @@ class FamilyRepository {
   }
 
   // --- 2. جلب البيانات (Queries) ---
-
   Future<List<Map<String, dynamic>>> getLinkedPatientsProfiles(
     String familyUid,
   ) async {
@@ -93,18 +92,25 @@ class FamilyRepository {
 
     if (linkedIds.isEmpty) return [];
 
-    final futures = linkedIds.map((id) async {
-      final doc = await _firestore.collection('users').doc(id).get();
-      if (doc.exists && doc.data() != null) {
-        final data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id;
-        return data;
-      }
-      return null;
-    });
+    // جلب جميع الوثائق بالتوازي لتحسين الأداء
+    final futures = linkedIds.map(
+      (id) => _firestore.collection('users').doc(id).get(),
+    );
+    final docs = await Future.wait(futures);
 
-    final results = await Future.wait(futures);
-    return results.whereType<Map<String, dynamic>>().toList();
+    return docs.where((doc) => doc.exists).map((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      return {
+        'id': doc.id,
+        'name':
+            data['full_name'] ??
+            data['fullName'] ??
+            data['name'] ??
+            "مريض غير معروف",
+        'email': data['email'] ?? "",
+        'profileImage': data['profileImage'] ?? "",
+      };
+    }).toList();
   }
 
   Future<FamilyMemberModel> getMyProfile() async {
@@ -152,7 +158,7 @@ class FamilyRepository {
         .collection('users')
         .doc(patientId)
         .collection('health_readings')
-        .orderBy('date', descending: true) // ✅ إضافة ترتيب للقائمة التاريخية
+        .orderBy('date', descending: true)
         .snapshots()
         .map((snapshot) {
           return snapshot.docs.map((doc) {
@@ -163,15 +169,12 @@ class FamilyRepository {
 
   // --- 3. عمليات التعديل (Commands) ---
 
-  // ✅ الدالة المحسنة لإضافة القراءات الحيوية ومنع التكرار اللحظي
   Future<void> addVitalRecord({
     required String patientId,
     double? sugar,
     String? pressure,
   }) async {
     final batch = _firestore.batch();
-
-    // استخدام الدقيقة كمعرف فريد لمنع تكرار القراءة في نفس الدقيقة
     final String timeKey = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
 
     final vitalsRef = _firestore
@@ -179,7 +182,6 @@ class FamilyRepository {
         .doc(patientId)
         .collection('health_readings');
 
-    // 1. إضافة قراءة السكر (إذا وُجدت) بمعرف فريد يعتمد على الدقيقة
     if (sugar != null) {
       final sugarDoc = vitalsRef.doc('sugar_$timeKey');
       batch.set(sugarDoc, {
@@ -190,7 +192,6 @@ class FamilyRepository {
       });
     }
 
-    // 2. إضافة قراءة الضغط (إذا وُجدت) بمعرف فريد يعتمد على الدقيقة
     if (pressure != null && pressure.isNotEmpty) {
       final pressureDoc = vitalsRef.doc('pressure_$timeKey');
       batch.set(pressureDoc, {
@@ -244,10 +245,10 @@ class FamilyRepository {
         .collection('medications');
 
     for (var medData in medicationsList) {
-      final docRef = medRef.doc(); // إنشاء معرف جديد لكل موعد
+      final docRef = medRef.doc();
       batch.set(docRef, medData);
     }
 
-    await batch.commit(); // تنفيذ الكل في طلب واحد
+    await batch.commit();
   }
 }

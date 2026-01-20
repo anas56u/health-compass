@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:health_compass/feature/family_member/logic/family_cubit.dart';
+import 'package:health_compass/feature/family_member/logic/family_state.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class LinkPatientScreen extends StatefulWidget {

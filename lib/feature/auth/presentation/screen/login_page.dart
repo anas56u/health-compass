@@ -69,13 +69,10 @@ class _LoginViewState extends State<LoginView> {
           // ✅ التوجيه حسب نوع المستخدم
           Future.delayed(const Duration(milliseconds: 500), () {
             if (state.userType == 'family_member') {
-              // توجيه فرد العائلة للشاشة الحقيقية
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const FamilyMemberHomeScreen(
-                    userPermission: 'interactive', // تفعيل وضع التعديل
-                  ),
+                  builder: (context) => const FamilyMemberHomeScreen(),
                 ),
               );
             } else if (state.userType == 'doctor') {
@@ -204,14 +201,16 @@ class _LoginViewState extends State<LoginView> {
                                   });
                                 },
                                 icon: Icon(
-                                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                                  _isPasswordVisible
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
                                   color: const Color(0xFF41BFAA),
                                   size: 20,
                                 ),
                               ),
                             ),
                             const SizedBox(height: 20),
-                           
+
                             const SizedBox(height: 20),
                             BlocBuilder<LoginCubit, LoginState>(
                               builder: (context, state) {
@@ -238,22 +237,22 @@ class _LoginViewState extends State<LoginView> {
                               },
                             ),
                             const SizedBox(height: 20),
-                           TextButton(
-                                  onPressed: () {
-                                    Navigator.pushNamed(
-                                      context,
-                                      '/forget_password', // استخدام String مباشر أو AppRoutes.forgetPassword
-                                    );
-                                  },
-                                  child: Text(
-                                    "نسيت كلمة المرور؟",
-                                    style: GoogleFonts.cairo(
-                                      color: Colors.teal,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  '/forget_password', // استخدام String مباشر أو AppRoutes.forgetPassword
+                                );
+                              },
+                              child: Text(
+                                "نسيت كلمة المرور؟",
+                                style: GoogleFonts.cairo(
+                                  color: Colors.teal,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
                                 ),
+                              ),
+                            ),
                             const SizedBox(height: 20),
                             const Divider(
                               color: Colors.grey,
