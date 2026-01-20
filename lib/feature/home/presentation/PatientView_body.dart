@@ -65,12 +65,13 @@ class _Patientview_bodyState extends State<Patientview_body> {
       // ✅ 2. تحويل الـ listener إلى async لنتمكن من انتظار جلب البيانات
       listener: (context, state) async {
         if (state is HealthCritical) {
+          final userState = context.read<UserCubit>().state;
+    
           // متغيرات لتخزين الأرقام
           String? fetchedDoctorPhone;
           String? fetchedFamilyPhone;
 
           // أ. الحصول على بيانات المستخدم الحالي من UserCubit
-          final userState = context.read<UserCubit>().state;
 
           if (userState is UserLoaded && userState.userModel is PatientModel) {
             // ب. إذا كان المستخدم مريضاً ومحملاً، نقوم بجلب الأرقام

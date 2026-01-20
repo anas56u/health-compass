@@ -3,44 +3,87 @@ import 'dart:io';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:health/health.dart';
+import 'package:health_compass/feature/auth/data/model/PatientModel.dart';
+import 'package:health_compass/feature/auth/presentation/cubit/cubit/user_cubit.dart';
+import 'package:health_compass/feature/auth/presentation/cubit/cubit/user_state.dart';
 import 'package:health_compass/feature/health_tracking/presentation/cubits/health_cubit/HealthState.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class HealthCubit extends Cubit<HealthState> {
-  final Health health = Health(); 
+  final Health health = Health();
   Timer? _timer;
   DateTime? _lastDismissTime;
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final UserCubit userCubit;
+  StreamSubscription? _userSubscription;
 
   // ✅ متغير لتتبع وضع الطوارئ
   bool _isEmergencyMode = false;
 
-  HealthCubit() : super(HealthInitial()) {
+  // 1️⃣ الـ Constructor: نظيف ويعتمد فقط على المراقبة
+  HealthCubit(this.userCubit) : super(HealthInitial()) {
     health.configure();
-    
-    Future.delayed(Duration.zero, () {
-      print("🚀 HealthCubit Started");
-      fetchHealthData();
-      _startContinuousMonitoring();
-    });
+    _monitorUserStatus(); // 👈 نقطة البداية الصحيحة
   }
 
   @override
   Future<void> close() {
     _timer?.cancel();
+    _userSubscription?.cancel();
     return super.close();
   }
 
+  // 2️⃣ دالة مراقبة حالة المستخدم (الدينامو)
+  void _monitorUserStatus() {
+    // دالة داخلية لفحص الحالة واتخاذ القرار
+    void checkAndStart(UserState state) {
+      // الشرط: المستخدم تم تحميله + نوعه مريض
+      if (state is UserLoaded && state.userModel is PatientModel) {
+        // إذا لم يكن العداد يعمل، ابدأه فوراً
+        if (_timer == null || !_timer!.isActive) {
+          print("✅ User Ready (Patient). Starting Health Monitoring...");
+          fetchHealthData(); // جلب أولي فوري
+          _startContinuousMonitoring(); // تشغيل العداد الدوري
+        }
+      } else {
+        // إذا كان يحمل (Loading) أو دكتور أو غير مسجل دخول -> توقف
+        _stopMonitoring();
+      }
+    }
+
+    // أ) افحص الحالة الحالية فوراً عند فتح التطبيق
+    checkAndStart(userCubit.state);
+
+    // ب) استمع لأي تغييرات مستقبلية (مثلاً تسجيل دخول/خروج)
+    _userSubscription = userCubit.stream.listen((state) {
+      checkAndStart(state);
+    });
+  }
+
+  void _stopMonitoring() {
+    if (_timer != null) {
+      _timer?.cancel();
+      _timer = null;
+      print("🛑 Monitoring Stopped (User not loaded or not a patient).");
+    }
+  }
+
+  void _startContinuousMonitoring() {
+    print("⏰ Monitoring started (every 5 seconds)");
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      fetchHealthData();
+    });
+  }
+
+  // 3️⃣ دالة إعادة تعيين الطوارئ (عند ضغط زر "أنا بخير")
   void resetEmergencyMode() {
     print("💚 User is safe. Snoozing alerts for 2 minutes.");
     _isEmergencyMode = false;
-    _lastDismissTime = DateTime.now(); // 👈 نسجل الوقت الحالي
-    
-    // ملاحظة: لا نستدعي fetchHealthData فوراً هنا لنعطي فرصة للمؤقت الطبيعي
+    _lastDismissTime = DateTime.now();
   }
 
   Future<void> requestPermissions() async {
@@ -48,7 +91,7 @@ class HealthCubit extends Cubit<HealthState> {
       HealthDataType.HEART_RATE,
       HealthDataType.BLOOD_PRESSURE_SYSTOLIC,
       HealthDataType.BLOOD_PRESSURE_DIASTOLIC,
-      HealthDataType.BLOOD_GLUCOSE, 
+      HealthDataType.BLOOD_GLUCOSE,
       HealthDataType.WEIGHT,
     ];
 
@@ -67,20 +110,25 @@ class HealthCubit extends Cubit<HealthState> {
     }
   }
 
+  // 4️⃣ الدالة الرئيسية لجلب البيانات
   Future<void> fetchHealthData() async {
-    // 1. إذا كنا في وضع الطوارئ حالياً، نوقف التنفيذ
+    // تحقق مزدوج (Double Check) للأمان
+    final userState = userCubit.state;
+    if (userState is! UserLoaded || userState.userModel is! PatientModel) {
+      return;
+    }
+
+    // إذا كنا في وضع الطوارئ حالياً، لا نفعل شيباً جديداً
     if (_isEmergencyMode) return;
 
-    // ✅ 2. فحص "الغفوة" (Snooze Logic)
+    // فحص الغفوة (Snooze)
     if (_lastDismissTime != null) {
       final difference = DateTime.now().difference(_lastDismissTime!);
-      // إذا لم تمر دقيقتان منذ آخر إلغاء، نتجاهل الفحص
       if (difference.inMinutes < 2) {
         print("zzz Snoozing alerts... ($difference passed)");
-        return; 
+        return;
       } else {
-        // انتهت الدقيقتان، نصفر المتغير لنبدأ الحماية من جديد
-        _lastDismissTime = null; 
+        _lastDismissTime = null; // انتهت الغفوة
       }
     }
 
@@ -98,7 +146,7 @@ class HealthCubit extends Cubit<HealthState> {
       }
 
       final now = DateTime.now();
-      final startTime = now.subtract(const Duration(hours: 48)); 
+      final startTime = now.subtract(const Duration(hours: 48));
 
       print("🔄 Fetching Data...");
 
@@ -110,30 +158,28 @@ class HealthCubit extends Cubit<HealthState> {
 
       print("📊 DATA: HR: $heartRate | BP: $systolic/$diastolic | Glu: $bloodGlucose");
 
-      // ✅ 3. فحص القيم الخطرة (Emergency Logic)
-      
-      // أ) فحص القلب
+      // --- 🚨 منطق فحص الطوارئ ---
+
+      // أ) القلب
       if (heartRate > 120 || (heartRate < 40 && heartRate > 0)) {
         _triggerEmergency(
-          message: "معدل ضربات القلب غير طبيعي ($heartRate bpm)!", 
-          value: heartRate, 
+          message: "معدل ضربات القلب غير طبيعي ($heartRate bpm)!",
+          value: heartRate,
           type: "Heart Rate",
-          // 👇 التعديل هنا: تمرير باقي البيانات
           heartRate: heartRate,
           systolic: systolic.toInt(),
           diastolic: diastolic.toInt(),
           bloodGlucose: bloodGlucose,
         );
-        return; 
+        return;
       }
 
-      // ب) فحص ضغط الدم
+      // ب) ضغط الدم
       if (systolic > 180 || (systolic < 90 && systolic > 0)) {
         _triggerEmergency(
-          message: "ضغط الدم وصل لمرحلة حرجة ($systolic)!", 
-          value: systolic, 
+          message: "ضغط الدم وصل لمرحلة حرجة ($systolic)!",
+          value: systolic,
           type: "Blood Pressure",
-          // 👇 التعديل هنا: تمرير باقي البيانات
           heartRate: heartRate,
           systolic: systolic.toInt(),
           diastolic: diastolic.toInt(),
@@ -142,13 +188,12 @@ class HealthCubit extends Cubit<HealthState> {
         return;
       }
 
-      // ج) فحص السكر
+      // ج) السكر
       if (bloodGlucose > 300 || (bloodGlucose < 70 && bloodGlucose > 0)) {
         _triggerEmergency(
-          message: "مستوى السكر في الدم خطير ($bloodGlucose)!", 
-          value: bloodGlucose, 
+          message: "مستوى السكر في الدم خطير ($bloodGlucose)!",
+          value: bloodGlucose,
           type: "Glucose",
-          // 👇 التعديل هنا: تمرير باقي البيانات
           heartRate: heartRate,
           systolic: systolic.toInt(),
           diastolic: diastolic.toInt(),
@@ -157,7 +202,7 @@ class HealthCubit extends Cubit<HealthState> {
         return;
       }
 
-      // ✅ 4. المسار الطبيعي (إذا لم يكن هناك طوارئ)
+      // ✅ المسار الطبيعي (تحديث البيانات ورفعها لفايربيس)
       await _uploadToFirestore(
         heartRate: heartRate,
         systolic: systolic.toInt(),
@@ -174,13 +219,11 @@ class HealthCubit extends Cubit<HealthState> {
           bloodGlucose: bloodGlucose,
         ),
       );
-
     } catch (e) {
       print("❌ Error in fetchHealthData: $e");
     }
   }
 
-  // ✅ دالة التنبيه (محدثة لتستقبل كل شيء)
   void _triggerEmergency({
     required String message,
     required double value,
@@ -191,13 +234,12 @@ class HealthCubit extends Cubit<HealthState> {
     required double bloodGlucose,
   }) {
     print("🚨 EMERGENCY TRIGGERED: $message");
-    _isEmergencyMode = true; 
-    
+    _isEmergencyMode = true;
+
     emit(HealthCritical(
       message: message,
       criticalValue: value,
       vitalType: type,
-      // نمرر البيانات للحالة ليظل الكارت ظاهراً
       heartRate: heartRate,
       systolic: systolic,
       diastolic: diastolic,
@@ -216,20 +258,21 @@ class HealthCubit extends Cubit<HealthState> {
     if (uid == null) return;
 
     try {
-      if (heartRate == 0 && bloodGlucose == 0) return;
+      // تجنب رفع بيانات فارغة تماماً
+      if (heartRate == 0 && bloodGlucose == 0 && systolic == 0) return;
 
       await _firestore
           .collection('users')
           .doc(uid)
           .collection('health_readings')
           .add({
-            'heartRate': heartRate,
-            'systolic': systolic,
-            'diastolic': diastolic,
-            'bloodGlucose': bloodGlucose,
-            'weight': weight,
-            'timestamp': FieldValue.serverTimestamp(),
-          });
+        'heartRate': heartRate,
+        'systolic': systolic,
+        'diastolic': diastolic,
+        'bloodGlucose': bloodGlucose,
+        'weight': weight,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
     } catch (e) {
       print("❌ Firebase Upload Failed: $e");
     }
@@ -247,19 +290,12 @@ class HealthCubit extends Cubit<HealthState> {
         data.sort((a, b) => b.dateTo.compareTo(a.dateTo));
         final mostRecent = data.first;
         if (mostRecent.value is NumericHealthValue) {
-           return (mostRecent.value as NumericHealthValue).numericValue.toDouble();
+          return (mostRecent.value as NumericHealthValue).numericValue.toDouble();
         }
       }
       return 0.0;
     } catch (e) {
       return 0.0;
     }
-  }
-
-  void _startContinuousMonitoring() {
-    print("⏰ Monitoring started (every 5 seconds)");
-    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      fetchHealthData();
-    });
   }
 }

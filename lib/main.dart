@@ -152,6 +152,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       remoteDataSource: AuthRemoteDataSourceImpl(),
     );
     final familyRepository = FamilyRepository();
+    final userCubit = UserCubit(authRepository: authRepository)..getUserData();
 
     return ScreenUtilInit(
       designSize: const Size(375, 812),
@@ -164,7 +165,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               create: (context) =>
                   RemindersCubit(widget.reminderBox, widget.notificationService),
             ),
-            BlocProvider(create: (context) => HealthCubit()),
+            BlocProvider(create: (context) => HealthCubit(userCubit)),
             BlocProvider(
               create: (context) =>
                   UserCubit(authRepository: authRepository)..getUserData(),

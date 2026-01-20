@@ -289,7 +289,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                         // دالة dispose تتكفل بالتنظيف
 // هذا يضمن عدم ظهور شاشة سوداء
                         Navigator.of(context).pushNamedAndRemoveUntil(
-                          AppRoutes.splash, // تأكد أن هذا الاسم مطابق لما في AppRoutes
+                          AppRoutes.patientHome, // تأكد أن هذا الاسم مطابق لما في AppRoutes
                           (route) => false, // يحذف كل الصفحات السابقة (بما فيها الطوارئ)
                         );                      },
                       style: TextButton.styleFrom(
