@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:health_compass/core/core.dart';
@@ -32,7 +33,7 @@ class _FamilyMemberInfoScreenState extends State<FamilyMemberInfoScreen> {
   String? phoneNumber;
   File? _profileImage;
 
-  // ✅ القيم الافتراضية
+  // القيم الافتراضية
   String selectedRelation = 'son';
   String selectedPermission = 'view_only';
 
@@ -58,7 +59,6 @@ class _FamilyMemberInfoScreenState extends State<FamilyMemberInfoScreen> {
       return;
     }
 
-    // ✅ إنشاء الموديل مع القيم المختارة
     final newFamilyMember = FamilyMemberModel(
       uid: '',
       email: widget.email,
@@ -66,8 +66,8 @@ class _FamilyMemberInfoScreenState extends State<FamilyMemberInfoScreen> {
       phoneNumber: phoneNumber!,
       createdAt: DateTime.now(),
       profileImage: '',
-      relation: selectedRelation, // ✅ تمرير العلاقة
-      permission: selectedPermission, // ✅ تمرير الصلاحية
+      relation: selectedRelation,
+      permission: selectedPermission,
     );
 
     context.read<SignupCubit>().registerUser(
@@ -87,8 +87,6 @@ class _FamilyMemberInfoScreenState extends State<FamilyMemberInfoScreen> {
             context,
             AppRoutes.familyHome,
             (route) => false,
-            // يمكن تمرير arguments هنا إذا كان الراوتر يدعمها
-            arguments: {'permission': state.permission},
           );
         } else if (state is SignupFailure) {
           showsnackbar(context, massage: state.error);
@@ -126,23 +124,69 @@ class _FamilyMemberInfoScreenState extends State<FamilyMemberInfoScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // --- صورة البروفايل ---
+                      // --- صورة البروفايل (مطابق تماماً للمريض) ---
                       Center(
                         child: GestureDetector(
                           onTap: _pickImage,
-                          child: CircleAvatar(
-                            radius: 50,
-                            backgroundColor: Colors.grey[200],
-                            backgroundImage: _profileImage != null
-                                ? FileImage(_profileImage!)
-                                : null,
-                            child: _profileImage == null
-                                ? Icon(
-                                    Icons.family_restroom,
-                                    size: 50,
-                                    color: Colors.grey[400],
-                                  )
-                                : null,
+                          child: Stack(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: primaryColor,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: CircleAvatar(
+                                  radius: 50,
+                                  backgroundColor: Colors.grey[200],
+                                  backgroundImage: _profileImage != null
+                                      ? FileImage(_profileImage!)
+                                      : null,
+                                  child: _profileImage == null
+                                      ? Icon(
+                                          Icons.person,
+                                          size: 50,
+                                          color: Colors.grey[400],
+                                        )
+                                      : null,
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: primaryColor,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt,
+                                    size: 18,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Center(
+                        child: Text(
+                          _profileImage == null
+                              ? "إضافة صورة شخصية"
+                              : "تغيير الصورة",
+                          style: GoogleFonts.tajawal(
+                            fontSize: 14,
+                            color: Colors.grey[600],
                           ),
                         ),
                       ),
@@ -152,12 +196,36 @@ class _FamilyMemberInfoScreenState extends State<FamilyMemberInfoScreen> {
                       _buildSectionTitle("المعلومات الشخصية"),
                       _buildLabel("الاسم الكامل"),
                       CustomTextfild(
-                        hinttext: "الاسم الرباعي",
+                        hinttext: "مثال: محمد أحمد",
                         onChanged: (value) => fullName = value,
                       ),
                       const SizedBox(height: 15),
                       _buildLabel("رقم الهاتف"),
                       IntlPhoneField(
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white,
+                          hintText: "79xxxxxxx",
+                          hintStyle: TextStyle(
+                            color: Colors.grey[400],
+                            fontSize: 14,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(
+                              color: primaryColor,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
                         initialCountryCode: 'JO',
                         textAlign: TextAlign.right,
                         languageCode: "ar",
@@ -166,11 +234,12 @@ class _FamilyMemberInfoScreenState extends State<FamilyMemberInfoScreen> {
                       ),
                       const SizedBox(height: 25),
 
-                      // --- صلة القرابة ---
+                      // --- صلة القرابة (استخدام Chips مثل المريض) ---
                       _buildSectionTitle("صلتك بالمريض"),
+                      _buildLabel("اختر صلة القرابة"),
                       Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
+                        spacing: 10,
+                        runSpacing: 10,
                         children: [
                           _buildRelationChip("ابن/ـة", "son", Icons.child_care),
                           _buildRelationChip("أب/أم", "parent", Icons.elderly),
@@ -184,7 +253,7 @@ class _FamilyMemberInfoScreenState extends State<FamilyMemberInfoScreen> {
                       ),
                       const SizedBox(height: 25),
 
-                      // ---  صلاحيات الحساب ---
+                      // --- صلاحيات الحساب ---
                       _buildSectionTitle("صلاحيات الحساب"),
                       Row(
                         children: [
@@ -217,6 +286,7 @@ class _FamilyMemberInfoScreenState extends State<FamilyMemberInfoScreen> {
                           onPressed: () => _registerFamilyMember(context),
                         ),
                       ),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
@@ -228,6 +298,7 @@ class _FamilyMemberInfoScreenState extends State<FamilyMemberInfoScreen> {
     );
   }
 
+  // دالة بناء العناوين (نفس ستايل المريض المعتمد)
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
@@ -262,36 +333,31 @@ class _FamilyMemberInfoScreenState extends State<FamilyMemberInfoScreen> {
     );
   }
 
+  // دالة الـ Chip (نفس ستايل المريض المعتمد)
   Widget _buildRelationChip(String label, String value, IconData icon) {
     bool isSelected = selectedRelation == value;
-    return GestureDetector(
-      onTap: () => setState(() => selectedRelation = value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? primaryColor : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? primaryColor : Colors.grey.shade300,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: isSelected ? Colors.white : Colors.grey[600],
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: GoogleFonts.tajawal(
-                color: isSelected ? Colors.white : Colors.grey[700],
-              ),
-            ),
-          ],
+    return FilterChip(
+      label: Text(label),
+      labelStyle: GoogleFonts.tajawal(
+        color: isSelected ? Colors.white : Colors.black87,
+        fontWeight: FontWeight.bold,
+      ),
+      selected: isSelected,
+      onSelected: (bool selected) {
+        setState(() => selectedRelation = value);
+      },
+      selectedColor: primaryColor,
+      backgroundColor: Colors.white,
+      checkmarkColor: Colors.white,
+      avatar: Icon(
+        icon,
+        size: 16,
+        color: isSelected ? Colors.white : primaryColor,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isSelected ? primaryColor : Colors.grey.shade300,
         ),
       ),
     );
@@ -316,6 +382,15 @@ class _FamilyMemberInfoScreenState extends State<FamilyMemberInfoScreen> {
             color: isSelected ? primaryColor : Colors.grey.shade200,
             width: 2,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: primaryColor.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [],
         ),
         child: Column(
           children: [
@@ -347,7 +422,12 @@ class _FamilyMemberInfoScreenState extends State<FamilyMemberInfoScreen> {
 
   void showsnackbar(BuildContext context, {required String massage}) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(massage), backgroundColor: Colors.black87),
+      SnackBar(
+        content: Text(massage, style: const TextStyle(color: Colors.white)),
+        backgroundColor: Colors.black87,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
     );
   }
 }
