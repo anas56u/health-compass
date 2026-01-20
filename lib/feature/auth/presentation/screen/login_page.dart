@@ -191,80 +191,27 @@ class _LoginViewState extends State<LoginView> {
                               child: CustomText(text: "كلمه المرور", size: 12),
                             ),
                             const SizedBox(height: 8),
-                            Stack(
-                              alignment: Alignment.centerLeft,
-                              children: [
-                                CustomTextfild(
-                                  controller: _passwordController,
-                                  hinttext: "ادخل كلمة المرور",
-                                  // تأكد من تحديث CustomTextfild لدعم obscureText كما شرحنا سابقاً
-                                  obscureText: !_isPasswordVisible,
-                                  onChanged: (value) {},
+                            CustomTextfild(
+                              controller: _passwordController,
+                              hinttext: "ادخل كلمة المرور",
+                              obscureText: !_isPasswordVisible,
+                              onChanged: (value) {},
+                              // 👇 نمرر الأيقونة هنا مباشرة
+                              suffixIcon: IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _isPasswordVisible = !_isPasswordVisible;
+                                  });
+                                },
+                                icon: Icon(
+                                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                                  color: const Color(0xFF41BFAA),
+                                  size: 20,
                                 ),
-                                
-                                IconButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      _isPasswordVisible = !_isPasswordVisible;
-                                    });
-                                  },
-                                  icon: Icon(
-                                    _isPasswordVisible
-                                        ? Icons.visibility
-                                        : Icons.visibility_off,
-                                    color: const Color(0xFF41BFAA),
-                                    size: 20,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
-                            const SizedBox(height: 15),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.pushNamed(
-                                      context,
-                                      '/forget_password', // استخدام String مباشر أو AppRoutes.forgetPassword
-                                    );
-                                  },
-                                  child: Text(
-                                    "نسيت كلمة المرور؟",
-                                    style: GoogleFonts.cairo(
-                                      color: Colors.teal,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                                Row(
-                                  children: [
-                                    Text(
-                                      "تذكّرني",
-                                      style: GoogleFonts.cairo(fontSize: 13),
-                                    ),
-                                    Transform.scale(
-                                      scale: 0.9,
-                                      child: Checkbox(
-                                        value: _rememberMe,
-                                        onChanged: (value) {
-                                          setState(() {
-                                            _rememberMe = value ?? false;
-                                          });
-                                        },
-                                        activeColor: const Color(0xFF2EC8C8),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                            const SizedBox(height: 20),
+                           
                             const SizedBox(height: 20),
                             BlocBuilder<LoginCubit, LoginState>(
                               builder: (context, state) {
@@ -291,45 +238,22 @@ class _LoginViewState extends State<LoginView> {
                               },
                             ),
                             const SizedBox(height: 20),
-                            ElevatedButton(
-                              onPressed: () {
-                                print("Google Sign In");
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: Colors.black87,
-                                surfaceTintColor: Colors.white,
-                                elevation: 0,
-                                minimumSize: const Size(double.infinity, 54),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                  side: BorderSide(
-                                    color: Colors.grey.shade300,
-                                    width: 1,
-                                  ),
-                                ),
-                                overlayColor: Colors.grey.shade100,
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Image.asset(
-                                    "assets/images/google.png",
-                                    height: 24,
-                                    width: 24,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    "تابع باستخدام Google",
-                                    style: GoogleFonts.tajawal(
-                                      fontSize: 16,
+                           TextButton(
+                                  onPressed: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      '/forget_password', // استخدام String مباشر أو AppRoutes.forgetPassword
+                                    );
+                                  },
+                                  child: Text(
+                                    "نسيت كلمة المرور؟",
+                                    style: GoogleFonts.cairo(
+                                      color: Colors.teal,
+                                      fontSize: 18,
                                       fontWeight: FontWeight.w600,
-                                      color: Colors.black87,
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
+                                ),
                             const SizedBox(height: 20),
                             const Divider(
                               color: Colors.grey,

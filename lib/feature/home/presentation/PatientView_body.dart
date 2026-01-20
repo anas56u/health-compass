@@ -7,6 +7,7 @@ import 'package:health_compass/core/widgets/EmergencyScreen.dart'; //
 import 'package:health_compass/core/widgets/WeeklyChallenge.dart';
 import 'package:health_compass/core/widgets/bottom_nav_bar.dart';
 import 'package:health_compass/core/widgets/daily_tasks.dart';
+import 'package:health_compass/core/widgets/fasting_card.dart';
 import 'package:health_compass/core/widgets/header_patientview.dart';
 import 'package:health_compass/feature/achievements/preesntation/cubits/hometask_cubit.dart';
 import 'package:health_compass/feature/achievements/preesntation/cubits/hometask_state.dart';
@@ -138,6 +139,7 @@ class HomeContent extends StatelessWidget {
           children: [
             header_patientview(),
             const SizedBox(height: 20),
+            const FastingCard(),
             BlocBuilder<HometaskCubit, HometaskState>(
               builder: (context, state) {
                 if (state is HomeLoading) {

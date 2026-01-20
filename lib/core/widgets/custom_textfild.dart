@@ -4,6 +4,7 @@ class CustomTextfild extends StatelessWidget {
   final String? hinttext;
   final Function(String)? onChanged;
   final TextEditingController? controller;
+  final Widget? suffixIcon; // 1️⃣ أضفنا هذا المتغير
 
   // ✅ 1. أضفنا المتغير هنا
   final bool obscureText;
@@ -15,6 +16,7 @@ class CustomTextfild extends StatelessWidget {
     this.controller,
     // ✅ 2. أضفناه في الكونستركتور مع قيمة افتراضية false
     this.obscureText = false,
+    this.suffixIcon,
   });
 
   @override
@@ -36,6 +38,7 @@ class CustomTextfild extends StatelessWidget {
       },
       onChanged: onChanged,
       decoration: InputDecoration(
+        suffixIcon: suffixIcon,
         filled: true,
         fillColor: const Color(0xFFE2E8F0),
         hint: Directionality(
