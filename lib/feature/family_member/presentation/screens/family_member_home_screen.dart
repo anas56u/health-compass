@@ -178,7 +178,7 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "مرحباً بك 👋",
+            "مرحباً بك ",
             style: GoogleFonts.tajawal(
               color: Colors.grey[600],
               fontSize: 14.sp,
