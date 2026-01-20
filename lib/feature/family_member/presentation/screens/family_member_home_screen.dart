@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:health_compass/core/routes/routes.dart';
 import 'package:health_compass/core/models/vital_model.dart';
 import 'package:health_compass/core/models/medication_model.dart';
@@ -33,217 +32,212 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
 
   bool get canEdit => widget.userPermission == 'interactive';
 
-  bool _isCheckingLinkedPatients = true;
-
-  // ✅ قائمة لتخزين جميع المرضى المرتبطين (للقائمة المنسدلة)
-  List<Map<String, dynamic>> _linkedPatientsList = [];
-
-  // ✅ المريض المختار حالياً
-  String? _selectedPatientId;
-
   @override
   void initState() {
     super.initState();
-    _fetchLinkedPatientsAndLoadData();
-  }
-
-  // ✅ دالة محسنة لجلب كل المرضى وليس الأول فقط
-  Future<void> _fetchLinkedPatientsAndLoadData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      try {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-
-        final List linkedIds = doc.data()?['linked_patients'] ?? [];
-
-        if (linkedIds.isNotEmpty) {
-          List<Map<String, dynamic>> patients = [];
-
-          // جلب أسماء جميع المرضى لعرضها في القائمة
-          for (String id in linkedIds) {
-            try {
-              var profile = await FamilyRepository().getPatientProfile(id);
-              patients.add({
-                'id': id,
-                'name': profile['name'] ?? 'مريض بدون اسم',
-              });
-            } catch (e) {
-              print("Error fetching profile for $id: $e");
-            }
-          }
-
-          if (mounted) {
-            setState(() {
-              _linkedPatientsList = patients;
-              // اختيار أول مريض افتراضياً إذا لم يكن هناك مريض مختار
-              _selectedPatientId ??= patients.isNotEmpty
-                  ? patients.first['id']
-                  : null;
-              _isCheckingLinkedPatients = false;
-            });
-
-            // تحميل بيانات المريض المختار
-            if (_selectedPatientId != null) {
-              _loadSelectedPatientData(_selectedPatientId!);
-            }
-          }
-        } else {
-          if (mounted) {
-            setState(() {
-              _linkedPatientsList = [];
-              _selectedPatientId = null;
-              _isCheckingLinkedPatients = false;
-            });
-          }
-        }
-      } catch (e) {
-        debugPrint("Error fetching linked patients: $e");
-        if (mounted) {
-          setState(() => _isCheckingLinkedPatients = false);
-        }
-      }
+      context.read<FamilyCubit>().initFamilyHome(user.uid);
     }
-  }
-
-  // دالة مساعدة لتحميل بيانات مريض محدد
-  void _loadSelectedPatientData(String patientId) {
-    context.read<FamilyCubit>().loadDashboardData(patientId);
   }
 
   @override
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: bgColor,
-        body: _buildBody(),
-        // الزر العائم يظهر فقط إذا كان هناك مريض مختار
-        floatingActionButton: (canEdit && _selectedPatientId != null)
-            ? FloatingActionButton(
-                onPressed: () => _showAddVitalsSheet(context),
-                backgroundColor: primaryColor,
-                child: const Icon(Icons.add, color: Colors.white),
-              )
-            : null,
-      ),
-    );
-  }
-
-  Widget _buildBody() {
-    // 1. حالة التحميل الأولية
-    if (_isCheckingLinkedPatients) {
-      return Center(child: CircularProgressIndicator(color: primaryColor));
-    }
-
-    // 2. حالة عدم وجود مرضى
-    if (_linkedPatientsList.isEmpty) {
-      return _buildNoLinkedPatientState();
-    }
-
-    // 3. حالة وجود مريض (BlocBuilder)
-    return BlocBuilder<FamilyCubit, FamilyState>(
-      builder: (context, state) {
-        if (state is FamilyLoading) {
-          return Center(child: CircularProgressIndicator(color: primaryColor));
-        } else if (state is FamilyError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 50, color: Colors.red),
-                SizedBox(height: 10.h),
-                Text(
-                  state.message,
-                  style: GoogleFonts.tajawal(fontSize: 16.sp),
-                ),
-                TextButton(
-                  onPressed: () =>
-                      _loadSelectedPatientData(_selectedPatientId!),
-                  child: Text("إعادة المحاولة", style: GoogleFonts.tajawal()),
-                ),
-              ],
-            ),
-          );
-        } else if (state is FamilyLoaded) {
-          final profile = state.patientProfile;
-          final vitals = state.vitals;
-
-          return CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              _buildSliverAppBar(profile),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.all(20.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildPatientStatusCard(profile),
-                      SizedBox(height: 25.h),
-
-                      // --- قسم العلامات الحيوية ---
-                      _buildSectionHeader("العلامات الحيوية", () {
-                        if (_selectedPatientId != null) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => VitalsHistoryScreen(
-                                patientId: _selectedPatientId!,
-                              ),
-                            ),
-                          );
-                        }
-                      }),
-                      SizedBox(height: 15.h),
-                      _buildVitalsGrid(vitals),
-
-                      SizedBox(height: 25.h),
-
-                      // --- قسم الأدوية ---
-                      _buildSectionHeader("الأدوية القادمة", () {
-                        if (_selectedPatientId != null) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => MedicationScreen(
-                                canEdit: canEdit,
-                                userId: _selectedPatientId!,
-                              ),
-                            ),
-                          );
-                        }
-                      }),
-                      SizedBox(height: 15.h),
-
-                      // قائمة الأدوية الحقيقية
-                      _buildRealMedicationList(),
-                    ],
-                  ),
-                ),
+      child: BlocListener<FamilyCubit, FamilyState>(
+        listener: (context, state) {
+          if (state is FamilyOperationSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message, style: GoogleFonts.tajawal()),
+                backgroundColor: Colors.green,
               ),
-            ],
-          );
-        }
-
-        return Center(
-          child: Text("جاري التحميل...", style: GoogleFonts.tajawal()),
-        );
-      },
+            );
+          } else if (state is FamilyOperationError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message, style: GoogleFonts.tajawal()),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
+        child: Scaffold(
+          backgroundColor: bgColor,
+          body: BlocBuilder<FamilyCubit, FamilyState>(
+            builder: (context, state) {
+              if (state is FamilyLoading) {
+                return Center(
+                  child: CircularProgressIndicator(color: primaryColor),
+                );
+              } else if (state is FamilyError) {
+                return _buildErrorState(state.message);
+              } else if (state is FamilyNoLinkedPatients ||
+                  state is FamilyInitial) {
+                return _buildNoLinkedPatientState();
+              } else if (state is FamilyDashboardLoaded) {
+                return _buildDashboardContent(context, state);
+              }
+              return const SizedBox();
+            },
+          ),
+          floatingActionButton: BlocBuilder<FamilyCubit, FamilyState>(
+            builder: (context, state) {
+              if (state is FamilyDashboardLoaded && canEdit) {
+                return FloatingActionButton(
+                  onPressed: () =>
+                      _showAddVitalsSheet(context, state.selectedPatientId),
+                  backgroundColor: primaryColor,
+                  child: const Icon(Icons.add, color: Colors.white),
+                );
+              }
+              return const SizedBox();
+            },
+          ),
+        ),
+      ),
     );
   }
 
   // --- Widgets ---
 
-  Widget _buildRealMedicationList() {
-    if (_selectedPatientId == null) return const SizedBox();
+  Widget _buildDashboardContent(
+    BuildContext context,
+    FamilyDashboardLoaded state,
+  ) {
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        _buildSliverAppBar(state),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.all(20.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildPatientStatusCard(state.currentProfile),
+                SizedBox(height: 25.h),
+                _buildSectionHeader("العلامات الحيوية", () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => VitalsHistoryScreen(
+                        patientId: state.selectedPatientId,
+                      ),
+                    ),
+                  );
+                }),
+                SizedBox(height: 15.h),
+                _buildVitalsGrid(state.currentVitals),
+                SizedBox(height: 25.h),
+                _buildSectionHeader("الأدوية القادمة", () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MedicationScreen(
+                        canEdit: canEdit,
+                        userId: state.selectedPatientId,
+                      ),
+                    ),
+                  );
+                }),
+                SizedBox(height: 15.h),
+                _buildRealMedicationList(state.selectedPatientId),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
-    // نستخدم Key لإجبار إعادة البناء عند تغيير المريض
+  SliverAppBar _buildSliverAppBar(FamilyDashboardLoaded state) {
+    return SliverAppBar(
+      backgroundColor: bgColor,
+      elevation: 0,
+      expandedHeight: 80.h,
+      floating: true,
+      pinned: false,
+      leading: Padding(
+        padding: EdgeInsets.only(right: 20.w),
+        child: const CircleAvatar(
+          backgroundColor: Colors.white,
+          backgroundImage: AssetImage('assets/images/logo.jpeg'),
+        ),
+      ),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "مرحباً بك 👋",
+            style: GoogleFonts.tajawal(
+              color: Colors.grey[600],
+              fontSize: 14.sp,
+            ),
+          ),
+          DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: state.selectedPatientId,
+              isDense: true,
+              icon: const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: Colors.black,
+              ),
+              dropdownColor: Colors.white,
+              style: GoogleFonts.tajawal(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+                fontSize: 16.sp,
+              ),
+              items: state.allPatients.map((patient) {
+                return DropdownMenuItem<String>(
+                  value: patient['id'],
+                  child: Text(patient['name'] ?? 'مريض بدون اسم'),
+                );
+              }).toList(),
+              onChanged: (newId) {
+                if (newId != null && newId != state.selectedPatientId) {
+                  context.read<FamilyCubit>().selectPatient(newId);
+                }
+              },
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.person_outline_rounded, color: Colors.black),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FamilyProfileScreen()),
+            );
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.settings_outlined, color: Colors.black),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PatientSettingsScreen(
+                  patientId: state.selectedPatientId,
+                  patientData: state.currentProfile,
+                ),
+              ),
+            );
+          },
+        ),
+        SizedBox(width: 10.w),
+      ],
+    );
+  }
+
+  Widget _buildRealMedicationList(String patientId) {
     return StreamBuilder<List<MedicationModel>>(
-      key: ValueKey(_selectedPatientId),
-      stream: FamilyRepository().getPatientMedications(_selectedPatientId!),
+      key: ValueKey(patientId),
+      stream: FamilyRepository().getPatientMedications(patientId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -251,7 +245,6 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return _buildEmptyState("لا توجد أدوية مسجلة حالياً");
         }
-
         final medications = snapshot.data!;
         final displayList = medications.take(3).toList();
 
@@ -270,112 +263,6 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
           }).toList(),
         );
       },
-    );
-  }
-
-  // ✅ تعديل SliverAppBar لدعم القائمة المنسدلة
-  SliverAppBar _buildSliverAppBar(Map<String, dynamic> profile) {
-    return SliverAppBar(
-      backgroundColor: bgColor,
-      elevation: 0,
-      expandedHeight: 80.h,
-      floating: true,
-      pinned: false,
-      leading: Padding(
-        padding: EdgeInsets.only(right: 20.w),
-        child: CircleAvatar(
-          backgroundColor: Colors.white,
-          backgroundImage: const AssetImage('assets/images/logo.jpeg'),
-        ),
-      ),
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "مرحباً بك 👋",
-            style: GoogleFonts.tajawal(
-              color: Colors.grey[600],
-              fontSize: 14.sp,
-            ),
-          ),
-          // ✅ القائمة المنسدلة للتبديل بين المرضى
-          DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: _selectedPatientId,
-              isDense: true,
-              icon: const Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: Colors.black,
-              ),
-              dropdownColor: Colors.white,
-              style: GoogleFonts.tajawal(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 16.sp,
-              ),
-              items: _linkedPatientsList.map((patient) {
-                return DropdownMenuItem<String>(
-                  value: patient['id'],
-                  child: Text(patient['name']),
-                );
-              }).toList(),
-              onChanged: (newId) {
-                if (newId != null && newId != _selectedPatientId) {
-                  setState(() => _selectedPatientId = newId);
-                  _loadSelectedPatientData(newId); // تحديث البيانات
-                }
-              },
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.person_outline_rounded, color: Colors.black),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const FamilyProfileScreen(),
-              ),
-            );
-          },
-        ),
-        IconButton(
-          icon: const Icon(Icons.settings_outlined, color: Colors.black),
-          onPressed: () {
-            if (_selectedPatientId != null) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      PatientSettingsScreen(patientId: _selectedPatientId!),
-                ),
-              );
-            }
-          },
-        ),
-        SizedBox(width: 10.w),
-      ],
-    );
-  }
-
-  // ... (بقية الـ Widgets: _buildPatientStatusCard, _buildSectionHeader, _buildVitalsGrid, _buildMedicationCard, _buildNoLinkedPatientState تبقى كما هي تماماً)
-
-  // دالة مساعدة للحالة الفارغة
-  Widget _buildEmptyState(String message) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(20.h),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
-      ),
-      child: Text(
-        message,
-        style: GoogleFonts.tajawal(color: Colors.grey),
-        textAlign: TextAlign.center,
-      ),
     );
   }
 
@@ -594,26 +481,18 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
     String time,
     MedicationStatus status,
   ) {
-    Color statusColor;
-    String statusText;
-    IconData statusIcon;
+    Color statusColor = Colors.orange;
+    String statusText = "قادم";
+    IconData statusIcon = Icons.access_time_filled_rounded;
 
-    switch (status) {
-      case MedicationStatus.taken:
-        statusColor = Colors.green;
-        statusText = "تم أخذها";
-        statusIcon = Icons.check_circle_rounded;
-        break;
-      case MedicationStatus.pending:
-        statusColor = Colors.orange;
-        statusText = "قادم";
-        statusIcon = Icons.access_time_filled_rounded;
-        break;
-      case MedicationStatus.missed:
-        statusColor = Colors.red;
-        statusText = "فائتة";
-        statusIcon = Icons.cancel_rounded;
-        break;
+    if (status == MedicationStatus.taken) {
+      statusColor = Colors.green;
+      statusText = "تم أخذها";
+      statusIcon = Icons.check_circle_rounded;
+    } else if (status == MedicationStatus.missed) {
+      statusColor = Colors.red;
+      statusText = "فائتة";
+      statusIcon = Icons.cancel_rounded;
     }
 
     return Container(
@@ -674,6 +553,44 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
     );
   }
 
+  Widget _buildEmptyState(String message) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(20.h),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Text(
+        message,
+        style: GoogleFonts.tajawal(color: Colors.grey),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, size: 50, color: Colors.red),
+          SizedBox(height: 10.h),
+          Text(message, style: GoogleFonts.tajawal(fontSize: 16.sp)),
+          TextButton(
+            onPressed: () {
+              final user = FirebaseAuth.instance.currentUser;
+              if (user != null) {
+                context.read<FamilyCubit>().initFamilyHome(user.uid);
+              }
+            },
+            child: Text("إعادة المحاولة", style: GoogleFonts.tajawal()),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildNoLinkedPatientState() {
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
@@ -701,7 +618,7 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const FamilyProfileScreen(),
+                    builder: (_) => const FamilyProfileScreen(),
                   ),
                 );
               },
@@ -756,7 +673,12 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
                           context,
                           AppRoutes.linkPatient,
                         ).then((_) {
-                          _fetchLinkedPatientsAndLoadData();
+                          final user = FirebaseAuth.instance.currentUser;
+                          if (user != null) {
+                            context.read<FamilyCubit>().initFamilyHome(
+                              user.uid,
+                            );
+                          }
                         });
                       },
                       style: ElevatedButton.styleFrom(
@@ -784,16 +706,13 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
     );
   }
 
-  void _showAddVitalsSheet(BuildContext context) {
-    if (_selectedPatientId != null) {
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (context) =>
-            AddVitalsBottomSheet(patientId: _selectedPatientId!),
-      );
-    }
+  void _showAddVitalsSheet(BuildContext context, String patientId) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => AddVitalsSheet(patientId: patientId),
+    );
   }
 }
 

@@ -1,109 +1,143 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:health_compass/core/routes/routes.dart';
+import 'package:health_compass/feature/auth/data/model/family_member_model.dart';
+import 'package:health_compass/feature/family_member/data/family_repository.dart';
+import 'package:health_compass/feature/family_member/logic/family_cubit.dart';
 
-class FamilyProfileScreen extends StatefulWidget {
+class FamilyProfileScreen extends StatelessWidget {
   const FamilyProfileScreen({super.key});
 
-  @override
-  State<FamilyProfileScreen> createState() => _FamilyProfileScreenState();
-}
-
-class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
   final Color primaryColor = const Color(0xFF41BFAA);
-
-  // بيانات وهمية للعرض (يمكنك استبدالها ببيانات Firebase الحقيقية)
-  final String _userName = "سامي أحمد";
-  final String _userEmail = "sami.ahmed@example.com";
+  final Color backgroundColor = const Color(0xFFF5F7FA);
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF5F7FA),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          centerTitle: true,
-          title: Text(
-            "حسابي",
-            style: GoogleFonts.tajawal(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-              fontSize: 18.sp,
-            ),
-          ),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.black),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
-        body: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-          child: Column(
-            children: [
-              // 1. بطاقة التعريف الشخصية
-              _buildHeaderCard(),
-
-              SizedBox(height: 30.h),
-
-              // 2. قائمة الإعدادات
-              _buildSectionTitle("إعدادات الحساب"),
-              _buildSettingsTile(
-                title: "تعديل الملف الشخصي",
-                icon: Icons.person_outline_rounded,
-                color: Colors.blue,
-                onTap: () {
-                  // TODO: الانتقال لصفحة تعديل الاسم ورقم الهاتف
-                },
-              ),
-              _buildSettingsTile(
-                title: "تغيير كلمة المرور",
-                icon: Icons.lock_outline_rounded,
-                color: Colors.orange,
-                onTap: () {
-                  // TODO: فتح حوار تغيير كلمة المرور
-                },
-              ),
-              SizedBox(height: 25.h),
-
-              _buildSectionTitle("عن التطبيق"),
-              _buildSettingsTile(
-                title: "سياسة الخصوصية",
-                icon: Icons.privacy_tip_outlined,
-                color: Colors.teal,
-                onTap: () {},
-              ),
-              _buildSettingsTile(
-                title: "تواصل مع الدعم",
-                icon: Icons.headset_mic_outlined,
-                color: Colors.indigo,
-                onTap: () {},
-              ),
-
-              SizedBox(height: 40.h),
-
-              // 3. زر تسجيل الخروج
-              _buildLogoutButton(),
-
-              SizedBox(height: 20.h),
-              Text(
-                "الإصدار 1.0.0",
-                style: GoogleFonts.tajawal(fontSize: 12.sp, color: Colors.grey),
-              ),
-            ],
+    // ✅ BlocProvider محلي: يتم إنشاء الكيوبت وإغلاقه تلقائياً عند الخروج من الشاشة
+    return BlocProvider(
+      create: (context) => FamilyCubit(FamilyRepository())..loadMyProfile(),
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          backgroundColor: backgroundColor,
+          appBar: _buildAppBar(context),
+          body: BlocConsumer<FamilyCubit, FamilyState>(
+            listener: (context, state) {
+              if (state is FamilyError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message, style: GoogleFonts.tajawal()),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            builder: (context, state) {
+              if (state is FamilyLoading) {
+                return Center(
+                  child: CircularProgressIndicator(color: primaryColor),
+                );
+              } else if (state is FamilyProfileLoaded) {
+                return _buildContent(context, state.userModel);
+              } else if (state is FamilyError) {
+                return _buildErrorState(context);
+              }
+              return const SizedBox.shrink();
+            },
           ),
         ),
       ),
     );
   }
 
-  // --- Widgets ---
+  AppBar _buildAppBar(BuildContext context) {
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      centerTitle: true,
+      title: Text(
+        "حسابي",
+        style: GoogleFonts.tajawal(
+          color: Colors.black,
+          fontWeight: FontWeight.bold,
+          fontSize: 18.sp,
+        ),
+      ),
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.black),
+        onPressed: () => Navigator.pop(context),
+      ),
+    );
+  }
 
-  Widget _buildHeaderCard() {
+  Widget _buildContent(BuildContext context, FamilyMemberModel user) {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+      child: Column(
+        children: [
+          // 1. بطاقة المعلومات
+          _buildUserInfoCard(user),
+
+          SizedBox(height: 30.h),
+
+          // 2. إعدادات الحساب
+          _buildSectionHeader("إعدادات الحساب"),
+          _buildSettingsTile(
+            title: "تعديل الملف الشخصي",
+            icon: Icons.person_outline_rounded,
+            color: Colors.blue,
+            onTap: () {
+              // TODO: الانتقال لصفحة التعديل
+            },
+          ),
+          _buildSettingsTile(
+            title: "تغيير كلمة المرور",
+            icon: Icons.lock_outline_rounded,
+            color: Colors.orange,
+            onTap: () {
+              // TODO: فتح حوار تغيير كلمة المرور
+            },
+          ),
+          SizedBox(height: 25.h),
+
+          // 3. عن التطبيق
+          _buildSectionHeader("عن التطبيق"),
+          _buildSettingsTile(
+            title: "سياسة الخصوصية",
+            icon: Icons.privacy_tip_outlined,
+            color: Colors.teal,
+            onTap: () {},
+          ),
+          _buildSettingsTile(
+            title: "تواصل مع الدعم",
+            icon: Icons.headset_mic_outlined,
+            color: Colors.indigo,
+            onTap: () {},
+          ),
+
+          SizedBox(height: 40.h),
+
+          // 4. الخروج
+          _buildLogoutButton(context),
+
+          SizedBox(height: 20.h),
+          Text(
+            "الإصدار 1.0.0",
+            style: GoogleFonts.tajawal(fontSize: 12.sp, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- Widgets Components ---
+
+  Widget _buildUserInfoCard(FamilyMemberModel user) {
+    final hasImage = user.profileImage != null && user.profileImage!.isNotEmpty;
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(20.w),
@@ -126,16 +160,22 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
               CircleAvatar(
                 radius: 40.r,
                 backgroundColor: primaryColor.withOpacity(0.1),
-                child: Icon(Icons.person, size: 40.sp, color: primaryColor),
+                backgroundImage: hasImage
+                    ? NetworkImage(user.profileImage!)
+                    : null,
+                child: !hasImage
+                    ? Icon(Icons.person, size: 40.sp, color: primaryColor)
+                    : null,
               ),
+              // أيقونة التعديل الصغيرة
               Container(
-                padding: EdgeInsets.all(5.w),
+                padding: EdgeInsets.all(4.w),
                 decoration: const BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
                 ),
                 child: Container(
-                  padding: EdgeInsets.all(5.w),
+                  padding: EdgeInsets.all(6.w),
                   decoration: BoxDecoration(
                     color: primaryColor,
                     shape: BoxShape.circle,
@@ -151,7 +191,8 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
           ),
           SizedBox(height: 15.h),
           Text(
-            _userName,
+            user.fullName,
+            textAlign: TextAlign.center,
             style: GoogleFonts.tajawal(
               fontSize: 18.sp,
               fontWeight: FontWeight.bold,
@@ -160,18 +201,38 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
           ),
           SizedBox(height: 5.h),
           Text(
-            _userEmail,
+            user.email,
+            textAlign: TextAlign.center,
             style: GoogleFonts.tajawal(
               fontSize: 14.sp,
               color: Colors.grey[500],
             ),
           ),
+          if (user.relation.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.only(top: 8.h),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20.r),
+                ),
+                child: Text(
+                  user.relation,
+                  style: GoogleFonts.tajawal(
+                    color: primaryColor,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionHeader(String title) {
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h, right: 5.w),
       child: Align(
@@ -227,9 +288,9 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
     );
   }
 
-  Widget _buildLogoutButton() {
+  Widget _buildLogoutButton(BuildContext context) {
     return InkWell(
-      onTap: () => _showLogoutDialog(),
+      onTap: () => _showLogoutDialog(context),
       borderRadius: BorderRadius.circular(16.r),
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 16.h),
@@ -258,10 +319,33 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
     );
   }
 
-  void _showLogoutDialog() {
+  Widget _buildErrorState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 50.sp, color: Colors.red),
+          SizedBox(height: 10.h),
+          Text(
+            "حدث خطأ أثناء تحميل البيانات",
+            style: GoogleFonts.tajawal(fontSize: 16.sp),
+          ),
+          TextButton(
+            onPressed: () => context.read<FamilyCubit>().loadMyProfile(),
+            child: Text(
+              "إعادة المحاولة",
+              style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20.r),
         ),
@@ -277,7 +361,7 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               "إلغاء",
               style: GoogleFonts.tajawal(
@@ -288,10 +372,12 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context); // إغلاق الحوار
-              await FirebaseAuth.instance.signOut();
-              if (mounted) {
-                // الانتقال لصفحة تسجيل الدخول وحذف كل الصفحات السابقة من الذاكرة
+              Navigator.pop(dialogContext); // إغلاق الحوار
+
+              // ✅ استخدام context الخاص بالـ Screen (الممرر للدالة) للوصول للكيوبت
+              await context.read<FamilyCubit>().logout();
+
+              if (context.mounted) {
                 Navigator.pushNamedAndRemoveUntil(
                   context,
                   AppRoutes.login,

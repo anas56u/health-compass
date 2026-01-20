@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:health_compass/feature/health_dashboard/models/health_data_model.dart';
+import 'package:intl/intl.dart';
 
 part 'health_dashboard_state.dart';
 
@@ -19,33 +20,24 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
   List<TaskModel> _cachedTasks = [];
   DateTime _currentSelectedDate = DateTime.now();
 
-  // ✅ 1. متغيرات الحالة الجديدة
   bool _isWeeklyView = true;
-  String _userName = "مستخدم"; // اسم افتراضي
+  String _userName = "مستخدم";
 
   void initDashboard() {
     _currentSelectedDate = DateTime.now();
-
-    // ✅ 2. جلب الاسم عند البدء
     _fetchUserName();
-
     _fetchHealthHistory();
     _listenToTasksForDate(_currentSelectedDate);
   }
 
-  // ✅ 3. دالة لجلب اسم المستخدم الحقيقي
   Future<void> _fetchUserName() async {
     final user = _auth.currentUser;
     if (user != null) {
-      // الاسم من المصادقة كبداية
       _userName = user.displayName ?? "مستخدم";
-
-      // محاولة جلب الاسم التفصيلي من Firestore
       try {
         final doc = await _firestore.collection('users').doc(user.uid).get();
         if (doc.exists && doc.data() != null) {
           final data = doc.data()!;
-          // تحقق من اسم الحقل في الداتابيز لديك (name أو fullName)
           if (data.containsKey('name')) {
             _userName = data['name'];
           } else if (data.containsKey('fullName')) {
@@ -55,7 +47,6 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
       } catch (e) {
         print("Error fetching name: $e");
       }
-      // تحديث الواجهة بالاسم الجديد
       _emitUpdatedState();
     }
   }
@@ -80,19 +71,33 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
     _healthSubscription?.cancel();
     final int limit = _isWeeklyView ? 7 : 30;
 
+    // ✅ استخدام حقل 'date' بدلاً من 'timestamp' ليتوافق مع الـ Repository
     _healthSubscription = _firestore
         .collection('users')
         .doc(uid)
         .collection('health_readings')
-        .orderBy('timestamp', descending: true)
-        .limit(limit)
+        .orderBy('date', descending: true)
+        .limit(limit * 2)
         .snapshots()
         .listen((snapshot) {
-          _cachedHistory = snapshot.docs
-              .map((doc) => HealthDataModel.fromMap(doc.data()))
-              .toList()
-              .reversed
-              .toList();
+          final Map<String, HealthDataModel> uniqueData = {};
+
+          for (var doc in snapshot.docs) {
+            final data = HealthDataModel.fromMap(doc.data());
+
+            // ✅ إنشاء مفتاح فريد لكل دقيقة (سنة-شهر-يوم-ساعة-دقيقة)
+            // هذا يضمن أن أي قراءات مكررة في نفس الدقيقة ستظهر كقراءة واحدة فقط
+            final String timeKey = DateFormat(
+              'yyyyMMdd_HHmm',
+            ).format(data.date);
+
+            if (!uniqueData.containsKey(timeKey)) {
+              uniqueData[timeKey] = data;
+            }
+          }
+
+          // تحويل الـ Map إلى قائمة وترتيبها زمنياً
+          _cachedHistory = uniqueData.values.toList().reversed.toList();
           _emitUpdatedState();
         }, onError: (e) => emit(HealthDashboardError(e.toString())));
   }
@@ -102,21 +107,29 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
     if (uid == null) return;
 
     _tasksSubscription?.cancel();
-    // تحويل التاريخ لنفس صيغة التخزين (YYYY-MM-DD)
-    final dateString = date.toIso8601String().split('T')[0];
+    final dateString = "${date.year}-${date.month}-${date.day}";
 
     _tasksSubscription = _firestore
         .collection('users')
         .doc(uid)
-        .collection('daily_tasks')
+        .collection('daily_tracking')
         .doc(dateString)
-        .collection('tasks_list')
         .snapshots()
-        .listen((snapshot) {
-          _cachedTasks = snapshot.docs
-              .map((doc) => TaskModel.fromMap(doc.data()))
-              .toList();
-          _emitUpdatedState();
+        .listen((docSnapshot) {
+          if (docSnapshot.exists && docSnapshot.data() != null) {
+            final data = docSnapshot.data()!;
+            if (data.containsKey('tasks')) {
+              // التأكد من استدعاء الدالة الستاتيكية الجديدة في الموديل
+              _cachedTasks = TaskModel.fromMap(
+                data['tasks'] as Map<String, dynamic>,
+              );
+            } else {
+              _cachedTasks = [];
+            }
+          } else {
+            _cachedTasks = [];
+          }
+          _emitUpdatedState(); // سيقوم بتحديث النسبة المئوية فوراً
         });
   }
 
@@ -142,10 +155,7 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
     final int totalTasks = _cachedTasks.length;
     final int completedCount = _cachedTasks.where((t) => t.isCompleted).length;
 
-    double percentage = 0.0;
-    if (totalTasks > 0) {
-      percentage = completedCount / totalTasks;
-    }
+    double percentage = totalTasks > 0 ? completedCount / totalTasks : 0.0;
 
     emit(
       HealthDashboardLoaded(

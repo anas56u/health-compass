@@ -24,25 +24,22 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
   final Color _bgColor = const Color(0xFFF8FAFC);
   final ScrollController _scrollController = ScrollController();
 
-  bool _isWeekly = true; // يمكن ربطها بالكيوبت لاحقاً
+  bool _isWeekly = true;
   int _selectedChartIndex = 0;
-  int _selectedDateIndex = 6; // افتراضياً اليوم
+  int _selectedDateIndex = 6;
 
-  // --- دوال مساعدة للعرض ---
   String _getSugarStatus(int value) =>
       value == 0 ? "--" : (value > 140 ? "مرتفع" : "طبيعي");
 
   String _getHeartStatus(int value) =>
       value == 0 ? "--" : (value > 100 ? "تسارع" : "طبيعي");
 
-  // --- تفعيل الرسم البياني والتركيز عليه ---
   void _activateChartFor(int index) {
     setState(() => _selectedChartIndex = index);
-    // التمرير التلقائي لمكان الرسم البياني (بشكل نسبي لارتفاع الشاشة)
     if (_scrollController.hasClients) {
       final screenHeight = MediaQuery.of(context).size.height;
       _scrollController.animateTo(
-        screenHeight * 0.45, // تقريباً منتصف الصفحة
+        screenHeight * 0.45,
         duration: const Duration(milliseconds: 600),
         curve: Curves.easeInOut,
       );
@@ -51,7 +48,6 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    // استخدام MediaQuery للأبعاد النسبية
     final size = MediaQuery.of(context).size;
 
     SystemChrome.setSystemUIOverlayStyle(
@@ -81,10 +77,11 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                     }
 
                     if (state is HealthDashboardLoaded) {
-                      // التحقق من فراغ البيانات لعرض الـ Empty State
+                      // ✅ تحسين فحص فراغ البيانات ليشمل الضغط أيضاً
                       bool isEmptyData =
                           state.latestData.heartRate == 0 &&
-                          state.latestData.sugar == 0;
+                          state.latestData.sugar == 0 &&
+                          state.latestData.systolic == 0;
 
                       return CustomScrollView(
                         controller: _scrollController,
@@ -97,6 +94,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                             state.latestData,
                             state.commitmentPercentage,
                             state.userName,
+                            state.isWeekly,
                           ),
 
                           SliverToBoxAdapter(
@@ -108,14 +106,13 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const SizedBox(height: 25),
-                                  // 1. شريط التاريخ
                                   _buildFadeIn(
-                                    child: _buildRealDateTimeline(),
+                                    child: _buildRealDateTimeline(context),
                                     delay: 100,
                                   ),
                                   const SizedBox(height: 25),
 
-                                  // 2. بطاقة الإنجاز (أصبحت تفاعلية الآن)
+                                  // ✅ بطاقة التحدي الآن تستخدم البيانات الحقيقية من الـ state
                                   _buildFadeIn(
                                     child: _buildDailyProgressCard(
                                       state.completedTasks,
@@ -137,7 +134,6 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                             ),
                           ),
 
-                          // 3. شبكة البيانات الحيوية
                           isEmptyData
                               ? SliverToBoxAdapter(
                                   child: _buildEmptyStateWidget(),
@@ -153,13 +149,12 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const SizedBox(height: 30),
-                                  // 4. الرسم البياني (يظهر فقط عند وجود بيانات)
                                   if (!isEmptyData) ...[
                                     _buildSectionTitle("التحليل البياني"),
                                     const SizedBox(height: 15),
-                                    // نمرر الارتفاع النسبي للرسم البياني
                                     _buildMultiChartSection(
                                       state.historyData,
+                                      state.isWeekly,
                                       height: size.height * 0.45,
                                     ),
                                     const SizedBox(height: 30),
@@ -205,7 +200,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
           ),
           const SizedBox(height: 15),
           Text(
-            "لا توجد قراءات بعد",
+            "لا توجد قراءات لهذا اليوم",
             style: GoogleFonts.cairo(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -214,7 +209,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
           ),
           const SizedBox(height: 5),
           Text(
-            "ابدأ بقياس مؤشراتك الحيوية لتظهر هنا.",
+            "اختر يوماً آخر من الشريط العلوي أو أضف قراءة جديدة.",
             textAlign: TextAlign.center,
             style: GoogleFonts.cairo(fontSize: 14, color: Colors.grey.shade400),
           ),
@@ -227,12 +222,12 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
     BuildContext context,
     HealthDataModel data,
     double commitment,
-    String userName, // ✅ معامل جديد لاستقبال اسم المستخدم
+    String userName,
+    bool isWeeklyView,
   ) {
     final int percentInt = (commitment * 100).toInt();
     return SliverAppBar(
       expandedHeight: 280,
-      floating: false,
       pinned: true,
       backgroundColor: _primaryColor,
       elevation: 0,
@@ -253,21 +248,11 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
             backgroundColor: Colors.white24,
             child: Icon(Icons.picture_as_pdf_rounded, color: Colors.white),
           ),
-          tooltip: "تحميل التقرير",
-          // ✅ تفعيل زر الـ PDF وتمرير الاسم
           onPressed: () async {
-            try {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("جاري إنشاء التقرير...")),
-              );
-
-              // استدعاء الخدمة مع البيانات والاسم
-              await PdfService.generateAndOpen(data, userName);
-            } catch (e) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text("حدث خطأ: $e")));
-            }
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("جاري إنشاء التقرير...")),
+            );
+            await PdfService.generateMedicalReport(data, userName);
           },
         ),
         const SizedBox(width: 8),
@@ -282,14 +267,6 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                   end: Alignment.bottomRight,
                   colors: [_primaryColor, const Color(0xFF115E59)],
                 ),
-              ),
-            ),
-            Positioned(
-              top: -50,
-              right: -50,
-              child: CircleAvatar(
-                radius: 150,
-                backgroundColor: Colors.white.withOpacity(0.05),
               ),
             ),
             Align(
@@ -336,7 +313,6 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                     ],
                   ),
                   const SizedBox(height: 20),
-                  // أزرار التبديل (أسبوعي/شهري)
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
@@ -346,9 +322,18 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // ✅ نمرر الـ context هنا لتجنب خطأ ProviderNotFoundException
-                        _buildHeaderTabButton(context, "أسبوعي", true),
-                        _buildHeaderTabButton(context, "شهري", false),
+                        _buildHeaderTabButton(
+                          context,
+                          "أسبوعي",
+                          true,
+                          isWeeklyView,
+                        ),
+                        _buildHeaderTabButton(
+                          context,
+                          "شهري",
+                          false,
+                          isWeeklyView,
+                        ),
                       ],
                     ),
                   ),
@@ -361,20 +346,16 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
     );
   }
 
-  // ✅ أضفنا (BuildContext context) هنا
   Widget _buildHeaderTabButton(
     BuildContext context,
     String text,
     bool isWeeklyBtn,
+    bool currentIsWeekly,
   ) {
-    bool isSelected = _isWeekly == isWeeklyBtn;
-
+    bool isSelected = currentIsWeekly == isWeeklyBtn;
     return GestureDetector(
-      onTap: () {
-        setState(() => _isWeekly = isWeeklyBtn);
-        // ✅ الآن نستخدم الـ context الصحيح الممرر للدالة
-        context.read<HealthDashboardCubit>().toggleViewMode(isWeeklyBtn);
-      },
+      onTap: () =>
+          context.read<HealthDashboardCubit>().toggleViewMode(isWeeklyBtn),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -394,8 +375,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
     );
   }
 
-  //  الشريط الزمني التفاعلي
-  Widget _buildRealDateTimeline() {
+  Widget _buildRealDateTimeline(BuildContext context) {
     return SizedBox(
       height: 85,
       child: ListView.separated(
@@ -403,16 +383,14 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
         physics: const BouncingScrollPhysics(),
         itemCount: 7,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
+        itemBuilder: (ctx, index) {
           final date = DateTime.now().subtract(Duration(days: 6 - index));
           final bool isSelected = index == _selectedDateIndex;
           final String dayName = intl.DateFormat('E', 'ar').format(date);
-          final String dayNumber = date.day.toString();
 
           return InkWell(
             onTap: () {
               setState(() => _selectedDateIndex = index);
-              //  استخدم الـ context القادم من itemBuilder
               context.read<HealthDashboardCubit>().changeSelectedDate(date);
             },
             borderRadius: BorderRadius.circular(18),
@@ -448,7 +426,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    dayNumber,
+                    "${date.day}",
                     style: GoogleFonts.poppins(
                       color: isSelected ? Colors.white : Colors.black87,
                       fontSize: 18,
@@ -464,106 +442,94 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
     );
   }
 
-  //  بطاقة الإنجاز (تفاعلية)
   Widget _buildDailyProgressCard(int completed, int total) {
     double progress = total == 0 ? 0 : completed / total;
-    bool isFull = progress >= 1.0;
+    bool isFull = progress >= 1.0 && total > 0;
 
-    return InkWell(
-      onTap: () {
-        // يمكنك هنا الانتقال لصفحة المهام: Navigator.push...
-      },
-      borderRadius: BorderRadius.circular(20),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 500),
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: isFull
-              ? const LinearGradient(
-                  colors: [Color(0xFFFFD700), Color(0xFFFFA000)],
-                ) // ذهبي
-              : const LinearGradient(
-                  colors: [Color(0xFF1E293B), Color(0xFF334155)],
-                ), // كحلي
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: isFull
-                  ? Colors.amber.withOpacity(0.4)
-                  : const Color(0xFF1E293B).withOpacity(0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 60,
-                  height: 60,
-                  child: CircularProgressIndicator(
-                    value: progress,
-                    strokeWidth: 6,
-                    backgroundColor: Colors.white24,
-                    valueColor: AlwaysStoppedAnimation(
-                      isFull ? Colors.white : const Color(0xFF2DD4BF),
-                    ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: isFull
+            ? const LinearGradient(
+                colors: [Color(0xFFFFD700), Color(0xFFFFA000)],
+              )
+            : const LinearGradient(
+                colors: [Color(0xFF1E293B), Color(0xFF334155)],
+              ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 60,
+                height: 60,
+                child: CircularProgressIndicator(
+                  value: progress,
+                  strokeWidth: 6,
+                  backgroundColor: Colors.white24,
+                  valueColor: AlwaysStoppedAnimation(
+                    isFull ? Colors.white : const Color(0xFF2DD4BF),
                   ),
                 ),
-                if (isFull)
-                  const Icon(Icons.emoji_events, color: Colors.white, size: 30)
-                else
-                  Text(
-                    "${(progress * 100).toInt()}%",
-                    style: const TextStyle(
+              ),
+              isFull
+                  ? const Icon(
+                      Icons.emoji_events,
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                      size: 30,
+                    )
+                  : Text(
+                      "${(progress * 100).toInt()}%",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
+            ],
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isFull ? "أنت أسطورة!" : "تحدي المهام",
+                  style: GoogleFonts.cairo(
+                    color: isFull ? Colors.black87 : Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
+                ),
+                Text(
+                  total == 0
+                      ? "لا توجد مهام اليوم"
+                      : (isFull
+                            ? "أتممت جميع المهام 🎉"
+                            : "أكملت $completed من أصل $total مهام"),
+                  style: GoogleFonts.cairo(
+                    color: isFull ? Colors.black54 : Colors.white70,
+                    fontSize: 12,
+                  ),
+                ),
               ],
             ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isFull ? "أنت أسطورة!" : "تحدي اليوم",
-                    style: GoogleFonts.cairo(
-                      color: isFull ? Colors.black87 : Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    isFull
-                        ? "أتممت جميع المهام بنجاح 🎉"
-                        : "أكملت $completed من أصل $total مهام",
-                    style: GoogleFonts.cairo(
-                      color: isFull ? Colors.black54 : Colors.white70,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.arrow_forward_ios_rounded,
-              color: Colors.white54,
-              size: 16,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  //  شبكة العلامات الحيوية (تفاعلية)
   Widget _buildVitalSignsGrid(HealthDataModel data) {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -573,53 +539,41 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
         crossAxisSpacing: 16,
         childAspectRatio: 0.85,
         children: [
-          _buildFadeIn(
-            child: _buildProHealthCard(
-              title: "نبضات القلب",
-              value: data.heartRate > 0 ? "${data.heartRate.toInt()}" : "--",
-              unit: "bpm",
-              status: _getHeartStatus(data.heartRate.toInt()),
-              color: const Color(0xFFEF4444),
-              icon: Icons.favorite_rounded,
-              onTap: () => _activateChartFor(2), // تفعيل رسم القلب
-            ),
-            delay: 400,
+          _buildProHealthCard(
+            title: "نبضات القلب",
+            value: data.heartRate > 0 ? "${data.heartRate.toInt()}" : "--",
+            unit: "bpm",
+            status: _getHeartStatus(data.heartRate.toInt()),
+            color: const Color(0xFFEF4444),
+            icon: Icons.favorite_rounded,
+            onTap: () => _activateChartFor(2),
           ),
-          _buildFadeIn(
-            child: _buildProHealthCard(
-              title: "ضغط الدم",
-              value: data.bloodPressure.isEmpty ? "--/--" : data.bloodPressure,
-              unit: "mmHg",
-              status: "طبيعي",
-              color: _primaryColor,
-              icon: Icons.compress_rounded,
-              onTap: () => _activateChartFor(1), // تفعيل رسم الضغط
-            ),
-            delay: 500,
+          _buildProHealthCard(
+            title: "ضغط الدم",
+            value: data.systolic == 0 ? "--/--" : data.bloodPressure,
+            unit: "mmHg",
+            status: "طبيعي",
+            color: _primaryColor,
+            icon: Icons.compress_rounded,
+            onTap: () => _activateChartFor(1),
           ),
-          _buildFadeIn(
-            child: _buildProHealthCard(
-              title: "السكر",
-              value: data.sugar > 0 ? "${data.sugar}" : "--",
-              unit: "mg/dL",
-              status: _getSugarStatus(data.sugar),
-              color: const Color(0xFFF59E0B),
-              icon: Icons.water_drop_rounded,
-              onTap: () => _activateChartFor(0), // تفعيل رسم السكر
-            ),
-            delay: 600,
+          _buildProHealthCard(
+            title: "السكر",
+            value: data.sugar > 0 ? "${data.sugar}" : "--",
+            unit: "mg/dL",
+            status: _getSugarStatus(data.sugar),
+            color: const Color(0xFFF59E0B),
+            icon: Icons.water_drop_rounded,
+            onTap: () => _activateChartFor(0),
           ),
-          _buildFadeIn(
-            child: _buildProHealthCard(
-              title: "الوزن",
-              value: data.weight > 0 ? "${data.weight}" : "--",
-              unit: "kg",
-              status: "متابعة",
-              color: const Color(0xFF78350F),
-              icon: Icons.monitor_weight_rounded,
-              onTap: () {},
-            ),
-            delay: 700,
+          _buildProHealthCard(
+            title: "الوزن",
+            value: data.weight > 0 ? "${data.weight}" : "--",
+            unit: "kg",
+            status: "متابعة",
+            color: const Color(0xFF78350F),
+            icon: Icons.monitor_weight_rounded,
+            onTap: () {},
           ),
         ],
       ),
@@ -691,35 +645,20 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 4),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Flexible(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      value,
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                value,
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(width: 4),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    unit,
-                    style: GoogleFonts.poppins(
-                      color: Colors.white70,
-                      fontSize: 10,
-                    ),
-                  ),
-                ),
-              ],
+              ),
+            ),
+            Text(
+              unit,
+              style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10),
             ),
           ],
         ),
@@ -727,136 +666,68 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
     );
   }
 
-  // --- الرسم البياني الذكي
   Widget _buildMultiChartSection(
-    List<HealthDataModel> history, {
+    List<HealthDataModel> history,
+    bool isWeeklyView, {
     required double height,
   }) {
-    // 1. تحديد النطاق بناءً على الاختيار (أسبوعي أم شهري)
-    final int daysCount = _isWeekly ? 7 : 30;
-
+    final int daysCount = isWeeklyView ? 7 : 30;
     List<FlSpot> spots = [];
     List<double> dailyValues = List.filled(daysCount, 0.0);
-    DateTime toDateOnly(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
-    final today = toDateOnly(DateTime.now());
+    final today = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+    );
 
-    // 2. توزيع البيانات
     for (var item in history) {
-      final itemDate = toDateOnly(item.date);
-      final difference = today.difference(itemDate).inDays;
-
+      final difference = today
+          .difference(DateTime(item.date.year, item.date.month, item.date.day))
+          .inDays;
       if (difference >= 0 && difference < daysCount) {
-        // المعادلة العامة: (آخر اندكس - الفرق)
         int index = (daysCount - 1) - difference;
-
-        double val = 0.0;
-        if (_selectedChartIndex == 0)
-          val = item.sugar.toDouble();
-        else if (_selectedChartIndex == 2)
-          val = item.heartRate;
-        else if (_selectedChartIndex == 1)
-          val = item.systolic.toDouble();
-
-        // نأخذ القيمة الأحدث إذا تكررت التواريخ
+        double val = _selectedChartIndex == 0
+            ? item.sugar.toDouble()
+            : (_selectedChartIndex == 2
+                  ? item.heartRate
+                  : item.systolic.toDouble());
         if (dailyValues[index] == 0) dailyValues[index] = val;
       }
     }
 
-    // 3. إنشاء النقاط
     for (int i = 0; i < daysCount; i++) {
-      if (dailyValues[i] > 0) {
-        spots.add(FlSpot(i.toDouble(), dailyValues[i]));
-      }
+      if (dailyValues[i] > 0) spots.add(FlSpot(i.toDouble(), dailyValues[i]));
     }
 
-    if (spots.isEmpty) {
-      return Container(
-        height: height > 400 ? 400 : height,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Text(
-          "لا توجد بيانات كافية للرسم",
-          style: GoogleFonts.cairo(color: Colors.grey),
-        ),
-      );
-    }
-
-    // حساب الحدود
-    double maxY = spots.map((e) => e.y).reduce(max);
-    double minY = spots.map((e) => e.y).reduce(min);
-    double graphMin = (minY - 10) < 0 ? 0 : (minY - 10);
-    double graphMax = maxY + 10;
-    if (graphMax == graphMin) graphMax += 10;
+    if (spots.isEmpty) return const SizedBox();
 
     Color activeColor = _selectedChartIndex == 0
         ? Colors.orange
-        : _selectedChartIndex == 1
-        ? _primaryColor
-        : Colors.redAccent;
+        : (_selectedChartIndex == 1 ? _primaryColor : Colors.redAccent);
 
     return Container(
       height: height > 500 ? 500 : height,
-      padding: const EdgeInsets.fromLTRB(10, 20, 20, 10),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 5),
-          ),
-        ],
       ),
       child: Column(
         children: [
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildChartTab("السكري", 0, Colors.orange),
-                _buildChartTab("الضغط", 1, _primaryColor),
-                _buildChartTab("القلب", 2, Colors.redAccent),
-              ],
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildChartTab("السكري", 0, Colors.orange),
+              _buildChartTab("الضغط", 1, _primaryColor),
+              _buildChartTab("القلب", 2, Colors.redAccent),
+            ],
           ),
           const SizedBox(height: 30),
           Expanded(
             child: LineChart(
               LineChartData(
-                lineTouchData: LineTouchData(
-                  touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (_) => Colors.blueGrey.withOpacity(0.9),
-                    getTooltipItems: (touchedSpots) => touchedSpots
-                        .map(
-                          (spot) => LineTooltipItem(
-                            '${spot.y.toInt()}',
-                            const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                  handleBuiltInTouches: true,
-                ),
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: (graphMax - graphMin) / 4,
-                  getDrawingHorizontalLine: (_) => FlLine(
-                    color: Colors.grey.withOpacity(0.1),
-                    strokeWidth: 1,
-                  ),
-                ),
+                gridData: FlGridData(show: true, drawVerticalLine: false),
                 titlesData: FlTitlesData(
-                  show: true,
                   rightTitles: AxisTitles(
                     sideTitles: SideTitles(showTitles: false),
                   ),
@@ -869,35 +740,20 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 32,
-                      // ✅ في الوضع الشهري: نعرض تاريخ كل 5 أيام لتجنب الزحام
-                      interval: _isWeekly ? 1 : 5,
+                      interval: isWeeklyView ? 1 : 5,
                       getTitlesWidget: (value, meta) {
-                        int index = value.toInt();
-                        if (index >= 0 && index < daysCount) {
-                          final date = DateTime.now().subtract(
-                            Duration(days: (daysCount - 1) - index),
-                          );
-                          // ✅ تنسيق التاريخ يختلف حسب الوضع
-                          final text = _isWeekly
-                              ? intl.DateFormat('E', 'ar').format(
-                                  date,
-                                ) // سبت، أحد
-                              : intl.DateFormat('d/M').format(date); // 12/1
-
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 10),
-                            child: Text(
-                              text,
-                              style: GoogleFonts.cairo(
-                                color: Colors.grey.shade600,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          );
-                        }
-                        return const SizedBox();
+                        int idx = value.toInt();
+                        if (idx < 0 || idx >= daysCount)
+                          return const SizedBox();
+                        final date = DateTime.now().subtract(
+                          Duration(days: (daysCount - 1) - idx),
+                        );
+                        return Text(
+                          isWeeklyView
+                              ? intl.DateFormat('E', 'ar').format(date)
+                              : intl.DateFormat('d/M').format(date),
+                          style: const TextStyle(fontSize: 10),
+                        );
                       },
                     ),
                   ),
@@ -907,41 +763,21 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
                   LineChartBarData(
                     spots: spots,
                     isCurved: true,
-                    curveSmoothness: 0.35,
                     color: activeColor,
                     barWidth: 4,
-                    isStrokeCapRound: true,
-                    dotData: FlDotData(
-                      show: _isWeekly,
-                      getDotPainter: (spot, percent, barData, index) =>
-                          FlDotCirclePainter(
-                            radius: 4,
-                            color: Colors.white,
-                            strokeWidth: 3,
-                            strokeColor: activeColor,
-                          ),
-                    ),
+                    dotData: FlDotData(show: isWeeklyView),
                     belowBarData: BarAreaData(
                       show: true,
                       gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
                         colors: [
-                          activeColor.withOpacity(0.25),
-                          activeColor.withOpacity(0.0),
+                          activeColor.withOpacity(0.2),
+                          activeColor.withOpacity(0),
                         ],
                       ),
                     ),
                   ),
                 ],
-                minX: 0,
-                maxX: (daysCount - 1)
-                    .toDouble(), // ✅ الحد الأقصى ديناميكي (6 أو 29)
-                minY: graphMin,
-                maxY: graphMax,
               ),
-              duration: const Duration(milliseconds: 600),
-              curve: Curves.easeInOutCubic,
             ),
           ),
         ],
@@ -953,20 +789,19 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
     bool isSelected = _selectedChartIndex == index;
     return GestureDetector(
       onTap: () => _activateChartFor(index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        margin: const EdgeInsets.only(left: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? color : const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
           title,
           style: GoogleFonts.cairo(
-            color: isSelected ? Colors.white : Colors.grey[600],
-            fontWeight: FontWeight.bold,
+            color: isSelected ? Colors.white : Colors.grey,
             fontSize: 12,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
@@ -975,53 +810,25 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
 
   Widget _buildSectionTitle(String title) => Text(
     title,
-    style: GoogleFonts.cairo(
-      fontSize: 18,
-      fontWeight: FontWeight.bold,
-      color: Colors.black87,
-    ),
+    style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold),
   );
 
   Widget _buildInsightBanner() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: const Color(0xFFECFDF5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.green.withOpacity(0.2)),
       ),
       child: Row(
         children: [
-          const CircleAvatar(
-            backgroundColor: Colors.white,
-            radius: 18,
-            child: Icon(
-              Icons.auto_graph_rounded,
-              color: Color(0xFF10B981),
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
+          const Icon(Icons.auto_graph, color: Colors.green),
+          const SizedBox(width: 10),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "تحسن ملحوظ!",
-                  style: GoogleFonts.cairo(
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF065F46),
-                    fontSize: 14,
-                  ),
-                ),
-                Text(
-                  "أداؤك أفضل بنسبة 12% مقارنة بالأسبوع الماضي.",
-                  style: GoogleFonts.cairo(
-                    color: const Color(0xFF047857),
-                    fontSize: 11,
-                  ),
-                ),
-              ],
+            child: Text(
+              "أداء رائع! التزامك بالمهام تحسن بشكل ملحوظ.",
+              style: GoogleFonts.cairo(color: Colors.green[800], fontSize: 13),
             ),
           ),
         ],
@@ -1032,7 +839,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
   Widget _buildFadeIn({required Widget child, required int delay}) {
     return TweenAnimationBuilder(
       tween: Tween<double>(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 500),
+      duration: Duration(milliseconds: 500 + delay),
       builder: (context, value, child) => Opacity(
         opacity: value,
         child: Transform.translate(
@@ -1043,8 +850,4 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
       child: child,
     );
   }
-}
-
-extension PdfColorExtension on PdfColor {
-  PdfColor withOpacity(double opacity) => PdfColor(red, green, blue, opacity);
 }

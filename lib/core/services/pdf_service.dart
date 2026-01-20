@@ -1,429 +1,168 @@
 import 'dart:io';
 import 'package:flutter/services.dart';
+import 'package:health_compass/feature/health_dashboard/models/health_data_model.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'package:intl/intl.dart' as intl;
-import 'package:health_compass/feature/health_dashboard/models/health_data_model.dart';
+import 'package:arabic_reshaper/arabic_reshaper.dart';
 
 class PdfService {
-  // الألوان المستوحاة من التطبيق
   static const PdfColor primaryColor = PdfColor.fromInt(0xFF0D9488);
-  static const PdfColor accentColor = PdfColor.fromInt(0xFFF0FDFA);
-  static const PdfColor darkText = PdfColor.fromInt(0xFF1E293B);
-  static const PdfColor lightText = PdfColor.fromInt(0xFF64748B);
+  static final ArabicReshaper _reshaper = ArabicReshaper();
 
-  // ✅ الدالة تستقبل الآن اسم المستخدم
-  static Future<void> generateAndOpen(
+  // معالجة النصوص العربية فقط (مثل اسم خالد)
+  static String _fixArabic(String text) {
+    if (text.isEmpty) return "";
+    if (RegExp(r'[\u0600-\u06FF]').hasMatch(text)) {
+      String reshaped = _reshaper.reshape(text);
+      return reshaped.split('').reversed.join();
+    }
+    return text;
+  }
+
+  static Future<void> generateMedicalReport(
     HealthDataModel data,
     String userName,
   ) async {
     final pdf = pw.Document();
 
-    // تحميل اللوجو
-    final imageBytes = await rootBundle.load('assets/images/logo.jpeg');
-    final logoImage = pw.MemoryImage(imageBytes.buffer.asUint8List());
-
-    final String reportDate = intl.DateFormat(
-      'dd MMM yyyy, hh:mm a',
-    ).format(DateTime.now());
+    final fontData = await rootBundle.load('assets/Fonts/Cairo-Regular.ttf');
+    final ttf = pw.Font.ttf(fontData);
 
     pdf.addPage(
-      pw.MultiPage(
-        pageTheme: pw.PageTheme(
-          margin: const pw.EdgeInsets.all(40),
-          theme: pw.ThemeData.withFont(
-            base: pw.Font.helvetica(),
-            bold: pw.Font.helveticaBold(),
-          ),
-          buildBackground: (context) => pw.FullPage(
-            ignoreMargins: true,
-            child: pw.Container(
-              decoration: pw.BoxDecoration(
-                border: pw.Border.all(color: primaryColor, width: 5),
-              ),
-            ),
-          ),
-        ),
-        header: (context) => _buildHeader(logoImage, reportDate),
-        footer: (context) => _buildFooter(context),
-        build: (context) => [
-          pw.SizedBox(height: 20),
-
-          pw.Center(
-            child: pw.Text(
-              "MEDICAL STATUS REPORT",
-              style: pw.TextStyle(
-                fontSize: 18,
-                fontWeight: pw.FontWeight.bold,
-                color: primaryColor,
-                letterSpacing: 2,
-              ),
-            ),
-          ),
-          pw.SizedBox(height: 20),
-
-          // ✅ تمرير الاسم للقسم الخاص به
-          _buildPatientInfoSection(userName),
-          pw.SizedBox(height: 30),
-
-          pw.Text(
-            "VITAL SIGNS OVERVIEW",
-            style: pw.TextStyle(
-              fontSize: 12,
-              fontWeight: pw.FontWeight.bold,
-              color: lightText,
-            ),
-          ),
-          pw.Divider(color: primaryColor, thickness: 1),
-          pw.SizedBox(height: 10),
-
-          _buildVitalsGrid(data),
-
-          pw.SizedBox(height: 30),
-
-          _buildInsightsSection(),
-
-          pw.SizedBox(height: 40),
-
-          pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.end,
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        theme: pw.ThemeData.withFont(base: ttf, bold: ttf),
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.center,
+              // الهيدر
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Container(width: 150, height: 1, color: PdfColors.grey400),
-                  pw.SizedBox(height: 5),
                   pw.Text(
-                    "Authorized Signature",
-                    style: const pw.TextStyle(
-                      fontSize: 10,
-                      color: PdfColors.grey600,
+                    "MEDICAL REPORT",
+                    style: pw.TextStyle(
+                      fontSize: 18,
+                      fontWeight: pw.FontWeight.bold,
+                      color: primaryColor,
                     ),
+                  ),
+                  pw.Text(
+                    intl.DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                    style: const pw.TextStyle(fontSize: 10),
                   ),
                 ],
               ),
-            ],
-          ),
-        ],
-      ),
-    );
+              pw.Divider(thickness: 1.5, color: primaryColor),
+              pw.SizedBox(height: 15),
 
-    final output = await getTemporaryDirectory();
-    final file = File(
-      "${output.path}/Health_Report_${DateTime.now().millisecondsSinceEpoch}.pdf",
-    );
-    await file.writeAsBytes(await pdf.save());
-    await OpenFile.open(file.path);
-  }
-
-  // --- Widgets ---
-
-  static pw.Widget _buildHeader(pw.MemoryImage logo, String date) {
-    return pw.Column(
-      children: [
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: pw.CrossAxisAlignment.center,
-          children: [
-            pw.Row(
-              children: [
-                pw.Container(width: 50, height: 50, child: pw.Image(logo)),
-                pw.SizedBox(width: 10),
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+              // بيانات المستخدم (الاسم بالعربي)
+              pw.Container(
+                padding: const pw.EdgeInsets.all(10),
+                decoration: const pw.BoxDecoration(color: PdfColors.grey100),
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text(
-                      "HEALTH COMPASS",
-                      style: pw.TextStyle(
-                        fontSize: 16,
-                        fontWeight: pw.FontWeight.bold,
-                        color: primaryColor,
-                      ),
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          "Patient Name:",
+                          style: const pw.TextStyle(
+                            fontSize: 9,
+                            color: PdfColors.grey700,
+                          ),
+                        ),
+                        pw.Text(
+                          _fixArabic(userName),
+                          style: pw.TextStyle(
+                            fontSize: 13,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                     pw.Text(
-                      "Personal Health Assistant",
-                      style: const pw.TextStyle(
-                        fontSize: 9,
-                        color: PdfColors.grey600,
-                      ),
+                      "ID: #HC-2026",
+                      style: const pw.TextStyle(fontSize: 8),
                     ),
                   ],
                 ),
-              ],
-            ),
-            pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.end,
-              children: [
-                pw.Text(
-                  "REPORT DATE",
-                  style: pw.TextStyle(
-                    fontSize: 8,
-                    color: lightText,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-                pw.Text(
-                  date,
-                  style: const pw.TextStyle(fontSize: 10, color: darkText),
-                ),
-              ],
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 10),
-        pw.Divider(thickness: 2, color: primaryColor),
-      ],
-    );
-  }
+              ),
+              pw.SizedBox(height: 20),
 
-  static pw.Widget _buildPatientInfoSection(String userName) {
-    return pw.Container(
-      padding: const pw.EdgeInsets.all(15),
-      decoration: pw.BoxDecoration(
-        color: accentColor,
-        borderRadius: pw.BorderRadius.circular(6),
-        border: pw.Border.all(color: primaryColor.withOpacity(0.2)),
-      ),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          _buildInfoField("Patient Name", userName), // ✅ عرض الاسم الحقيقي
-          _buildInfoField("Patient ID", "#892301"),
-          _buildInfoField("Age / Gender", "24 Y / Male"),
-          _buildInfoField("Blood Type", "O+"),
-        ],
-      ),
-    );
-  }
+              // جدول النتائج الطبية
+              pw.Table(
+                border: pw.TableBorder.all(
+                  color: PdfColors.grey300,
+                  width: 0.5,
+                ),
+                children: [
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(color: primaryColor),
+                    children: [
+                      _cell("Parameter", isHeader: true),
+                      _cell("Result", isHeader: true),
+                      _cell("Unit", isHeader: true),
+                    ],
+                  ),
+                  _row("Heart Rate", "${data.heartRate}", "BPM"),
+                  _row(
+                    "Blood Pressure",
+                    "${data.systolic}/${data.diastolic}",
+                    "mmHg",
+                  ),
+                  _row("Sugar Level", "${data.sugar}", "mg/dL"),
+                  _row("Body Weight", "${data.weight}", "kg"),
+                ],
+              ),
 
-  static pw.Widget _buildInfoField(String label, String value) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-          label.toUpperCase(),
-          style: pw.TextStyle(
-            fontSize: 8,
-            color: lightText,
-            fontWeight: pw.FontWeight.bold,
-          ),
-        ),
-        pw.SizedBox(height: 2),
-        pw.Text(
-          value,
-          style: pw.TextStyle(
-            fontSize: 11,
-            color: darkText,
-            fontWeight: pw.FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
-  static pw.Widget _buildVitalsGrid(HealthDataModel data) {
-    return pw.Column(
-      children: [
-        pw.Row(
-          children: [
-            _buildVitalCard(
-              title: "Heart Rate",
-              value: "${data.heartRate.toInt()}",
-              unit: "bpm",
-              status: _getHeartStatus(data.heartRate.toInt()),
-              icon: const pw.IconData(0xe87d),
-              color: PdfColors.red50,
-              textColor: PdfColors.red700,
-            ),
-            pw.SizedBox(width: 15),
-            _buildVitalCard(
-              title: "Blood Pressure",
-              value: data.bloodPressure.isEmpty ? "--/--" : data.bloodPressure,
-              unit: "mmHg",
-              status: "Normal",
-              icon: const pw.IconData(0xe91d),
-              color: accentColor,
-              textColor: primaryColor,
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 15),
-        pw.Row(
-          children: [
-            _buildVitalCard(
-              title: "Blood Glucose",
-              value: "${data.sugar}",
-              unit: "mg/dL",
-              status: _getSugarStatus(data.sugar),
-              icon: const pw.IconData(0xe3e7),
-              color: PdfColors.orange50,
-              textColor: PdfColors.orange700,
-            ),
-            pw.SizedBox(width: 15),
-            _buildVitalCard(
-              title: "Body Weight",
-              value: "${data.weight}",
-              unit: "kg",
-              status: "Stable",
-              icon: const pw.IconData(0xe34e),
-              color: PdfColors.brown50,
-              textColor: PdfColors.brown700,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  static pw.Widget _buildVitalCard({
-    required String title,
-    required String value,
-    required String unit,
-    required String status,
-    required pw.IconData icon,
-    required PdfColor color,
-    required PdfColor textColor,
-  }) {
-    return pw.Expanded(
-      child: pw.Container(
-        padding: const pw.EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-        decoration: pw.BoxDecoration(
-          color: color,
-          borderRadius: pw.BorderRadius.circular(8),
-          border: pw.Border.all(color: textColor.withOpacity(0.3)),
-        ),
-        child: pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-                pw.Text(
-                  title,
-                  style: pw.TextStyle(fontSize: 9, color: textColor),
-                ),
-                pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
+              pw.Spacer(),
+              pw.Divider(thickness: 0.5, color: PdfColors.grey400),
+              pw.Center(
+                child: pw.Text(
+                  _fixArabic(
+                    "هذا التقرير صادر إلكترونياً ولا يعتد به للتشخيص الطبي الرسمي",
                   ),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.white,
-                    borderRadius: pw.BorderRadius.circular(4),
-                  ),
-                  child: pw.Text(
-                    status,
-                    style: pw.TextStyle(
-                      fontSize: 8,
-                      fontWeight: pw.FontWeight.bold,
-                      color: textColor,
-                    ),
+                  style: const pw.TextStyle(
+                    fontSize: 7,
+                    color: PdfColors.grey600,
                   ),
                 ),
-              ],
-            ),
-            pw.SizedBox(height: 5),
-            pw.Row(
-              crossAxisAlignment: pw.CrossAxisAlignment.end,
-              children: [
-                pw.Text(
-                  value,
-                  style: pw.TextStyle(
-                    fontSize: 22,
-                    fontWeight: pw.FontWeight.bold,
-                    color: darkText,
-                  ),
-                ),
-                pw.SizedBox(width: 4),
-                pw.Padding(
-                  padding: const pw.EdgeInsets.only(bottom: 3),
-                  child: pw.Text(
-                    unit,
-                    style: pw.TextStyle(fontSize: 10, color: lightText),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          );
+        },
       ),
     );
+
+    // الحفظ والفتح المباشر (Download & Open)
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File("${dir.path}/Medical_Report.pdf");
+    await file.writeAsBytes(await pdf.save());
+
+    // فتح الملف فوراً
+    await OpenFile.open(file.path);
   }
 
-  static pw.Widget _buildInsightsSection() {
-    return pw.Container(
-      width: double.infinity,
-      padding: const pw.EdgeInsets.all(15),
-      decoration: pw.BoxDecoration(
-        color: PdfColors.grey100,
-        // ✅ تم حذف borderRadius لتفادي الخطأ
-        border: pw.Border(left: pw.BorderSide(color: primaryColor, width: 4)),
-      ),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(
-            "ANALYSIS & INSIGHTS",
-            style: pw.TextStyle(
-              fontSize: 10,
-              fontWeight: pw.FontWeight.bold,
-              color: primaryColor,
-            ),
-          ),
-          pw.SizedBox(height: 5),
-          pw.Text(
-            "The patient shows consistent vital signs within the expected range. No significant irregularities detected in the heart rate or blood pressure measurements over the last period. Continued monitoring is recommended.",
-            style: const pw.TextStyle(
-              fontSize: 10,
-              color: darkText,
-              lineSpacing: 1.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static pw.Widget _buildFooter(pw.Context context) {
-    return pw.Column(
-      children: [
-        pw.Divider(color: PdfColors.grey300),
-        pw.SizedBox(height: 5),
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-          children: [
-            pw.Text(
-              "Generated by Health Compass App",
-              style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey500),
-            ),
-            pw.Text(
-              "Page ${context.pageNumber} of ${context.pagesCount}",
-              style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey500),
-            ),
-          ],
+  static pw.Widget _cell(String text, {bool isHeader = false}) => pw.Padding(
+    padding: const pw.EdgeInsets.all(6),
+    child: pw.Center(
+      child: pw.Text(
+        text,
+        style: pw.TextStyle(
+          color: isHeader ? PdfColors.white : PdfColors.black,
+          fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
+          fontSize: 9,
         ),
-        pw.SizedBox(height: 2),
-        pw.Text(
-          "Disclaimer: This report is for informational purposes only and does not constitute medical advice.",
-          style: const pw.TextStyle(fontSize: 6, color: PdfColors.grey400),
-        ),
-      ],
-    );
-  }
+      ),
+    ),
+  );
 
-  static String _getSugarStatus(int value) => value == 0
-      ? "--"
-      : (value > 140 ? "High" : (value < 70 ? "Low" : "Normal"));
-  static String _getHeartStatus(int value) => value == 0
-      ? "--"
-      : (value > 100 ? "High" : (value < 60 ? "Low" : "Normal"));
-}
-
-// ✅ الامتداد الضروري لدعم الشفافية في الألوان
-extension PdfColorExtension on PdfColor {
-  PdfColor withOpacity(double opacity) {
-    return PdfColor(red, green, blue, opacity);
-  }
+  static pw.TableRow _row(String label, String value, String unit) =>
+      pw.TableRow(children: [_cell(label), _cell(value), _cell(unit)]);
 }

@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,7 +7,8 @@ import 'package:health_compass/core/routes/routes.dart';
 import 'package:health_compass/feature/auth/data/model/PatientModel.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/user_cubit.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/user_state.dart';
-import 'package:health_compass/feature/auth/presentation/screen/login_page.dart';
+import 'package:health_compass/core/widgets/add_vitals_sheet.dart';
+import 'package:health_compass/feature/family_member/logic/family_cubit.dart'; // تأكد من استيراد الكيوبيت
 
 class PatientProfilePage extends StatefulWidget {
   const PatientProfilePage({super.key});
@@ -29,52 +31,70 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Theme(
-      data: _buildPageTheme(), 
+      data: _buildPageTheme(),
       child: Directionality(
         textDirection: TextDirection.rtl,
-        child: Scaffold(
-          backgroundColor: primaryTurquoise,
-          body: Stack(
-            children: [
-              _buildHeader(),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Container(
-                  height: MediaQuery.of(context).size.height * 0.75,
-                  decoration: const BoxDecoration(
-                    color: lightCardBg,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(40),
-                      topRight: Radius.circular(40),
+        child: BlocListener<FamilyCubit, FamilyState>(
+          // استماع لنتائج عمليات الحفظ (إضافة القراءة)
+          listener: (context, state) {
+            if (state is FamilyOperationSuccess) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message, style: GoogleFonts.tajawal()),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            } else if (state is FamilyOperationError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message, style: GoogleFonts.tajawal()),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+          child: Scaffold(
+            backgroundColor: primaryTurquoise,
+            body: Stack(
+              children: [
+                _buildHeader(),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    height: MediaQuery.of(context).size.height * 0.75,
+                    decoration: const BoxDecoration(
+                      color: lightCardBg,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(40),
+                        topRight: Radius.circular(40),
+                      ),
                     ),
-                  ),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildInfoCard(Theme.of(context)),
-                        const SizedBox(height: 25),
-                        Text(
-                          'الاضافات:',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 10),
-                        _buildActionButtons(),
-                       
-                      ],
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildInfoCard(Theme.of(context)),
+                          const SizedBox(height: 25),
+                          Text(
+                            'الاضافات:',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 10),
+                          _buildActionButtons(),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
- 
   ThemeData _buildPageTheme() {
     return ThemeData(
       fontFamily: 'Arial',
@@ -142,17 +162,16 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
               ],
             ),
             const SizedBox(height: 15),
-           
-           BlocBuilder<UserCubit, UserState>(
+            BlocBuilder<UserCubit, UserState>(
               builder: (context, state) {
-                String image = 'https://i.pravatar.cc/150?img=11'; 
+                String image = 'https://i.pravatar.cc/150?img=11';
                 String name = 'جاري التحميل...';
                 String email = '';
-                
+
                 if (state is UserLoaded) {
                   name = state.userModel.fullName;
                   email = state.userModel.email;
-                  if (state.userModel.profileImage != null && 
+                  if (state.userModel.profileImage != null &&
                       state.userModel.profileImage!.isNotEmpty) {
                     image = state.userModel.profileImage!;
                   }
@@ -163,7 +182,6 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
                     CircleAvatar(
                       radius: 35,
                       backgroundImage: NetworkImage(image),
-                   
                     ),
                     const SizedBox(width: 15),
                     Column(
@@ -179,7 +197,10 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
                         ),
                         Text(
                           email,
-                          style: const TextStyle(fontSize: 12, color: Colors.white70),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white70,
+                          ),
                         ),
                       ],
                     ),
@@ -199,11 +220,10 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
         String disease = '...';
         String year = '...';
 
-       
         if (state is UserLoaded && state.userModel is PatientModel) {
           final patient = state.userModel as PatientModel;
-          disease = patient.diseaseType; 
-          year = patient.diagnosisYear ?? 'غير محدد'; 
+          disease = patient.diseaseType;
+          year = patient.diagnosisYear ?? 'غير محدد';
         }
 
         return Container(
@@ -243,36 +263,74 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
   }
 
   Widget _buildActionButtons() {
+    final String? userId = FirebaseAuth.instance.currentUser?.uid;
+
     final List<Map<String, dynamic>> buttons = [
       {
         'text': 'اضافة قراءة يدوية',
         'action': () {
-          print('إضافة قراءة يدوية');
-        }
+          if (userId != null) {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => AddVitalsSheet(patientId: userId),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('خطأ: لم يتم العثور على بيانات المستخدم'),
+              ),
+            );
+          }
+        },
       },
-     
       {
         'text': 'اضافة او تعديل اوقات الصيام',
         'action': () {
           print('تعديل أوقات الصيام');
-        }
+        },
       },
-      {
-        'text': 'تسجيل الخروج',
-        'action': _onLogoutPressed,
-      },
+      {'text': 'تسجيل الخروج', 'action': _onLogoutPressed},
     ];
 
     return Column(
-      children: buttons.map((btn) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: OutlinedButton(
-            onPressed: btn['action'] as VoidCallback,
-            child: Text(btn['text'] as String),
-          ),
-        );
-      }).toList(),
+      children: buttons
+          .map(
+            (btn) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: ListTile(
+                tileColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                leading: Icon(
+                  btn['text'].contains('خروج')
+                      ? Icons.logout
+                      : Icons.add_circle_outline,
+                  color: btn['text'].contains('خروج')
+                      ? Colors.red
+                      : primaryTurquoise,
+                ),
+                title: Text(
+                  btn['text'],
+                  style: GoogleFonts.tajawal(
+                    fontWeight: FontWeight.w600,
+                    color: btn['text'].contains('خروج')
+                        ? Colors.red
+                        : Colors.black87,
+                  ),
+                ),
+                trailing: const Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: Colors.grey,
+                ),
+                onTap: btn['action'],
+              ),
+            ),
+          )
+          .toList(),
     );
   }
 
@@ -318,21 +376,16 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
     );
 
     if (shouldLogout == true && mounted) {
-   
       context.read<UserCubit>().clearUserData();
-         await SharedPrefHelper.clearLoginData();
-      
+      await SharedPrefHelper.clearLoginData();
+
       if (!mounted) return;
 
-     Navigator.pushNamedAndRemoveUntil(
-        context, 
+      Navigator.pushNamedAndRemoveUntil(
+        context,
         AppRoutes.login,
-        (route) => false
+        (route) => false,
       );
     }
   }
-
-  
-
- 
 }

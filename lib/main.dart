@@ -20,12 +20,10 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:health_compass/core/routes/routes.dart';
 import 'package:health_compass/feature/family_member/data/family_repository.dart';
 import 'package:health_compass/feature/family_member/logic/family_cubit.dart';
-// الاستيرادات الضرورية للطوارئ
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:health_compass/core/widgets/EmergencyScreen.dart';
 import 'package:health_compass/feature/auth/presentation/screen/splash_screen.dart';
 
-// تعريف المفتاح العام
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
@@ -36,14 +34,15 @@ void main() async {
 
   await Hive.initFlutter();
   Hive.registerAdapter(ReminderModelAdapter());
-  final Box<ReminderModel> reminderBox = await Hive.openBox<ReminderModel>('reminders');
+  final Box<ReminderModel> reminderBox = await Hive.openBox<ReminderModel>(
+    'reminders',
+  );
 
   final notificationService = NotificationService();
   await notificationService.init();
-
-  // 🔥 1. التقاط تفاصيل الإطلاق (هل هو طوارئ؟)
   final NotificationAppLaunchDetails? notificationAppLaunchDetails =
-      await notificationService.flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
+      await notificationService.flutterLocalNotificationsPlugin
+          .getNotificationAppLaunchDetails();
 
   try {
     debugPrint("Attemping to start background service...");
@@ -56,10 +55,10 @@ void main() async {
 
   runApp(
     MyApp(
-      reminderBox: reminderBox, 
+      reminderBox: reminderBox,
       notificationService: notificationService,
       // تمرير التفاصيل للتطبيق
-      launchDetails: notificationAppLaunchDetails, 
+      launchDetails: notificationAppLaunchDetails,
     ),
   );
 }
@@ -97,8 +96,10 @@ class _MyAppState extends State<MyApp> {
         return MultiBlocProvider(
           providers: [
             BlocProvider(
-              create: (context) =>
-                  RemindersCubit(widget.reminderBox, widget.notificationService),
+              create: (context) => RemindersCubit(
+                widget.reminderBox,
+                widget.notificationService,
+              ),
             ),
             BlocProvider(create: (context) => HealthCubit()),
             BlocProvider(
@@ -107,9 +108,7 @@ class _MyAppState extends State<MyApp> {
             ),
             BlocProvider(create: (context) => SignupCubit(authRepository)),
             BlocProvider(create: (context) => FamilyCubit(familyRepository)),
-            BlocProvider(
-              create: (context) => DoctorHomeCubit(),
-            )
+            BlocProvider(create: (context) => DoctorHomeCubit()),
           ],
           child: MaterialApp(
             navigatorKey: navigatorKey,
@@ -120,11 +119,11 @@ class _MyAppState extends State<MyApp> {
               primaryColor: const Color(0xFF41BFAA),
               scaffoldBackgroundColor: const Color(0xFFF5F7FA),
             ),
-            
+
             // 🔥 التعديل الجوهري هنا 🔥
             // حذفنا initialRoute واستخدمنا home مع دالة الفحص
             home: _determineHomeScreen(),
-            
+
             onGenerateRoute: AppRouter().generateRoute,
           ),
         );
@@ -139,7 +138,7 @@ class _MyAppState extends State<MyApp> {
       final payload = widget.launchDetails?.notificationResponse?.payload;
       if (payload != null && payload.contains('emergency')) {
         debugPrint("🚨 Emergency Launch Detected! Opening Emergency Screen...");
-        
+
         // استخراج القيمة
         final parts = payload.split('_');
         double value = 0.0;

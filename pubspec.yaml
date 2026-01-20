@@ -75,6 +75,7 @@ dependencies:
   url_launcher: ^6.3.2
   audioplayers: ^6.5.1
   flutter_background_service: ^5.1.0
+  arabic_reshaper: ^0.0.1
  
   
   
@@ -108,6 +109,7 @@ flutter:
   assets:
     - assets/images/
     - assets/sounds/
+    - assets/Fonts/
    
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

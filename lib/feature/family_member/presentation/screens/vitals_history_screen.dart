@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:health_compass/core/models/vital_model.dart';
 import 'package:health_compass/feature/family_member/data/family_repository.dart';
+import 'package:health_compass/feature/family_member/logic/family_cubit.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 
 class VitalsHistoryScreen extends StatelessWidget {
-  final String patientId; // المعرف الخاص بالمريض
+  final String patientId;
 
   const VitalsHistoryScreen({super.key, required this.patientId});
 
@@ -14,98 +15,96 @@ class VitalsHistoryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF5F7FA),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: const BackButton(color: Colors.black),
-          title: Text(
-            "سجل العلامات الحيوية",
-            style: GoogleFonts.tajawal(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          centerTitle: true,
-        ),
-        body: StreamBuilder<List<VitalModel>>(
-          // ✅ 1. جلب البيانات من Repository
-          stream: FamilyRepository().getPatientVitals(patientId),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(color: Color(0xFF41BFAA)),
-              );
-            }
-
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.monitor_heart_outlined,
-                      size: 60,
-                      color: Colors.grey[300],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      "لا توجد قراءات مسجلة",
-                      style: GoogleFonts.tajawal(
-                        fontSize: 16,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
-
-            // ترتيب البيانات من الأحدث للأقدم
-            final vitals = snapshot.data!;
-            // vitals.sort((a, b) => b.date.compareTo(a.date));
-
-            return ListView.builder(
-              padding: const EdgeInsets.all(20),
-              itemCount: vitals.length,
-              itemBuilder: (context, index) {
-                final vital = vitals[index];
-                return _buildVitalCard(context, vital);
-              },
+      child: BlocListener<FamilyCubit, FamilyState>(
+        // إضافة مستمع لإظهار رسائل الحذف
+        listener: (context, state) {
+          if (state is FamilyOperationSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.green,
+              ),
             );
-          },
+          } else if (state is FamilyOperationError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF5F7FA),
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: const BackButton(color: Colors.black),
+            title: Text(
+              "سجل العلامات الحيوية",
+              style: GoogleFonts.tajawal(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            centerTitle: true,
+          ),
+          body: StreamBuilder<List<VitalModel>>(
+            // استخدام الـ Stream لضمان تحديث القائمة تلقائياً عند أي تغيير في Firestore
+            stream: FamilyRepository().getPatientVitals(patientId),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF41BFAA)),
+                );
+              }
+
+              if (snapshot.hasError) {
+                return _buildErrorState(snapshot.error.toString());
+              }
+
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return _buildEmptyState();
+              }
+
+              final vitals = snapshot.data!;
+              vitals.sort((a, b) => b.date.compareTo(a.date));
+
+              return ListView.builder(
+                padding: const EdgeInsets.all(20),
+                itemCount: vitals.length,
+                itemBuilder: (context, index) {
+                  final vital = vitals[index];
+                  return _buildVitalCard(context, vital);
+                },
+              );
+            },
+          ),
         ),
       ),
     );
   }
 
+  // --- Widgets المساعدة لتقليل زحمة الكود ---
+
   Widget _buildVitalCard(BuildContext context, VitalModel vital) {
-    // تحديد الأيقونة واللون بناءً على نوع القياس
+    final String safeType = (vital.type).trim().toLowerCase();
     IconData icon;
     Color color;
     String title;
 
-    switch (vital.type) {
-      case 'pressure':
-        title = "ضغط الدم";
-        icon = Icons.speed_rounded;
-        color = Colors.redAccent;
-        break;
-      case 'sugar':
-        title = "السكر";
-        icon = Icons.water_drop_rounded;
-        color = Colors.blueAccent;
-        break;
-      case 'heart':
-        title = "نبض القلب";
-        icon = Icons.favorite_rounded;
-        color = Colors.pinkAccent;
-        break;
-      default:
-        title = "قياس آخر";
-        icon = Icons.health_and_safety;
-        color = Colors.orange;
+    if (safeType.contains('pressure')) {
+      title = "ضغط الدم";
+      icon = Icons.speed_rounded;
+      color = Colors.redAccent;
+    } else if (safeType.contains('sugar')) {
+      title = "السكر";
+      icon = Icons.water_drop_rounded;
+      color = Colors.blueAccent;
+    } else {
+      title = "نبض القلب";
+      icon = Icons.favorite_rounded;
+      color = Colors.pinkAccent;
     }
 
     return Container(
@@ -120,7 +119,6 @@ class VitalsHistoryScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // الأيقونة الجانبية
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -130,8 +128,6 @@ class VitalsHistoryScreen extends StatelessWidget {
             child: Icon(icon, color: color, size: 28),
           ),
           const SizedBox(width: 15),
-
-          // تفاصيل القراءة
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,33 +141,15 @@ class VitalsHistoryScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      vital.value,
-                      style: GoogleFonts.tajawal(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 2),
-                      child: Text(
-                        vital.unit,
-                        style: GoogleFonts.tajawal(
-                          fontSize: 12,
-                          color: Colors.grey[500],
-                        ),
-                      ),
-                    ),
-                  ],
+                Text(
+                  "${vital.value} ${vital.unit}",
+                  style: GoogleFonts.tajawal(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  // ✅ الآن سيعمل DateFormat بشكل صحيح
                   DateFormat('yyyy/MM/dd - hh:mm a', 'en').format(vital.date),
                   style: GoogleFonts.tajawal(
                     fontSize: 12,
@@ -181,8 +159,6 @@ class VitalsHistoryScreen extends StatelessWidget {
               ],
             ),
           ),
-
-          // ✅ زر الحذف
           IconButton(
             onPressed: () => _confirmDelete(context, vital),
             icon: const Icon(
@@ -199,7 +175,6 @@ class VitalsHistoryScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => Directionality(
-        // 👈 الإضافة هنا: تحديد اتجاه النص للنافذة
         textDirection: TextDirection.rtl,
         child: AlertDialog(
           title: Text(
@@ -207,7 +182,7 @@ class VitalsHistoryScreen extends StatelessWidget {
             style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
           ),
           content: Text(
-            "هل أنت متأكد من حذف هذه القراءة (${vital.value} ${vital.unit})؟",
+            "هل أنت متأكد من حذف هذه القراءة؟",
             style: GoogleFonts.tajawal(),
           ),
           actions: [
@@ -221,7 +196,8 @@ class VitalsHistoryScreen extends StatelessWidget {
             TextButton(
               onPressed: () {
                 Navigator.pop(ctx);
-                _deleteVitalFromFirestore(context, vital.id);
+                // ✅ استخدام الكيوبيت لضمان التحديث في كل مكان
+                context.read<FamilyCubit>().deleteVital(patientId, vital.id!);
               },
               child: Text("حذف", style: GoogleFonts.tajawal(color: Colors.red)),
             ),
@@ -231,44 +207,25 @@ class VitalsHistoryScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _deleteVitalFromFirestore(
-    BuildContext context,
-    String? docId,
-  ) async {
-    if (docId == null || docId.isEmpty) return;
-
-    try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(patientId)
-          .collection('vitals')
-          .doc(docId)
-          .delete();
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Directionality(
-              textDirection: TextDirection.rtl,
-              child: const Text("تم حذف القراءة بنجاح"),
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.monitor_heart_outlined, size: 60, color: Colors.grey[300]),
+          const SizedBox(height: 10),
+          Text(
+            "لا توجد قراءات مسجلة",
+            style: GoogleFonts.tajawal(fontSize: 16, color: Colors.grey),
           ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Directionality(
-              textDirection: TextDirection.rtl,
-              child: Text("فشل الحذف: $e"),
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String error) {
+    return Center(
+      child: Text("حدث خطأ: $error", style: const TextStyle(color: Colors.red)),
+    );
   }
 }

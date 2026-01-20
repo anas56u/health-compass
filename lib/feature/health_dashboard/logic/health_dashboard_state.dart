@@ -32,22 +32,38 @@ class HealthDashboardLoaded extends HealthDashboardState {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
+
     return other is HealthDashboardLoaded &&
         other.latestData == latestData &&
         other.commitmentPercentage == commitmentPercentage &&
+        other.totalTasks == totalTasks &&
+        other.completedTasks == completedTasks &&
         other.selectedDate == selectedDate &&
         other.isWeekly == isWeekly &&
         other.userName == userName &&
-        other.historyData.length == historyData.length;
+        // ✅ تحسين مقارنة القوائم لضمان دقة البيانات المعروضة
+        _compareLists(other.historyData, historyData);
+  }
+
+  // دالة مساعدة لمقارنة القوائم بدقة
+  bool _compareLists(List<HealthDataModel> list1, List<HealthDataModel> list2) {
+    if (list1.length != list2.length) return false;
+    for (int i = 0; i < list1.length; i++) {
+      if (list1[i] != list2[i]) return false;
+    }
+    return true;
   }
 
   @override
   int get hashCode => Object.hash(
     latestData,
     commitmentPercentage,
+    totalTasks,
+    completedTasks,
     selectedDate,
     isWeekly,
     userName,
+    historyData.length, // إضافة طول القائمة للـ hash
   );
 }
 

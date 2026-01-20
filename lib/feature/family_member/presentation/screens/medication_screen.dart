@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:health_compass/core/models/medication_model.dart';
 import 'package:health_compass/feature/family_member/data/family_repository.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:health_compass/feature/family_member/logic/family_cubit.dart';
 import 'add_edit_medication_screen.dart';
 
 class MedicationScreen extends StatelessWidget {
@@ -19,83 +20,99 @@ class MedicationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF5F7FA),
-        floatingActionButton: canEdit
-            ? FloatingActionButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          AddEditMedicationScreen(userId: userId),
-                    ),
-                  );
-                },
-                backgroundColor: primaryColor,
-                child: const Icon(Icons.add, color: Colors.white),
-              )
-            : null,
-        body: StreamBuilder<List<MedicationModel>>(
-          stream: FamilyRepository().getPatientMedications(userId),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(
-                child: CircularProgressIndicator(color: primaryColor),
-              );
-            }
+    return BlocListener<FamilyCubit, FamilyState>(
+      listener: (context, state) {
+        if (state is FamilyOperationSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else if (state is FamilyOperationError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          );
+        }
+      },
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF5F7FA),
+          floatingActionButton: canEdit
+              ? FloatingActionButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            AddEditMedicationScreen(userId: userId),
+                      ),
+                    );
+                  },
+                  backgroundColor: primaryColor,
+                  child: const Icon(Icons.add, color: Colors.white),
+                )
+              : null,
+          body: StreamBuilder<List<MedicationModel>>(
+            // لا يزال استخدام StreamBuilder هنا مقبولاً لأنه متصل بـ Repo مباشرة
+            // ولكن الآن الحذف يتم عبر الـ Cubit
+            stream: FamilyRepository().getPatientMedications(userId),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(
+                  child: CircularProgressIndicator(color: primaryColor),
+                );
+              }
 
-            return CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                SliverAppBar(
-                  backgroundColor: Colors.white,
-                  elevation: 0,
-                  pinned: true,
-                  leading: const BackButton(color: Colors.black),
-                  title: Text(
-                    "الأدوية الحالية",
-                    style: GoogleFonts.tajawal(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  centerTitle: true,
-                ),
-                if (!snapshot.hasData || snapshot.data!.isEmpty)
-                  SliverFillRemaining(
-                    child: Center(
-                      child: Text(
-                        "لا توجد أدوية مسجلة حالياً",
-                        style: GoogleFonts.tajawal(
-                          fontSize: 16,
-                          color: Colors.grey,
-                        ),
+              return CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  SliverAppBar(
+                    backgroundColor: Colors.white,
+                    elevation: 0,
+                    pinned: true,
+                    leading: const BackButton(color: Colors.black),
+                    title: Text(
+                      "الأدوية الحالية",
+                      style: GoogleFonts.tajawal(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  )
-                else
-                  SliverPadding(
-                    padding: const EdgeInsets.all(20),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final med = snapshot.data![index];
-                        return _buildMedCard(context, med);
-                      }, childCount: snapshot.data!.length),
-                    ),
+                    centerTitle: true,
                   ),
-                const SliverToBoxAdapter(child: SizedBox(height: 80)),
-              ],
-            );
-          },
+                  if (!snapshot.hasData || snapshot.data!.isEmpty)
+                    SliverFillRemaining(
+                      child: Center(
+                        child: Text(
+                          "لا توجد أدوية مسجلة حالياً",
+                          style: GoogleFonts.tajawal(
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: const EdgeInsets.all(20),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final med = snapshot.data![index];
+                          return _buildMedCard(context, med);
+                        }, childCount: snapshot.data!.length),
+                      ),
+                    ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 80)),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
   }
-
-  // --- Widgets والدوال المساعدة ---
 
   Widget _buildMedCard(BuildContext context, MedicationModel med) {
     return Container(
@@ -159,7 +176,6 @@ class MedicationScreen extends StatelessWidget {
     );
   }
 
-  // ✅ تم التعديل: تغليف الـ Dialog بـ Directionality لمنع الخطأ
   void _confirmDelete(BuildContext context, MedicationModel med) {
     showDialog(
       context: context,
@@ -185,7 +201,8 @@ class MedicationScreen extends StatelessWidget {
             TextButton(
               onPressed: () {
                 Navigator.pop(ctx);
-                _deleteMedicationFromFirestore(context, med.id);
+                // Call Cubit
+                context.read<FamilyCubit>().deleteMedication(userId, med.id!);
               },
               child: Text("حذف", style: GoogleFonts.tajawal(color: Colors.red)),
             ),
@@ -193,56 +210,5 @@ class MedicationScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  // ✅ تم التعديل: تغليف الـ SnackBar بـ Directionality لمنع الانهيار
-  Future<void> _deleteMedicationFromFirestore(
-    BuildContext context,
-    String? docId,
-  ) async {
-    if (docId == null || docId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Directionality(
-            textDirection: TextDirection.rtl,
-            child: const Text("خطأ: لا يمكن العثور على معرف الدواء"),
-          ),
-        ),
-      );
-      return;
-    }
-
-    try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('medications')
-          .doc(docId)
-          .delete();
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Directionality(
-              textDirection: TextDirection.rtl,
-              child: const Text("تم حذف الدواء بنجاح"),
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Directionality(
-              textDirection: TextDirection.rtl,
-              child: Text("فشل الحذف: $e"),
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
   }
 }
