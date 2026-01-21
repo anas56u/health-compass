@@ -21,7 +21,8 @@ class MedicationModel {
     required this.period,
     required this.daysOfWeek,
     this.isActive = true,
-    required this.createdAt, required this.notificationId,
+    required this.createdAt,
+    required this.notificationId,
   });
 
   factory MedicationModel.fromFirestore(DocumentSnapshot doc) {
