@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:health_compass/core/cache/onboarding_manager.dart';
+import 'package:health_compass/core/routes/routes.dart';
 import 'package:health_compass/core/widgets/custom_button.dart';
 import 'package:health_compass/feature/auth/presentation/screen/login_page.dart';
 
@@ -133,11 +135,14 @@ class _OnboardingPageViewState extends State<OnboardingPageView> {
     }
   }
 
-  void _navigateToLogin() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginPage()),
-    );
+  void _navigateToLogin() async {
+    // 👇 1. حفظ أن المستخدم شاهد الشاشات قبل الانتقال
+    await OnboardingManager.markOnboardingAsSeen();
+
+    if (!mounted) return;
+
+    // 👇 2. الانتقال لصفحة الدخول (يفضل استخدام Named Route لتوحيد التنقل)
+    Navigator.pushReplacementNamed(context, AppRoutes.login);
   }
 
   @override

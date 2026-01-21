@@ -32,6 +32,7 @@ class _PatientInfoScreenState extends State<PatientInfoScreen> {
   String? diagnosisYear;
   String? specificDiseaseName;
   String? medications; // ✅ متغير جديد لحفظ أسماء الأدوية
+  final TextEditingController _yearController = TextEditingController();
 
   List<String> selectedDiseases = [];
   bool? isTakingMeds;
@@ -302,10 +303,31 @@ class _PatientInfoScreenState extends State<PatientInfoScreen> {
                       const SizedBox(height: 20),
 
                       _buildLabel("سنة التشخيص"),
-                      CustomTextfild(
-                        hinttext: "مثال: 2020",
-                        onChanged: (value) => diagnosisYear = value,
-                      ),
+                     TextFormField(
+  controller: _yearController, // لعرض السنة المختارة
+  readOnly: true, // ⛔ منع الكتابة اليدوية
+  onTap: () => _selectYear(context), // ✅ فتح القائمة عند الضغط
+  decoration: InputDecoration(
+    hintText: "اضغط لاختيار السنة",
+    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+    filled: true,
+    fillColor: Colors.white,
+    suffixIcon: const Icon(Icons.calendar_today, color: Color(0xFF41BFAA)), // أيقونة تقويم
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide.none,
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: Colors.grey.shade300),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: Color(0xFF41BFAA), width: 1.5),
+    ),
+  ),
+  style: GoogleFonts.tajawal(color: Colors.black87), // تنسيق النص
+),
                       const SizedBox(height: 20),
 
                       // ✅ السؤال عن الأدوية
@@ -463,6 +485,38 @@ class _PatientInfoScreenState extends State<PatientInfoScreen> {
       ),
     );
   }
+  // 👇 2. دالة لإظهار قائمة السنوات
+  Future<void> _selectYear(BuildContext context) async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            "اختر السنة",
+            textAlign: TextAlign.center,
+            style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
+          ),
+          content: SizedBox(
+            width: 300,
+            height: 300,
+            child: YearPicker(
+              firstDate: DateTime(1950), // بداية السنوات المتاحة
+              lastDate: DateTime.now(),  // آخر سنة (السنة الحالية)
+              selectedDate: DateTime.now(),
+              onChanged: (DateTime dateTime) {
+                // عند اختيار سنة
+                setState(() {
+                  diagnosisYear = dateTime.year.toString(); // حفظ القيمة في المتغير
+                  _yearController.text = diagnosisYear!;    // عرضها في الحقل
+                });
+                Navigator.pop(context); // إغلاق النافذة
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 void showsnackbar(BuildContext context, {required String massage}) {
@@ -474,4 +528,5 @@ void showsnackbar(BuildContext context, {required String massage}) {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     ),
   );
+  
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:health_compass/core/cache/onboarding_manager.dart';
 import 'package:health_compass/core/cache/shared_pref_helper.dart';
 import 'package:health_compass/core/core.dart';
 import 'package:health_compass/core/themes/app_gradient.dart';
@@ -85,15 +86,15 @@ class _SplashScreenState extends State<SplashScreen>
  Future<void> _checkAuthStatus() async {
   await Future.delayed(const Duration(milliseconds: 2500));
 
+  // 1. فحص حالة تسجيل الدخول
   final isLoggedIn = await SharedPrefHelper.isUserLoggedIn();
 
   if (!mounted) return;
 
   if (isLoggedIn) {
+    // ... (الكود الخاص بتوجيه المستخدم المسجل كما هو لم يتغير) ...
     final userType = await SharedPrefHelper.getString('user_type');
-
     Widget startScreen;
-
     if (userType == 'doctor') {
       startScreen = const DoctorMainScreen(); 
     } else if (userType == 'family_member') {
@@ -104,16 +105,26 @@ class _SplashScreenState extends State<SplashScreen>
     } else {
       startScreen = const Patientview_body();
     }
-
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => startScreen),
     );
   } else {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => SplashScreens()),
-    );
+    // 👇 التعديل الجوهري هنا 👇
+    
+    // 2. إذا لم يكن مسجل دخول، نفحص هل شاهد الـ Onboarding من قبل؟
+    final hasSeenOnboarding = await OnboardingManager.hasSeenOnboarding();
+
+    if (hasSeenOnboarding) {
+      // ✅ إذا شاهدها سابقاً، نذهب لصفحة الدخول مباشرة
+      Navigator.pushReplacementNamed(context, AppRoutes.login);
+    } else {
+      // ❌ إذا لم يشاهدها (أول مرة يفتح التطبيق)، نعرض شاشات الترحيب
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => SplashScreens()),
+      );
+    }
   }
 }
 

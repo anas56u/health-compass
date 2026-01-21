@@ -122,30 +122,26 @@ class _SignupPageState extends State<SignupPage> {
                               child: CustomText(text: "كلمه المرور", size: 12),
                             ),
                             const SizedBox(height: 8),
-                            Stack(
-                              alignment: Alignment.centerLeft,
-                              children: [
-                                CustomTextfild(
-                                  hinttext: "ادخل كلمة المرور",
-                                  obscureText: !_isPasswordVisible,
-                                  onChanged: (value) {
-                                    password = value;
-                                  },
+                           CustomTextfild(
+                              hinttext: "ادخل كلمة المرور",
+                              obscureText: !_isPasswordVisible,
+                              onChanged: (value) {
+                                password = value;
+                              },
+                              suffixIcon: IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _isPasswordVisible = !_isPasswordVisible;
+                                  });
+                                },
+                                icon: Icon(
+                                  _isPasswordVisible
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
+                                  color: const Color(0xFF41BFAA),
+                                  size: 20,
                                 ),
-                                IconButton(
-                                  icon: Icon(
-                                    _isPasswordVisible
-                                        ? Icons.visibility
-                                        : Icons.visibility_off,
-                                    color: const Color(0xFF41BFAA),
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _isPasswordVisible = !_isPasswordVisible;
-                                    });
-                                  },
-                                ),
-                              ],
+                              ),
                             ),
 
                             const SizedBox(height: 16),
@@ -159,33 +155,29 @@ class _SignupPageState extends State<SignupPage> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Stack(
-                              alignment: Alignment.centerLeft,
-                              children: [
-                                CustomTextfild(
-                                  hinttext: "تاكيد كلمه المرور",
-                                  obscureText: !_isConfirmPasswordVisible,
-                                  onChanged: (value) {
-                                    confirmPassword = value;
-                                  },
+                            // 👇 تم التعديل: إزالة Stack واستخدام suffixIcon مباشرة
+                            CustomTextfild(
+                              hinttext: "تاكيد كلمه المرور",
+                              obscureText: !_isConfirmPasswordVisible,
+                              onChanged: (value) {
+                                confirmPassword = value;
+                              },
+                              suffixIcon: IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _isConfirmPasswordVisible =
+                                        !_isConfirmPasswordVisible;
+                                  });
+                                },
+                                icon: Icon(
+                                  _isConfirmPasswordVisible
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
+                                  color: const Color(0xFF41BFAA),
+                                  size: 20,
                                 ),
-                                IconButton(
-                                  icon: Icon(
-                                    _isConfirmPasswordVisible
-                                        ? Icons.visibility
-                                        : Icons.visibility_off,
-                                    color: const Color(0xFF41BFAA),
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _isConfirmPasswordVisible =
-                                          !_isConfirmPasswordVisible;
-                                    });
-                                  },
-                                ),
-                              ],
+                              ),
                             ),
-
                             const SizedBox(height: 30),
                             SizedBox(
                               width: double.infinity,
