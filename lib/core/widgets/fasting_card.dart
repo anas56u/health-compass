@@ -80,11 +80,18 @@ class _FastingCardState extends State<FastingCard> {
   }
 
   // دالة لإلغاء/حذف الصيام
-  Future<void> _clearFasting() async {
-    // ملاحظة: هنا سنحتاج لإضافة دالة حذف في SharedPrefHelper لاحقاً
-    // للتبسيط الآن سنخفي البطاقة فقط
-    setState(() => _hasActiveFasting = false);
+  // في ملف FastingCard.dart
+// داخل ملف FastingCard.dart
+Future<void> _clearFasting() async {
+  // استدعاء الدالة التي أضفناها للتو
+  await SharedPrefHelper.clearFastingData(); 
+  
+  if (mounted) {
+    setState(() {
+      _hasActiveFasting = false;
+    });
   }
+}
 
   @override
   Widget build(BuildContext context) {

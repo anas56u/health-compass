@@ -221,6 +221,7 @@ class HealthCubit extends Cubit<HealthState> {
       );
     } catch (e) {
       print("❌ Error in fetchHealthData: $e");
+      emit(HealthError("فشل في جلب البيانات: $e"));
     }
   }
 

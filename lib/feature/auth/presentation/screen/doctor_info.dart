@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:health_compass/core/core.dart';
@@ -85,6 +86,7 @@ class _DoctorInfoScreenState extends State<DoctorInfoScreen> {
     context.read<SignupCubit>().registerUser(
       userModel: newDoctor,
       password: widget.password,
+      profileImage: _profileImage, // 👈 لقد كانت هذه مفقودة!
     );
   }
 
@@ -254,17 +256,23 @@ class _DoctorInfoScreenState extends State<DoctorInfoScreen> {
                       const SizedBox(height: 15),
 
                       _buildLabel("رقم الترخيص"),
-                      CustomTextfild(
-                        hinttext: "12345",
-                        onChanged: (value) => licenseNumber = value,
-                      ),
+                     CustomTextfild(
+  hinttext: "12345",
+  onChanged: (value) => licenseNumber = value,
+  // ✅ التعديل هنا:
+  keyboardType: TextInputType.number, 
+  inputFormatters: [FilteringTextInputFormatter.digitsOnly], 
+),
                       const SizedBox(height: 15),
 
                       _buildLabel("سنوات الخبرة"),
-                      CustomTextfild(
-                        hinttext: "مثال: 5",
-                        onChanged: (value) => experienceYears = value,
-                      ),
+                    CustomTextfild(
+  hinttext: "مثال: 5",
+  onChanged: (value) => experienceYears = value,
+  // ✅ التعديل هنا أيضاً:
+  keyboardType: TextInputType.number,
+  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+),
 
                       const SizedBox(height: 30),
 

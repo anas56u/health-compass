@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class CustomTextfild extends StatelessWidget {
   final String? hinttext;
@@ -8,6 +9,8 @@ class CustomTextfild extends StatelessWidget {
 
   // ✅ 1. أضفنا المتغير هنا
   final bool obscureText;
+  final TextInputType? keyboardType; 
+  final List<TextInputFormatter>? inputFormatters;
 
   const CustomTextfild({
     super.key,
@@ -17,12 +20,17 @@ class CustomTextfild extends StatelessWidget {
     // ✅ 2. أضفناه في الكونستركتور مع قيمة افتراضية false
     this.obscureText = false,
     this.suffixIcon,
+    this.keyboardType,
+    this.inputFormatters,
   });
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
+      // 4️⃣ تمرير القيم للـ TextFormField
+      keyboardType: keyboardType, // تحديد نوع الكيبورد
+      inputFormatters: inputFormatters, // تحديد قواعد الفلترة
 
       // ✅ 3. مررنا القيمة للـ TextFormField ليقوم بالإخفاء عند الحاجة
       obscureText: obscureText,

@@ -208,6 +208,8 @@ class SharedPrefHelper {
     await setData(_isLoggedInKey, false);
     await removeSecuredString(_userEmailKey);
     await removeSecuredString(_userIdKey);
+        await clearFastingData(); 
+
     debugPrint('SharedPrefHelper : Login data cleared');
   }
 
@@ -245,5 +247,21 @@ class SharedPrefHelper {
   static Future<int> getFastingDuration() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getInt(_fastingDuration) ?? 8; // القيمة الافتراضية 8 ساعات
+  }
+ 
+/// ✅ دالة حذف بيانات الصيام (أضف هذا الجزء)
+  static Future<void> clearFastingData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    
+    // 1. حذف جميع المفاتيح المتعلقة بالصيام
+    await prefs.remove(_fastingStartHour);
+    await prefs.remove(_fastingStartMinute);
+    await prefs.remove(_fastingDuration);
+
+    // 2. إشعار الواجهة (UI) بأن الحالة تغيرت ليتم تحديثها فوراً
+    // هذا السطر مهم جداً لأنه يخبر الـ ValueListenableBuilder بإعادة بناء نفسه
+    fastingUpdateNotifier.value = !fastingUpdateNotifier.value;
+    
+    debugPrint('SharedPrefHelper : Fasting data cleared successfully');
   }
 }
