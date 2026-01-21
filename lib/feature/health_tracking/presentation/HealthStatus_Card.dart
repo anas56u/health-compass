@@ -224,7 +224,16 @@ class _HealthStatusCardState extends State<HealthStatusCard> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // الحالة (خطر/جيد)
-                Container(
+                
+                // العنوان
+                const Text(
+                  'الحالة الصحية الأخيرة',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: statusInfo.backgroundColor,
@@ -238,15 +247,6 @@ class _HealthStatusCardState extends State<HealthStatusCard> {
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
-                  ),
-                ),
-                // العنوان
-                const Text(
-                  'الحالة الصحية الأخيرة',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
                   ),
                 ),
               ],
