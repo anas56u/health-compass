@@ -22,6 +22,18 @@ class PatientProfilePage extends StatefulWidget {
 class _PatientProfilePageState extends State<PatientProfilePage> {
   static const primaryTurquoise = Color(0xFF169086);
   static const lightCardBg = Color(0xFFF5F7FA);
+  @override
+  void initState() {
+    super.initState();
+    _loadSourcePreference(); // تحميل التفضيل عند الفتح
+  } 
+bool isWatchSource = true;
+  Future<void> _loadSourcePreference() async {
+    bool savedSource = await SharedPrefHelper.getHealthSource();
+    setState(() {
+      isWatchSource = savedSource;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +79,7 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
                         subtitle: "إدارة وتنظيم ساعات الصيام",
                         onTap: () => _showFastingBottomSheet(context),
                       ),
+                      _buildSourceToggle(),
                       const SizedBox(height: 25),
                       _buildSectionLabel("عن التطبيق والدعم"),
                       _buildActionTile(
@@ -144,6 +157,61 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
         ),
         onPressed: () => Navigator.maybePop(context),
       ),
+    );
+  }
+  Widget _buildSourceToggle() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            _buildToggleItem("ساعة ذكية", true),
+            _buildToggleItem("قراءة يدوية", false),
+          ],
+        ),
+      ),
+    );
+  }
+ Widget _buildToggleItem(String title, bool isWatch) {
+    // نستمع أيضاً هنا لتغيير لون الزر عند الضغط
+    return ValueListenableBuilder<bool>(
+      valueListenable: SharedPrefHelper.healthSourceNotifier,
+      builder: (context, currentSource, child) {
+        bool isSelected = currentSource == isWatch;
+        
+        return Expanded(
+          child: GestureDetector(
+            onTap: () async {
+              // ✅ فقط نحفظ القيمة، والـ Notifier سيحدث الكارد في الصفحة الأخرى والزر في هذه الصفحة
+              await SharedPrefHelper.saveHealthSource(isWatch);
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: isSelected ? const Color(0xFF169086) : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: isSelected
+                    ? [BoxShadow(color: Colors.black12, blurRadius: 4)]
+                    : [],
+              ),
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.tajawal(
+                  color: isSelected ? Colors.white : Colors.grey[600],
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

@@ -6,6 +6,8 @@ class SharedPrefHelper {
   // private constructor as I don't want to allow creating an instance of this class itself.
   SharedPrefHelper._();
   static final ValueNotifier<bool> fastingUpdateNotifier = ValueNotifier(false);
+  static const String _healthSourceKey = 'health_data_source';
+  static final ValueNotifier<bool> healthSourceNotifier = ValueNotifier(true);
 
   // استخدام إعدادات موحدة لـ FlutterSecureStorage في كل مكان
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage(
@@ -18,6 +20,16 @@ class SharedPrefHelper {
       synchronizable: false,
     ),
   );
+  static Future<void> saveHealthSource(bool isWatch) async {
+    await setData(_healthSourceKey, isWatch);
+    // هذا السطر هو الذي يخبر الكارد بالتحديث
+    healthSourceNotifier.value = isWatch; 
+  }
+  static Future<bool> getHealthSource() async {
+    bool val = await getBool(_healthSourceKey) ?? true; // القيمة الافتراضية true (ساعة)
+    healthSourceNotifier.value = val; // مزامنة القيمة عند بدء التطبيق
+    return val;
+  }
 
   /// Removes a value from SharedPreferences with given [key].
   static removeData(String key) async {
@@ -264,4 +276,5 @@ class SharedPrefHelper {
     
     debugPrint('SharedPrefHelper : Fasting data cleared successfully');
   }
+ 
 }
