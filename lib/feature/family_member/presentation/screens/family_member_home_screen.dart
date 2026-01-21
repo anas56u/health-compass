@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:health_compass/core/routes/routes.dart';
 import 'package:health_compass/core/models/vital_model.dart';
 import 'package:health_compass/core/models/medication_model.dart';
+import 'package:health_compass/feature/chatbot/ui/screens/chat_bot_screen.dart';
 import 'package:health_compass/feature/family_member/data/family_repository.dart';
 import 'package:health_compass/feature/family_member/logic/family_cubit.dart';
 import 'package:health_compass/feature/family_member/logic/family_state.dart';
@@ -23,33 +24,27 @@ class FamilyMemberHomeScreen extends StatefulWidget {
 }
 
 class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
+  // تدرج ألوان مريح وهادئ
   final Color primaryColor = const Color(0xFF41BFAA);
-  final Color bgColor = const Color(0xFFF5F7FA);
+  final Color secondaryColor = const Color(0xFF1B8E8C);
+  final Color chatbotColor = const Color(0xFF0D9488);
+  final Color bgColor = const Color(0xFFF8FAFC);
 
-  // متغير لتخزين الصلاحية القادمة من بيانات المستخدم
   String _userPermission = 'read_only';
 
   @override
   void initState() {
     super.initState();
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      // ✅ التعديل 1: استدعاء البروفايل أولاً ثم لوحة التحكم بشكل متسلسل
-      // هذا يضمن أن حالة FamilyDashboardLoaded ستكون هي الحالة النهائية الظاهرة
-      context.read<FamilyCubit>().loadMyProfile().then((_) {
-        if (mounted) {
-          context.read<FamilyCubit>().initFamilyHome(user.uid);
-        }
-      });
-    }
+    _loadInitialData();
   }
 
-  // دالة للتحقق مما إذا كان المستخدم يملك صلاحية التعديل
-  bool _canEdit(FamilyState state) {
-    if (state is FamilyDashboardLoaded || state is FamilyProfileLoaded) {
-      return _userPermission == 'interactive';
+  void _loadInitialData() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      context.read<FamilyCubit>().loadMyProfile().then((_) {
+        if (mounted) context.read<FamilyCubit>().initFamilyHome(user.uid);
+      });
     }
-    return false;
   }
 
   @override
@@ -58,55 +53,34 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
       textDirection: TextDirection.rtl,
       child: BlocListener<FamilyCubit, FamilyState>(
         listener: (context, state) {
-          // تحديث الصلاحية فور تحميل ملف المستخدم الشخصي
           if (state is FamilyProfileLoaded) {
-            setState(() {
-              _userPermission =
-                  state.userModel.permission; // جلب الصلاحية من المودل
-            });
+            setState(() => _userPermission = state.userModel.permission);
           }
-
           if (state is FamilyOperationSuccess) {
-            _showSnackBar(context, state.message, Colors.green);
+            _showCustomSnackBar(context, state.message, Colors.green);
           } else if (state is FamilyOperationError) {
-            _showSnackBar(context, state.message, Colors.red);
+            _showCustomSnackBar(context, state.message, Colors.redAccent);
           }
         },
         child: Scaffold(
           backgroundColor: bgColor,
-          body: BlocBuilder<FamilyCubit, FamilyState>(
-            builder: (context, state) {
-              // ✅ التعديل 2: دمج حالة ProfileLoaded مع حالة التحميل لمنع الشاشة البيضاء
-              if (state is FamilyLoading || state is FamilyProfileLoaded) {
-                return Center(
-                  child: CircularProgressIndicator(color: primaryColor),
-                );
-              } else if (state is FamilyError) {
-                return _buildErrorState(state.message);
-              } else if (state is FamilyNoLinkedPatients ||
-                  state is FamilyInitial) {
+          body: SafeArea(
+            child: BlocBuilder<FamilyCubit, FamilyState>(
+              builder: (context, state) {
+                if (state is FamilyLoading || state is FamilyProfileLoaded) {
+                  return Center(
+                    child: CircularProgressIndicator(color: primaryColor),
+                  );
+                } else if (state is FamilyDashboardLoaded) {
+                  return _buildDashboardContent(context, state);
+                } else if (state is FamilyError) {
+                  return _buildErrorState(state.message);
+                }
                 return _buildNoLinkedPatientState();
-              } else if (state is FamilyDashboardLoaded) {
-                return _buildDashboardContent(context, state);
-              }
-              return const SizedBox(); // حالة احتياطية
-            },
+              },
+            ),
           ),
-          // التحكم بظهور زر الإضافة بناءً على الصلاحية
-          floatingActionButton: BlocBuilder<FamilyCubit, FamilyState>(
-            builder: (context, state) {
-              if (state is FamilyDashboardLoaded &&
-                  _userPermission == 'interactive') {
-                return FloatingActionButton(
-                  onPressed: () =>
-                      _showAddVitalsSheet(context, state.selectedPatientId),
-                  backgroundColor: primaryColor,
-                  child: const Icon(Icons.add, color: Colors.white),
-                );
-              }
-              return const SizedBox();
-            },
-          ),
+          floatingActionButton: _buildAnimatedFAB(),
         ),
       ),
     );
@@ -119,16 +93,19 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
-        _buildSliverAppBar(state),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.all(20.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildPatientStatusCard(state.currentProfile),
-                SizedBox(height: 25.h),
-                _buildSectionHeader("العلامات الحيوية", () {
+        _buildModernAppBar(state),
+        SliverPadding(
+          padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 30.h),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              _buildDynamicHeader(state.currentProfile['name'] ?? 'المريض'),
+              SizedBox(height: 20.h),
+              _buildPatientStatusCard(state.currentProfile),
+              SizedBox(height: 25.h),
+              _buildSectionHeader(
+                "آخر القراءات الحيوية",
+                Icons.analytics_outlined,
+                () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -137,11 +114,15 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
                       ),
                     ),
                   );
-                }),
-                SizedBox(height: 15.h),
-                _buildVitalsGrid(state.currentVitals),
-                SizedBox(height: 25.h),
-                _buildSectionHeader("الأدوية القادمة", () {
+                },
+              ),
+              SizedBox(height: 12.h),
+              _buildVitalsGrid(state.currentVitals),
+              SizedBox(height: 25.h),
+              _buildSectionHeader(
+                "الأدوية المجدولة",
+                Icons.medication_outlined,
+                () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -151,109 +132,51 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
                       ),
                     ),
                   );
-                }),
-                SizedBox(height: 15.h),
-                _buildRealMedicationList(state.selectedPatientId),
-              ],
-            ),
+                },
+              ),
+              SizedBox(height: 12.h),
+              _buildRealMedicationList(state.selectedPatientId),
+              SizedBox(height: 60.h), // مساحة أمان للأزرار العائمة
+            ]),
           ),
         ),
       ],
     );
   }
 
-  SliverAppBar _buildSliverAppBar(FamilyDashboardLoaded state) {
+  Widget _buildModernAppBar(FamilyDashboardLoaded state) {
     return SliverAppBar(
-      backgroundColor: bgColor,
+      backgroundColor: Colors.white,
       elevation: 0,
-      expandedHeight: 80.h,
-      floating: true,
-      pinned: false,
+      pinned: true,
+      centerTitle: false,
+      expandedHeight: 75.h,
       leading: Padding(
-        padding: EdgeInsets.only(right: 20.w),
-        child: const CircleAvatar(
-          backgroundColor: Colors.white,
-          backgroundImage: AssetImage('assets/images/logo.jpeg'),
+        padding: EdgeInsets.all(10.w),
+        child: Hero(
+          tag: 'logo',
+          child: CircleAvatar(
+            backgroundImage: const AssetImage('assets/images/logo.jpeg'),
+            radius: 18.r,
+          ),
         ),
       ),
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "مرحباً بك ",
-            style: GoogleFonts.tajawal(
-              color: Colors.grey[600],
-              fontSize: 14.sp,
-            ),
-          ),
-          DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: state.selectedPatientId,
-              isDense: true,
-              icon: const Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: Colors.black,
-              ),
-              dropdownColor: Colors.white,
-              style: GoogleFonts.tajawal(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 16.sp,
-              ),
-              items: [
-                ...state.allPatients.map((patient) {
-                  return DropdownMenuItem<String>(
-                    value: patient['id'],
-                    child: Text(patient['name'] ?? 'مريض بدون اسم'),
-                  );
-                }).toList(),
-                DropdownMenuItem<String>(
-                  value: "add_new",
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.add_circle_outline,
-                        color: primaryColor,
-                        size: 20.sp,
-                      ),
-                      SizedBox(width: 8.w),
-                      Text(
-                        "ربط مريض جديد",
-                        style: TextStyle(
-                          color: primaryColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              onChanged: (newId) {
-                if (newId == "add_new") {
-                  Navigator.pushNamed(context, AppRoutes.linkPatient).then((_) {
-                    final user = FirebaseAuth.instance.currentUser;
-                    if (user != null)
-                      context.read<FamilyCubit>().initFamilyHome(user.uid);
-                  });
-                } else if (newId != null && newId != state.selectedPatientId) {
-                  context.read<FamilyCubit>().selectPatient(newId);
-                }
-              },
-            ),
-          ),
-        ],
-      ),
+      title: _buildPatientSelector(state),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.person_outline_rounded, color: Colors.black),
-          onPressed: () => Navigator.push(
+        _buildAppBarAction(Icons.person_outline_rounded, Colors.black, () {
+          Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const FamilyProfileScreen()),
-          ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.settings_outlined, color: Colors.black),
-          onPressed: () => Navigator.push(
+          );
+        }),
+        _buildAppBarAction(Icons.smart_toy_outlined, chatbotColor, () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => ChatBotScreen()),
+          );
+        }),
+        _buildAppBarAction(Icons.settings_outlined, Colors.black87, () {
+          Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => PatientSettingsScreen(
@@ -261,27 +184,70 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
                 patientData: state.currentProfile,
               ),
             ),
-          ),
-        ),
-        SizedBox(width: 10.w),
+          );
+        }),
+        SizedBox(width: 8.w),
       ],
     );
   }
 
-  Widget _buildPatientStatusCard(Map<String, dynamic> profile) {
-    final String name = profile['name'] ?? "المريض";
+  Widget _buildPatientSelector(FamilyDashboardLoaded state) {
     return Container(
-      padding: EdgeInsets.all(20.w),
+      padding: EdgeInsets.symmetric(horizontal: 10.w),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20.r),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: state.selectedPatientId,
+          isDense: true,
+          icon: Icon(
+            Icons.keyboard_arrow_down,
+            size: 18.sp,
+            color: primaryColor,
+          ),
+          style: GoogleFonts.tajawal(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 13.sp,
+          ),
+          items: [
+            ...state.allPatients.map(
+              (p) => DropdownMenuItem(
+                value: p['id'],
+                child: Text(p['name'] ?? 'مريض'),
+              ),
+            ),
+            DropdownMenuItem(
+              value: "add_new",
+              child: Text("+ ربط مريض", style: TextStyle(color: primaryColor)),
+            ),
+          ],
+          onChanged: (val) {
+            if (val == "add_new")
+              Navigator.pushNamed(context, AppRoutes.linkPatient);
+            else if (val != null)
+              context.read<FamilyCubit>().selectPatient(val);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPatientStatusCard(Map<String, dynamic> profile) {
+    return Container(
+      padding: EdgeInsets.all(18.w),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [primaryColor, primaryColor.withOpacity(0.8)],
+          colors: [primaryColor, secondaryColor],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
-            color: primaryColor.withOpacity(0.3),
+            color: primaryColor.withOpacity(0.2),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -290,15 +256,15 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(12.w),
+            padding: EdgeInsets.all(8.w),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              Icons.favorite_rounded,
+              Icons.check_circle_outline,
               color: Colors.white,
-              size: 30.sp,
+              size: 28.sp,
             ),
           ),
           SizedBox(width: 15.w),
@@ -307,19 +273,19 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "حالة $name مستقرة",
+                  "حالة ${profile['name'] ?? 'المريض'} مستقرة",
                   style: GoogleFonts.tajawal(
                     color: Colors.white,
-                    fontSize: 16.sp,
+                    fontSize: 15.sp,
                     fontWeight: FontWeight.bold,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: 5.h),
                 Text(
-                  "اضغط لعرض التفاصيل الكاملة",
+                  "آخر تحديث تلقائي: الآن",
                   style: GoogleFonts.tajawal(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 12.sp,
+                    color: Colors.white70,
+                    fontSize: 11.sp,
                   ),
                 ),
               ],
@@ -331,185 +297,53 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
   }
 
   Widget _buildVitalsGrid(List<VitalModel> vitals) {
-    if (vitals.isEmpty) return _buildEmptyState("لا توجد قراءات حديثة");
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 15.w,
-        mainAxisSpacing: 15.h,
-        childAspectRatio: 1.5,
-      ),
-      itemCount: vitals.length,
-      itemBuilder: (context, index) {
-        final vital = vitals[index];
-        IconData icon = Icons.monitor_heart_outlined;
-        Color color = Colors.orange;
-        String title = vital.type == 'pressure'
-            ? "ضغط الدم"
-            : vital.type == 'sugar'
-            ? "السكر"
-            : "نبض القلب";
-        if (vital.type == 'pressure') {
-          color = Colors.redAccent;
-          icon = Icons.speed_rounded;
-        } else if (vital.type == 'sugar') {
-          color = Colors.blueAccent;
-          icon = Icons.water_drop_rounded;
-        }
-        return _buildVitalCard(
-          title: title,
-          value: vital.value,
-          unit: vital.unit,
-          icon: icon,
-          color: color,
+    if (vitals.isEmpty) return _buildEmptyState("لا توجد قراءات مسجلة لليوم");
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // حساب نسبة العرض للطول ديناميكياً لمنع الـ Overflow في الكروت
+        double childAspectRatio =
+            constraints.maxWidth / (constraints.maxWidth * 0.68);
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 14.w,
+            mainAxisSpacing: 14.h,
+            childAspectRatio: childAspectRatio,
+          ),
+          itemCount: vitals.length,
+          itemBuilder: (context, index) => _buildVitalCard(vitals[index]),
         );
       },
     );
   }
 
-  Widget _buildVitalCard({
-    required String title,
-    required String value,
-    required String unit,
-    required IconData icon,
-    required Color color,
-  }) {
+  Widget _buildVitalCard(VitalModel vital) {
     return Container(
-      padding: EdgeInsets.all(15.w),
+      padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(18.r),
         boxShadow: [
-          BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10),
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(8.w),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: color, size: 18.sp),
-              ),
-              SizedBox(width: 8.w),
-              Text(
-                title,
-                style: GoogleFonts.tajawal(
-                  fontSize: 12.sp,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                value,
-                style: GoogleFonts.tajawal(
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              SizedBox(width: 4.w),
-              Padding(
-                padding: EdgeInsets.only(bottom: 3.h),
-                child: Text(
-                  unit,
-                  style: GoogleFonts.tajawal(
-                    fontSize: 10.sp,
-                    color: Colors.grey[500],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRealMedicationList(String patientId) {
-    return StreamBuilder<List<MedicationModel>>(
-      key: ValueKey(patientId),
-      stream: FamilyRepository().getPatientMedications(patientId),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting)
-          return const Center(child: CircularProgressIndicator());
-        if (!snapshot.hasData || snapshot.data!.isEmpty)
-          return _buildEmptyState("لا توجد أدوية مسجلة حالياً");
-        return Column(
-          children: snapshot.data!
-              .take(3)
-              .map(
-                (med) => Padding(
-                  padding: EdgeInsets.only(bottom: 10.h),
-                  child: _buildMedicationCard(
-                    med.name,
-                    med.dose,
-                    med.times.isNotEmpty ? med.times.first : "--:--",
-                    MedicationStatus.pending,
-                  ),
-                ),
-              )
-              .toList(),
-        );
-      },
-    );
-  }
-
-  Widget _buildMedicationCard(
-    String name,
-    String dose,
-    String time,
-    MedicationStatus status,
-  ) {
-    return Container(
-      padding: EdgeInsets.all(15.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.grey.shade100),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(12.w),
-            decoration: BoxDecoration(
-              color: primaryColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Icon(
-              Icons.medication_rounded,
-              color: primaryColor,
-              size: 24.sp,
-            ),
-          ),
-          SizedBox(width: 15.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          FittedBox(
+            child: Row(
               children: [
-                Text(
-                  name,
-                  style: GoogleFonts.tajawal(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Icon(
+                  Icons.monitor_heart_outlined,
+                  color: primaryColor,
+                  size: 14.sp,
                 ),
-                SizedBox(height: 4.h),
+                SizedBox(width: 4.w),
                 Text(
-                  "$dose • $time",
+                  vital.type,
                   style: GoogleFonts.tajawal(
                     fontSize: 11.sp,
                     color: Colors.grey[500],
@@ -518,36 +352,105 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
               ],
             ),
           ),
-          Icon(
-            Icons.access_time_filled_rounded,
-            color: Colors.orange,
-            size: 20.sp,
+          SizedBox(height: 6.h),
+          FittedBox(
+            child: Text(
+              "${vital.value} ${vital.unit}",
+              style: GoogleFonts.poppins(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title, VoidCallback onTap) {
+  Widget _buildRealMedicationList(String patientId) {
+    return StreamBuilder<List<MedicationModel>>(
+      stream: FamilyRepository().getPatientMedications(patientId),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty)
+          return _buildEmptyState("لا توجد أدوية حالياً");
+        return ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: snapshot.data!.take(3).length,
+          separatorBuilder: (_, __) => SizedBox(height: 10.h),
+          itemBuilder: (context, index) => _buildMedCard(snapshot.data![index]),
+        );
+      },
+    );
+  }
+
+  Widget _buildMedCard(MedicationModel med) {
+    return Container(
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.medication_liquid_outlined,
+            color: primaryColor,
+            size: 22.sp,
+          ),
+          SizedBox(width: 15.w),
+          Expanded(
+            child: Text(
+              med.name,
+              style: GoogleFonts.tajawal(
+                fontWeight: FontWeight.bold,
+                fontSize: 13.sp,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 14.sp,
+            color: Colors.grey[300],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDynamicHeader(String name) => Text(
+    "أهلاً بك،\nكيف حال $name اليوم؟",
+    style: GoogleFonts.tajawal(
+      fontSize: 20.sp,
+      fontWeight: FontWeight.w800,
+      color: Colors.black87,
+      height: 1.2,
+    ),
+  );
+
+  Widget _buildSectionHeader(String title, IconData icon, VoidCallback onTap) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
+        Icon(icon, size: 18.sp, color: secondaryColor),
+        SizedBox(width: 8.w),
         Text(
           title,
           style: GoogleFonts.tajawal(
-            fontSize: 18.sp,
+            fontSize: 15.sp,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
           ),
         ),
-        InkWell(
-          onTap: onTap,
+        const Spacer(),
+        TextButton(
+          onPressed: onTap,
           child: Text(
             "عرض الكل",
-            style: GoogleFonts.tajawal(
-              fontSize: 12.sp,
-              fontWeight: FontWeight.bold,
+            style: TextStyle(
               color: primaryColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 11.sp,
             ),
           ),
         ),
@@ -555,143 +458,77 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
     );
   }
 
-  Widget _buildEmptyState(String message) => Container(
+  Widget _buildAppBarAction(IconData icon, Color color, VoidCallback onTap) =>
+      IconButton(
+        icon: Icon(icon, color: color, size: 22.sp),
+        onPressed: onTap,
+      );
+
+  Widget _buildAnimatedFAB() {
+    return BlocBuilder<FamilyCubit, FamilyState>(
+      builder: (context, state) {
+        if (state is FamilyDashboardLoaded &&
+            _userPermission == 'interactive') {
+          return FloatingActionButton.extended(
+            heroTag: "fab_add_vitals",
+            onPressed: () =>
+                _showAddVitalsSheet(context, state.selectedPatientId),
+            backgroundColor: primaryColor,
+            elevation: 4,
+            icon: const Icon(Icons.add_chart_rounded, color: Colors.white),
+            label: Text(
+              "إضافة قراءة",
+              style: GoogleFonts.tajawal(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          );
+        }
+        return const SizedBox();
+      },
+    );
+  }
+
+  void _showCustomSnackBar(BuildContext context, String msg, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          msg,
+          style: GoogleFonts.tajawal(fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String msg) => Container(
     width: double.infinity,
     padding: EdgeInsets.all(20.h),
     decoration: BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(16.r),
+      borderRadius: BorderRadius.circular(15.r),
     ),
     child: Text(
-      message,
-      style: GoogleFonts.tajawal(color: Colors.grey),
+      msg,
+      style: GoogleFonts.tajawal(color: Colors.grey[400], fontSize: 12.sp),
       textAlign: TextAlign.center,
     ),
   );
 
-  Widget _buildErrorState(String message) => Center(
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Icon(Icons.error_outline, size: 50, color: Colors.red),
-        SizedBox(height: 10.h),
-        Text(message, style: GoogleFonts.tajawal(fontSize: 16.sp)),
-        TextButton(
-          onPressed: () {
-            final user = FirebaseAuth.instance.currentUser;
-            if (user != null)
-              context.read<FamilyCubit>().initFamilyHome(user.uid);
-          },
-          child: Text("إعادة المحاولة", style: GoogleFonts.tajawal()),
-        ),
-      ],
-    ),
-  );
-
+  Widget _buildErrorState(String msg) =>
+      Center(child: Text(msg, style: GoogleFonts.tajawal()));
   Widget _buildNoLinkedPatientState() => Center(
-    child: Padding(
-      padding: EdgeInsets.symmetric(horizontal: 30.w),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.person_add_alt_1_rounded,
-            size: 80.sp,
-            color: primaryColor.withOpacity(0.5),
-          ),
-          SizedBox(height: 20.h),
-          Text(
-            "لا يوجد مريض مرتبط",
-            style: GoogleFonts.tajawal(
-              fontSize: 22.sp,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          SizedBox(height: 10.h),
-          Text(
-            "لم تقم بربط أي مريض بحسابك بعد.\nقم بإضافة مريض لمتابعة حالته الصحية.",
-            textAlign: TextAlign.center,
-            style: GoogleFonts.tajawal(
-              fontSize: 14.sp,
-              color: Colors.grey[600],
-              height: 1.5,
-            ),
-          ),
-          SizedBox(height: 40.h),
-
-          // زر ربط مريض (الرئيسي)
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () =>
-                  Navigator.pushNamed(context, AppRoutes.linkPatient),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor,
-                padding: EdgeInsets.symmetric(vertical: 15.h),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                elevation: 2,
-              ),
-              child: Text(
-                "ربط مريض الآن",
-                style: GoogleFonts.tajawal(
-                  color: Colors.white,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-
-          SizedBox(height: 15.h),
-
-          // ✅ زر الملف الشخصي (الجديد)
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const FamilyProfileScreen()),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: primaryColor,
-                side: BorderSide(color: primaryColor),
-                padding: EdgeInsets.symmetric(vertical: 15.h),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-              ),
-              icon: const Icon(Icons.person_outline_rounded),
-              label: Text(
-                "ملفي الشخصي",
-                style: GoogleFonts.tajawal(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    ),
+    child: Text("يرجى ربط مريض لمتابعة حالته", style: GoogleFonts.tajawal()),
   );
-  void _showAddVitalsSheet(BuildContext context, String patientId) =>
+  void _showAddVitalsSheet(BuildContext context, String pid) =>
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (_) => AddVitalsSheet(patientId: patientId),
-      );
-
-  void _showSnackBar(BuildContext context, String msg, Color color) =>
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(msg, style: GoogleFonts.tajawal()),
-          backgroundColor: color,
-        ),
+        builder: (_) => AddVitalsSheet(patientId: pid),
       );
 }
-
-enum MedicationStatus { taken, pending, missed }
