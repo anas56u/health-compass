@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:health_compass/core/cache/shared_pref_helper.dart';
@@ -20,9 +21,28 @@ class _HealthStatusCardState extends State<HealthStatusCard> {
   void initState() {
     super.initState();
     // ✅ تحميل القيمة الأولية من الذاكرة لتحديث النوتيفاير
-    SharedPrefHelper.getHealthSource();
+   _initData(); // ✅ دالة التهيئة الجديدة
   }
+// ✅ دالة لضمان تحميل البيانات عند بدء التشغيل
+  void _initData() {
+    SharedPrefHelper.getHealthSource();
 
+    final user = FirebaseAuth.instance.currentUser;
+    final familyCubit = context.read<FamilyCubit>();
+    
+    if (user != null) {
+      // 1. نحاول جلب بيانات العائلة
+      familyCubit.initFamilyHome(user.uid).then((_) {
+        // ✅ التعديل الحاسم هنا:
+        // إذا قال الكيوبيت "لا يوجد مرضى مرتبطين" (FamilyNoLinkedPatients)
+        // فهذا يعني أنني أنا المريض! قم باختياري فوراً لجلب بياناتي.
+        if (familyCubit.state is FamilyNoLinkedPatients) {
+          // نقوم باختيار المستخدم الحالي يدوياً لجلب بياناته
+          familyCubit.selectPatient(user.uid);
+        }
+      });
+    }
+  }
   @override
   Widget build(BuildContext context) {
     // ✅ التعديل الجوهري هنا:
@@ -83,27 +103,33 @@ class _HealthStatusCardState extends State<HealthStatusCard> {
   // ==========================================
   // 📝 جزء القراءة اليدوية
   // ==========================================
-  Widget _buildManualSourceView() {
+ Widget _buildManualSourceView() {
     return BlocBuilder<FamilyCubit, FamilyState>(
       builder: (context, state) {
+        // 1. حالة التحميل
         if (state is FamilyLoading) {
           return _buildLoadingCard();
         }
 
-        // في حالة الخطأ، نعرض رسالة خطأ، إلا إذا كان الخطأ هو "لا يوجد مرضى" وكان المستخدم جديداً
-        if (state is FamilyError) {
-           // تحسين بسيط: لو أردت يمكنك عرض كارد فارغ بدلاً من الخطأ في بعض الحالات
-           return _buildErrorCard(context, "لم يتم العثور على بيانات يدوية");
+        // 2. حالة لا يوجد مرضى (نعرض كارد فارغ مؤقتاً حتى يتم اختيارك تلقائياً)
+        if (state is FamilyNoLinkedPatients) {
+           return _buildCardUI(hr: 0, sys: 0, dia: 0, glu: 0);
         }
 
+        // 3. حالة الخطأ
+        if (state is FamilyError) {
+           return _buildErrorCard(context, "فشل تحميل البيانات");
+        }
+
+        // 4. حالة نجاح جلب البيانات (Dashboard Loaded)
         if (state is FamilyDashboardLoaded) {
-          // 1. تعريف المتغيرات الافتراضية
+          // ✅ تعريف المتغيرات هنا هو الحل لمشكلة Undefined name
           double hr = 0;
           int sys = 0;
           int dia = 0;
           double glu = 0;
 
-          // 2. دالة لاستخراج البيانات (Best Practice: نقل المنطق المعقد خارج الـ UI المباشر)
+          // دالة البحث عن آخر قراءة
           VitalModel? getLatestVital(List<String> keywords) {
             try {
               if (state.currentVitals.isEmpty) return null;
@@ -122,12 +148,13 @@ class _HealthStatusCardState extends State<HealthStatusCard> {
             }
           }
 
-          // 3. استخراج البيانات
+          // استخراج قيم السكر
           final sugarVital = getLatestVital(['sugar', 'glucose', 'سكر']);
           if (sugarVital != null) {
             glu = double.tryParse(sugarVital.value) ?? 0;
           }
 
+          // استخراج قيم الضغط
           final pressureVital = getLatestVital(['pressure', 'bp', 'ضغط']);
           if (pressureVital != null) {
             final parts = pressureVital.value.split('/');
@@ -137,11 +164,13 @@ class _HealthStatusCardState extends State<HealthStatusCard> {
             }
           }
 
+          // استخراج قيم القلب
           final heartVital = getLatestVital(['heart', 'pulse', 'rate', 'نبض']);
           if (heartVital != null) {
             hr = double.tryParse(heartVital.value) ?? 0;
           }
 
+          // تمرير المتغيرات المعرفة للكارد
           return _buildCardUI(
             hr: hr,
             sys: sys,
@@ -150,7 +179,7 @@ class _HealthStatusCardState extends State<HealthStatusCard> {
           );
         }
 
-        // حالة افتراضية (مثلاً لم يتم اختيار مريض بعد)
+        // الحالة الافتراضية
         return _buildCardUI(hr: 0, sys: 0, dia: 0, glu: 0);
       },
     );

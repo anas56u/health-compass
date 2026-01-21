@@ -10,6 +10,7 @@ class FamilyCubit extends Cubit<FamilyState> {
   final FamilyRepository _repo;
 
   FamilyCubit(this._repo) : super(FamilyInitial());
+  
 
   List<Map<String, dynamic>> _cachedPatients = [];
   Map<String, dynamic> _cachedCurrentProfile = {};
