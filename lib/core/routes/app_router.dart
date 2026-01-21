@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:health_compass/core/routes/routes.dart';
 import 'package:health_compass/feature/Reminders/presentation/screens/Reminders_page.dart';
-import 'package:health_compass/feature/auth/presentation/screen/AppointmentBooking.dart';
+import 'package:health_compass/feature/patient/ui/AppointmentBooking.dart';
 import 'package:health_compass/feature/auth/presentation/screen/chatscreen.dart';
 import 'package:health_compass/feature/auth/presentation/screen/my_doctors.dart';
 import 'package:health_compass/feature/auth/presentation/screen/splash_screen.dart';
@@ -15,6 +15,8 @@ import 'package:health_compass/feature/auth/presentation/screen/patient_info.dar
 import 'package:health_compass/feature/auth/presentation/screen/doctor_info.dart';
 import 'package:health_compass/feature/auth/presentation/screen/family_member_info.dart';
 import 'package:health_compass/feature/chatbot/ui/screens/chat_bot_screen.dart';
+import 'package:health_compass/feature/doctor/doctor_main_screen.dart';
+import 'package:health_compass/feature/doctor/home/pages/doctor_home_page.dart';
 import 'package:health_compass/feature/family_invite/family_invite.dart';
 import 'package:health_compass/feature/family_member/logic/family_cubit.dart';
 import 'package:health_compass/feature/health_dashboard/ui/screens/health_dashboard_screen.dart';
@@ -97,7 +99,7 @@ class AppRouter {
 
       case AppRoutes.appointmentBooking:
         return MaterialPageRoute(
-          builder: (_) => const AppointmentBookingScreen(),
+          builder: (_) => const PatientAppointmentsPage(),
         );
 
       case AppRoutes.profileSettings:
@@ -125,7 +127,9 @@ class AppRouter {
             child: const FamilyMemberHomeScreen(),
           ),
         );
-
+      // في ملف app_router.dart
+      case AppRoutes.doctorHome:
+        return MaterialPageRoute(builder: (_) => const DoctorMainScreen());
       // 2. صفحة ربط المريض (إدخال الكود)
       case AppRoutes.linkPatient:
         return MaterialPageRoute(

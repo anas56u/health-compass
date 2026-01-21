@@ -34,10 +34,13 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
     super.initState();
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      // 1. تهيئة البيانات الأساسية للمرضى المرتبطين
-      context.read<FamilyCubit>().initFamilyHome(user.uid);
-      // 2. جلب ملف المستخدم الشخصي لمعرفة الصلاحية (Permission)
-      context.read<FamilyCubit>().loadMyProfile();
+      // ✅ التعديل 1: استدعاء البروفايل أولاً ثم لوحة التحكم بشكل متسلسل
+      // هذا يضمن أن حالة FamilyDashboardLoaded ستكون هي الحالة النهائية الظاهرة
+      context.read<FamilyCubit>().loadMyProfile().then((_) {
+        if (mounted) {
+          context.read<FamilyCubit>().initFamilyHome(user.uid);
+        }
+      });
     }
   }
 
@@ -73,7 +76,8 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
           backgroundColor: bgColor,
           body: BlocBuilder<FamilyCubit, FamilyState>(
             builder: (context, state) {
-              if (state is FamilyLoading) {
+              // ✅ التعديل 2: دمج حالة ProfileLoaded مع حالة التحميل لمنع الشاشة البيضاء
+              if (state is FamilyLoading || state is FamilyProfileLoaded) {
                 return Center(
                   child: CircularProgressIndicator(color: primaryColor),
                 );
@@ -85,10 +89,10 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
               } else if (state is FamilyDashboardLoaded) {
                 return _buildDashboardContent(context, state);
               }
-              return const SizedBox();
+              return const SizedBox(); // حالة احتياطية
             },
           ),
-          // التحكم بظهور زر الإضافة بناءً على الصلاحية في Firestore
+          // التحكم بظهور زر الإضافة بناءً على الصلاحية
           floatingActionButton: BlocBuilder<FamilyCubit, FamilyState>(
             builder: (context, state) {
               if (state is FamilyDashboardLoaded &&
@@ -142,9 +146,7 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (_) => MedicationScreen(
-                        canEdit:
-                            _userPermission ==
-                            'interactive', // تمرير الصلاحية المجلوبة
+                        canEdit: _userPermission == 'interactive',
                         userId: state.selectedPatientId,
                       ),
                     ),
@@ -205,7 +207,6 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
                     child: Text(patient['name'] ?? 'مريض بدون اسم'),
                   );
                 }).toList(),
-                // خيار الإضافة يظهر للجميع ولكن يتم التحكم فيه عند الضغط
                 DropdownMenuItem<String>(
                   value: "add_new",
                   child: Row(
@@ -588,31 +589,94 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
   );
 
   Widget _buildNoLinkedPatientState() => Center(
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.person_add_alt_1_rounded, size: 60.sp, color: primaryColor),
-        SizedBox(height: 20.h),
-        Text(
-          "لا يوجد مريض مرتبط",
-          style: GoogleFonts.tajawal(
-            fontSize: 20.sp,
-            fontWeight: FontWeight.bold,
+    child: Padding(
+      padding: EdgeInsets.symmetric(horizontal: 30.w),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.person_add_alt_1_rounded,
+            size: 80.sp,
+            color: primaryColor.withOpacity(0.5),
           ),
-        ),
-        SizedBox(height: 30.h),
-        ElevatedButton(
-          onPressed: () => Navigator.pushNamed(context, AppRoutes.linkPatient),
-          style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-          child: Text(
-            "ربط مريض الآن",
-            style: GoogleFonts.tajawal(color: Colors.white),
+          SizedBox(height: 20.h),
+          Text(
+            "لا يوجد مريض مرتبط",
+            style: GoogleFonts.tajawal(
+              fontSize: 22.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
           ),
-        ),
-      ],
+          SizedBox(height: 10.h),
+          Text(
+            "لم تقم بربط أي مريض بحسابك بعد.\nقم بإضافة مريض لمتابعة حالته الصحية.",
+            textAlign: TextAlign.center,
+            style: GoogleFonts.tajawal(
+              fontSize: 14.sp,
+              color: Colors.grey[600],
+              height: 1.5,
+            ),
+          ),
+          SizedBox(height: 40.h),
+
+          // زر ربط مريض (الرئيسي)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () =>
+                  Navigator.pushNamed(context, AppRoutes.linkPatient),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                padding: EdgeInsets.symmetric(vertical: 15.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                elevation: 2,
+              ),
+              child: Text(
+                "ربط مريض الآن",
+                style: GoogleFonts.tajawal(
+                  color: Colors.white,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+
+          SizedBox(height: 15.h),
+
+          // ✅ زر الملف الشخصي (الجديد)
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const FamilyProfileScreen()),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: primaryColor,
+                side: BorderSide(color: primaryColor),
+                padding: EdgeInsets.symmetric(vertical: 15.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+              ),
+              icon: const Icon(Icons.person_outline_rounded),
+              label: Text(
+                "ملفي الشخصي",
+                style: GoogleFonts.tajawal(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     ),
   );
-
   void _showAddVitalsSheet(BuildContext context, String patientId) =>
       showModalBottomSheet(
         context: context,

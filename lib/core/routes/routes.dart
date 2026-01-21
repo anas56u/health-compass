@@ -23,4 +23,5 @@ class AppRoutes {
   static const String my_doctors = '/my_doctors';
   static const String doctorContact = '/doctor_contact';
   static const String healthDashboard = '/healthDashboard';
+  static const String doctorHome = '/doctor_home';
 }

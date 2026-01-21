@@ -96,7 +96,7 @@ class _DoctorInfoScreenState extends State<DoctorInfoScreen> {
       listener: (context, state) {
         if (state is SignupSuccess) {
           showsnackbar(context, massage: "تم إنشاء حساب الطبيب بنجاح");
-          Navigator.pushReplacementNamed(context, AppRoutes.patientHome);
+          Navigator.pushReplacementNamed(context, AppRoutes.doctorHome);
         } else if (state is SignupFailure) {
           showsnackbar(context, massage: state.error);
         }
@@ -256,23 +256,27 @@ class _DoctorInfoScreenState extends State<DoctorInfoScreen> {
                       const SizedBox(height: 15),
 
                       _buildLabel("رقم الترخيص"),
-                     CustomTextfild(
-  hinttext: "12345",
-  onChanged: (value) => licenseNumber = value,
-  // ✅ التعديل هنا:
-  keyboardType: TextInputType.number, 
-  inputFormatters: [FilteringTextInputFormatter.digitsOnly], 
-),
+                      CustomTextfild(
+                        hinttext: "12345",
+                        onChanged: (value) => licenseNumber = value,
+                        // ✅ التعديل هنا:
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                      ),
                       const SizedBox(height: 15),
 
                       _buildLabel("سنوات الخبرة"),
-                    CustomTextfild(
-  hinttext: "مثال: 5",
-  onChanged: (value) => experienceYears = value,
-  // ✅ التعديل هنا أيضاً:
-  keyboardType: TextInputType.number,
-  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-),
+                      CustomTextfild(
+                        hinttext: "مثال: 5",
+                        onChanged: (value) => experienceYears = value,
+                        // ✅ التعديل هنا أيضاً:
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                      ),
 
                       const SizedBox(height: 30),
 

@@ -24,7 +24,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:health_compass/core/widgets/EmergencyScreen.dart';
 import 'package:health_compass/feature/auth/presentation/screen/splash_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
-// 👇 1. إضافة استيراد SharedPreferences
 import 'package:shared_preferences/shared_preferences.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();

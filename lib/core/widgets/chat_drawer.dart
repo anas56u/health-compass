@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:health_compass/feature/AboutApp.dart';
 import 'package:health_compass/feature/chatbot/data/logic/cubit/chat_cubit.dart';
 import 'package:health_compass/feature/chatbot/ui/screens/chat_history_screen.dart';
 
@@ -105,8 +106,18 @@ class ChatDrawer extends StatelessWidget {
             title: "عن التطبيق",
             color: Colors.grey,
             onTap: () {
-              Navigator.pop(context);
-              // يمكن إضافة نافذة منبثقة هنا
+              Navigator.pop(context); // إغلاق القائمة
+
+              final cubit = context.read<ChatCubit>();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BlocProvider.value(
+                    value: cubit,
+                    child: const AboutAppScreen(),
+                  ),
+                ),
+              );
             },
           ),
         ],

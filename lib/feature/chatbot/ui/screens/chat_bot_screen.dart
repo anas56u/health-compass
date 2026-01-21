@@ -34,7 +34,7 @@ class _ChatViewState extends State<_ChatView> {
   final ScrollController _scrollController = ScrollController();
 
   final Color _primaryColor = const Color(0xFF0D9488);
-  bool _isTyping = false; // ✅ متغير لمراقبة حالة الكتابة
+  bool _isTyping = false;
 
   final List<String> _suggestions = [
     "ما هي أعراض السكري؟",
