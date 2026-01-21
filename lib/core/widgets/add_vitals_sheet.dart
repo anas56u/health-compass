@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:health_compass/feature/health_tracking/presentation/cubits/health_cubit/health_cubit.dart';
 import 'package:provider/provider.dart'; // أو استخدام Bloc حسب مشروعك
 import 'package:health_compass/feature/family_member/logic/family_cubit.dart'; // استيراد الكيوبيت الخاص بك
 
@@ -115,18 +116,47 @@ class _AddVitalsSheetState extends State<AddVitalsSheet> {
 
   void _onSavePressed() {
     if (_formKey.currentState!.validate()) {
+      // 1. استخراج القيم
       final sugar = double.tryParse(_sugarController.text);
-      final pressure = _pressureController.text;
       final heartRate = double.tryParse(_heartRateController.text);
+      
+      // تحليل نص الضغط (مثلاً "120/80")
+      int? systolic;
+      int? diastolic;
+      final pressureText = _pressureController.text;
+      
+      if (pressureText.isNotEmpty && pressureText.contains('/')) {
+        final parts = pressureText.split('/');
+        if (parts.length == 2) {
+          systolic = int.tryParse(parts[0].trim());
+          diastolic = int.tryParse(parts[1].trim());
+        }
+      } else if (pressureText.isNotEmpty) {
+        // في حال أدخل المستخدم رقم واحد فقط نعتبره الانقباضي
+        systolic = int.tryParse(pressureText.trim());
+      }
+
       // التأكد أننا لا نرسل بيانات فارغة تماماً
-      if (sugar == null && pressure.isEmpty && heartRate == null) {
+      if (sugar == null && pressureText.isEmpty && heartRate == null) {
         return; 
       }
+
+      // 2. إرسال البيانات للحفظ في قاعدة البيانات (كما كان سابقاً)
       context.read<FamilyCubit>().addVital(
         patientId: widget.patientId,
         sugar: sugar,
-        pressure: pressure,
+        pressure: pressureText,
         heartRate: heartRate,
+      ); 
+
+      // 3. ✅ فحص الطوارئ (الإضافة الجديدة)
+      // نرسل البيانات لـ HealthCubit ليفحصها ويطلق الإنذار إذا لزم الأمر
+      // نستخدم listen: false أو read لأننا داخل دالة
+      context.read<HealthCubit>().checkManualReadings(
+        heartRate: heartRate,
+        systolic: systolic,
+        diastolic: diastolic,
+        bloodGlucose: sugar,
       );
 
       Navigator.pop(context);

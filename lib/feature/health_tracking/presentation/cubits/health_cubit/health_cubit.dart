@@ -109,6 +109,66 @@ class HealthCubit extends Cubit<HealthState> {
       emit(HealthError("خطأ في محاولة التثبيت: $e"));
     }
   }
+  // داخل كلاس HealthCubit
+
+// ✅ دالة جديدة لفحص القراءات اليدوية
+void checkManualReadings({
+  double? heartRate,
+  int? systolic,
+  int? diastolic,
+  double? bloodGlucose,
+}) {
+  // 1. فحص القلب
+  if (heartRate != null) {
+    if (heartRate > 120 || (heartRate < 40 && heartRate > 0)) {
+      _triggerEmergency(
+        message: "معدل ضربات القلب غير طبيعي (يدوي: $heartRate)!",
+        value: heartRate,
+        type: "Heart Rate",
+        heartRate: heartRate,
+        systolic: systolic ?? 0,
+        diastolic: diastolic ?? 0,
+        bloodGlucose: bloodGlucose ?? 0,
+      );
+      return; // توقف هنا إذا تم اكتشاف خطر
+    }
+  }
+
+  // 2. فحص ضغط الدم (الانقباضي)
+  if (systolic != null) {
+    if (systolic > 180 || (systolic < 90 && systolic > 0)) {
+      _triggerEmergency(
+        message: "ضغط الدم وصل لمرحلة حرجة (يدوي: $systolic)!",
+        value: systolic.toDouble(),
+        type: "Blood Pressure",
+        heartRate: heartRate ?? 0,
+        systolic: systolic,
+        diastolic: diastolic ?? 0,
+        bloodGlucose: bloodGlucose ?? 0,
+      );
+      return;
+    }
+  }
+
+  // 3. فحص السكر
+  if (bloodGlucose != null) {
+    if (bloodGlucose > 300 || (bloodGlucose < 70 && bloodGlucose > 0)) {
+      _triggerEmergency(
+        message: "مستوى السكر في الدم خطير (يدوي: $bloodGlucose)!",
+        value: bloodGlucose,
+        type: "Glucose",
+        heartRate: heartRate ?? 0,
+        systolic: systolic ?? 0,
+        diastolic: diastolic ?? 0,
+        bloodGlucose: bloodGlucose,
+      );
+      return;
+    }
+  }
+  
+  // إذا كانت القيم سليمة، يمكنك إما تجاهلها أو عمل emit لحالة HealthLoaded لتحديث الواجهة
+  // emit(HealthLoaded(...)); // اختياري حسب رغبتك في تحديث الواجهة الرئيسية
+}
 
   // 4️⃣ الدالة الرئيسية لجلب البيانات
   Future<void> fetchHealthData() async {
