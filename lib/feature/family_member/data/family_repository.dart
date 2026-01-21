@@ -131,7 +131,7 @@ class FamilyRepository {
         .doc(patientId)
         .collection('health_readings')
         .orderBy('date', descending: true)
-        .limit(4)
+        .limit(20)
         .get();
 
     return snapshot.docs.map((doc) {
@@ -173,6 +173,7 @@ class FamilyRepository {
     required String patientId,
     double? sugar,
     String? pressure,
+  double? heartRate,
   }) async {
     final batch = _firestore.batch();
     final String timeKey = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
@@ -201,6 +202,16 @@ class FamilyRepository {
         'date': FieldValue.serverTimestamp(),
       });
     }
+    if (heartRate != null) {
+      final heartRateDoc = vitalsRef.doc('heartRate_$timeKey');
+      batch.set(heartRateDoc, {
+        'type': 'heartRate',
+        'value': heartRate.toString(),
+        'unit': 'bpm',
+        'date': FieldValue.serverTimestamp(),
+      });
+    }
+
 
     await batch.commit();
   }

@@ -17,6 +17,7 @@ class _AddVitalsSheetState extends State<AddVitalsSheet> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _sugarController = TextEditingController();
   final TextEditingController _pressureController = TextEditingController();
+  final TextEditingController _heartRateController = TextEditingController();
 
   final Color primaryColor = const Color(0xFF169086);
 
@@ -82,7 +83,10 @@ class _AddVitalsSheetState extends State<AddVitalsSheet> {
               icon: Icons.speed,
               color: Colors.blueAccent,
             ),
+
             const SizedBox(height: 25),
+            _buildField(controller: _heartRateController, label: "نبضات القلب (bpm)", icon: Icons.favorite_rounded, color: Colors.red),
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -113,10 +117,16 @@ class _AddVitalsSheetState extends State<AddVitalsSheet> {
     if (_formKey.currentState!.validate()) {
       final sugar = double.tryParse(_sugarController.text);
       final pressure = _pressureController.text;
+      final heartRate = double.tryParse(_heartRateController.text);
+      // التأكد أننا لا نرسل بيانات فارغة تماماً
+      if (sugar == null && pressure.isEmpty && heartRate == null) {
+        return; 
+      }
       context.read<FamilyCubit>().addVital(
         patientId: widget.patientId,
         sugar: sugar,
         pressure: pressure,
+        heartRate: heartRate,
       );
 
       Navigator.pop(context);
@@ -131,7 +141,7 @@ class _AddVitalsSheetState extends State<AddVitalsSheet> {
   }) {
     return TextFormField(
       controller: controller,
-      keyboardType: TextInputType.number,
+      keyboardType: TextInputType.phone,
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: color),
         labelText: label,

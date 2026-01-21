@@ -155,13 +155,29 @@ class _HealthStatusCardState extends State<HealthStatusCard> {
           }
 
           // استخراج قيم الضغط
-          final pressureVital = getLatestVital(['pressure', 'bp', 'ضغط']);
+         final pressureVital = getLatestVital(['pressure', 'bp', 'blood', 'ضغط']);
+          
           if (pressureVital != null) {
-            final parts = pressureVital.value.split('/');
-            if (parts.length == 2) {
-              sys = int.tryParse(parts[0]) ?? 0;
-              dia = int.tryParse(parts[1]) ?? 0;
+            String val = pressureVital.value.toString();
+            
+            // 1. تنظيف النص: حذف المسافات الزائدة واستبدال الفواصل المختلفة
+            val = val.replaceAll(' ', ''); // حذف كل المسافات "120 / 80" -> "120/80"
+            val = val.replaceAll('-', '/'); // استبدال الشرطة بسلاش لو وجدت
+            val = val.replaceAll(',', '/'); // استبدال الفاصلة بسلاش
+            val = val.replaceAll('.', '/'); 
+
+            // 2. التقسيم بناءً على السلاش
+            if (val.contains('/')) {
+              final parts = val.split('/');
+              if (parts.length >= 2) {
+                // استخدام tryParse مع trim للتأكد
+                sys = int.tryParse(parts[0].trim()) ?? 0; 
+                dia = int.tryParse(parts[1].trim()) ?? 0;
+              }
             }
+            
+            // 🐛 طباعة للمراقبة في الـ Console لمعرفة ماذا يصل بالضبط
+            print("🔍 BP Debug -> Raw: ${pressureVital.value} | Parsed: $sys / $dia");
           }
 
           // استخراج قيم القلب

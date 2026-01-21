@@ -7,35 +7,33 @@ import 'package:health_compass/feature/family_member/logic/family_state.dart';
 
 // --- Cubit ---
 class FamilyCubit extends Cubit<FamilyState> {
+  // ✅ 1. المتغير معرف هنا باسم _repo
   final FamilyRepository _repo;
 
   FamilyCubit(this._repo) : super(FamilyInitial());
-  
 
   List<Map<String, dynamic>> _cachedPatients = [];
   Map<String, dynamic> _cachedCurrentProfile = {};
   String? _cachedSelectedId;
 
-  /// ✅ دالة مساعدة لمنع خطأ الـ Bad State (Cannot emit after close)
+  /// ✅ دالة مساعدة لمنع خطأ الـ Bad State
   void _safeEmit(FamilyState state) {
     if (!isClosed) {
       emit(state);
     }
   }
 
-  /// ✅ تحديث لوحة التحكم (تحديث البيانات الحيوية والاسم)
+  /// ✅ تحديث لوحة التحكم
   void _emitDashboard() async {
     if (_cachedSelectedId == null) return;
     try {
-      // جلب القياسات الحيوية للمريض المختار حالياً
       final vitals = await _repo.getRecentVitals(_cachedSelectedId!);
 
       _safeEmit(
         FamilyDashboardLoaded(
           allPatients: _cachedPatients,
           selectedPatientId: _cachedSelectedId!,
-          currentProfile:
-              _cachedCurrentProfile, // سيحتوي الآن على الاسم الصحيح "خالد"
+          currentProfile: _cachedCurrentProfile,
           currentVitals: vitals,
         ),
       );
@@ -63,27 +61,52 @@ class FamilyCubit extends Cubit<FamilyState> {
     }
   }
 
-  /// ✅ تبديل المريض المختار (إصلاح مشكلة الاسم)
+  /// ✅ تبديل المريض المختار (الدالة المصححة والوحيدة)
   Future<void> selectPatient(String patientId) async {
-    // البحث عن بيانات المريض في القائمة التي تم جلبها من الـ Repository
-    final patientProfile = _cachedPatients.firstWhere(
-      (p) => p['id'] == patientId,
-      orElse: () => {},
-    );
-
-    if (patientProfile.isEmpty) {
-      _safeEmit(FamilyError("بيانات المريض غير موجودة"));
-      return;
-    }
-
-    _safeEmit(FamilyLoading());
-
-    // تحديث البيانات المؤقتة بالبيانات الجديدة (التي تم إصلاحها في الـ Repository)
     _cachedSelectedId = patientId;
-    _cachedCurrentProfile = patientProfile;
+    emit(FamilyLoading());
 
-    // استدعاء تحديث لوحة التحكم لجلب القياسات
-    _emitDashboard();
+    try {
+      // 1. محاولة جلب القياسات من السيرفر
+      // ✅ تم الإصلاح: استخدام _repo بدلاً من familyRepository
+      // ملاحظة: تأكد أن دالة getPatientVitals موجودة في الـ Repo، وإلا استخدم getRecentVitals
+      // سأفترض هنا أنك تريد استخدام getRecentVitals لأنها المستخدمة سابقاً، أو قم بتعديل الاسم في الـ Repo
+      
+      // الخيار الأرجح بناءً على كودك السابق:
+      final vitals = await _repo.getRecentVitals(patientId); 
+      
+      // إذا كانت getPatientVitals تعيد Either (fold)، استخدم الكود التالي بدلاً من السطر أعلاه:
+      /* final vitalsResult = await _repo.getPatientVitals(patientId);
+      vitalsResult.fold(...) 
+      */
+
+      // 2. محاولة العثور على بروفايل المريض
+      final Map<String, dynamic> profile = _cachedPatients.firstWhere(
+        (p) => p['id'] == patientId,
+        orElse: () => {
+          'id': patientId,
+          'name': 'أنا', 
+          'relation': 'Self',
+          'age': '--', 
+          'gender': '--' 
+        },
+      );
+
+      // تحديث الكاش
+      _cachedCurrentProfile = profile;
+
+      // 3. إرسال الحالة
+      emit(FamilyDashboardLoaded(
+        currentVitals: vitals, // أو vitals من الـ fold
+        allPatients: _cachedPatients,       
+        selectedPatientId: patientId,       
+        currentProfile: profile,            
+      ));
+
+    } catch (e) {
+      print("Error in selectPatient: $e");
+      emit(FamilyError(e.toString()));
+    }
   }
 
   // --- العمليات على العلامات الحيوية (Vitals) ---
@@ -92,6 +115,7 @@ class FamilyCubit extends Cubit<FamilyState> {
     required String patientId,
     double? sugar,
     String? pressure,
+    double? heartRate,
   }) async {
     _safeEmit(FamilyOperationLoading());
     try {
@@ -99,9 +123,10 @@ class FamilyCubit extends Cubit<FamilyState> {
         patientId: patientId,
         sugar: sugar,
         pressure: pressure,
+        heartRate: heartRate,
       );
       _safeEmit(FamilyOperationSuccess("تم تسجيل القراءة بنجاح"));
-      _emitDashboard(); // تحديث الواجهة فوراً
+      _emitDashboard(); 
     } catch (e) {
       _safeEmit(FamilyOperationError("حدث خطأ أثناء حفظ القراءة"));
       _emitDashboard();
