@@ -7,7 +7,6 @@ import 'package:health_compass/core/routes/routes.dart';
 import 'package:health_compass/core/models/vital_model.dart';
 import 'package:health_compass/core/models/medication_model.dart';
 import 'package:health_compass/feature/chatbot/ui/screens/chat_bot_screen.dart';
-import 'package:health_compass/feature/family_member/data/family_repository.dart';
 import 'package:health_compass/feature/family_member/logic/family_cubit.dart';
 import 'package:health_compass/feature/family_member/logic/family_state.dart';
 import 'package:health_compass/feature/family_member/presentation/screens/family_profile_screen.dart';
@@ -15,6 +14,7 @@ import 'package:health_compass/feature/family_member/presentation/screens/medica
 import 'package:health_compass/feature/family_member/presentation/screens/vitals_history_screen.dart';
 import 'package:health_compass/feature/family_member/presentation/screens/patient_settings_screen.dart';
 import 'package:health_compass/core/widgets/add_vitals_sheet.dart';
+import 'package:health_compass/feature/family_member/data/family_repository.dart';
 
 class FamilyMemberHomeScreen extends StatefulWidget {
   const FamilyMemberHomeScreen({super.key});
@@ -24,7 +24,6 @@ class FamilyMemberHomeScreen extends StatefulWidget {
 }
 
 class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
-  // تدرج ألوان مريح وهادئ
   final Color primaryColor = const Color(0xFF41BFAA);
   final Color secondaryColor = const Color(0xFF1B8E8C);
   final Color chatbotColor = const Color(0xFF0D9488);
@@ -76,6 +75,7 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
                 } else if (state is FamilyError) {
                   return _buildErrorState(state.message);
                 }
+                // الحالة عندما لا يكون هناك مرضى مرتبطون
                 return _buildNoLinkedPatientState();
               },
             ),
@@ -136,7 +136,7 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
               ),
               SizedBox(height: 12.h),
               _buildRealMedicationList(state.selectedPatientId),
-              SizedBox(height: 60.h), // مساحة أمان للأزرار العائمة
+              SizedBox(height: 60.h),
             ]),
           ),
         ),
@@ -300,7 +300,6 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
     if (vitals.isEmpty) return _buildEmptyState("لا توجد قراءات مسجلة لليوم");
     return LayoutBuilder(
       builder: (context, constraints) {
-        // حساب نسبة العرض للطول ديناميكياً لمنع الـ Overflow في الكروت
         double childAspectRatio =
             constraints.maxWidth / (constraints.maxWidth * 0.68);
         return GridView.builder(
@@ -490,6 +489,98 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
     );
   }
 
+  // واجهة "لا يوجد مرضى مرتبطون" المحسنة بأزرار واضحة
+  Widget _buildNoLinkedPatientState() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 30.w),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.people_outline_rounded,
+            size: 100.sp,
+            color: primaryColor.withOpacity(0.3),
+          ),
+          SizedBox(height: 24.h),
+          Text(
+            "لم تقم بربط أي مريض بعد",
+            style: GoogleFonts.tajawal(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 12.h),
+          Text(
+            "ابدأ الآن بمتابعة الحالة الصحية لأفراد عائلتك من خلال ربط حساباتهم.",
+            style: GoogleFonts.tajawal(
+              fontSize: 14.sp,
+              color: Colors.grey[600],
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 40.h),
+
+          // زر الانتقال لصفحة الربط
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () =>
+                  Navigator.pushNamed(context, AppRoutes.linkPatient),
+              icon: const Icon(Icons.link, color: Colors.white),
+              label: Text(
+                "ربط مريض الآن",
+                style: GoogleFonts.tajawal(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontSize: 16.sp,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                padding: EdgeInsets.symmetric(vertical: 15.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                elevation: 2,
+              ),
+            ),
+          ),
+          SizedBox(height: 16.h),
+
+          // زر الانتقال للملف الشخصي
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const FamilyProfileScreen()),
+              ),
+              icon: Icon(Icons.person_outline_rounded, color: primaryColor),
+              label: Text(
+                "الملف الشخصي",
+                style: GoogleFonts.tajawal(
+                  fontWeight: FontWeight.bold,
+                  color: primaryColor,
+                  fontSize: 16.sp,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: primaryColor, width: 1.5),
+                padding: EdgeInsets.symmetric(vertical: 15.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showCustomSnackBar(BuildContext context, String msg, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -520,11 +611,21 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
     ),
   );
 
-  Widget _buildErrorState(String msg) =>
-      Center(child: Text(msg, style: GoogleFonts.tajawal()));
-  Widget _buildNoLinkedPatientState() => Center(
-    child: Text("يرجى ربط مريض لمتابعة حالته", style: GoogleFonts.tajawal()),
+  Widget _buildErrorState(String msg) => Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.error_outline, size: 50.sp, color: Colors.redAccent),
+        SizedBox(height: 16.h),
+        Text(msg, style: GoogleFonts.tajawal(color: Colors.black87)),
+        TextButton(
+          onPressed: _loadInitialData,
+          child: const Text("إعادة المحاولة"),
+        ),
+      ],
+    ),
   );
+
   void _showAddVitalsSheet(BuildContext context, String pid) =>
       showModalBottomSheet(
         context: context,
