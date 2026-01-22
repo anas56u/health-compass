@@ -71,37 +71,23 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
     _healthSubscription?.cancel();
     final int limit = _isWeeklyView ? 7 : 30;
 
-    // ✅ استخدام حقل 'date' بدلاً من 'timestamp' ليتوافق مع الـ Repository
     _healthSubscription = _firestore
         .collection('users')
         .doc(uid)
         .collection('health_readings')
-       .orderBy('timestamp', descending: true)
-        .limit(limit * 2)
+        .orderBy('timestamp', descending: true)
+        .limit(limit * 50) // زدنا اللييمت لنضمن جلب كل قراءات اليوم الدقيقة
         .snapshots()
         .listen((snapshot) {
-          final Map<String, HealthDataModel> uniqueData = {};
-
-          for (var doc in snapshot.docs) {
-            final data = HealthDataModel.fromMap(doc.data());
-
-            // ✅ إنشاء مفتاح فريد لكل دقيقة (سنة-شهر-يوم-ساعة-دقيقة)
-            // هذا يضمن أن أي قراءات مكررة في نفس الدقيقة ستظهر كقراءة واحدة فقط
-            final String timeKey = DateFormat(
-              'yyyyMMdd_HHmm',
-            ).format(data.date);
-
-            if (!uniqueData.containsKey(timeKey)) {
-              uniqueData[timeKey] = data;
-            }
-          }
-
-          // تحويل الـ Map إلى قائمة وترتيبها زمنياً
-          _cachedHistory = uniqueData.values.toList().reversed.toList();
+          // ✅ ألغينا منطق uniqueData الذي كان يحذف القراءات في نفس الدقيقة
+          // نأخذ كل البيانات كما هي من القاعدة
+          _cachedHistory = snapshot.docs
+              .map((doc) => HealthDataModel.fromMap(doc.data()))
+              .toList();
+          
           _emitUpdatedState();
         }, onError: (e) => emit(HealthDashboardError(e.toString())));
   }
-
   void _listenToTasksForDate(DateTime date) {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
@@ -137,7 +123,7 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
     HealthDataModel displayData;
 
     try {
-      // 1. فلترة بيانات اليوم المختار فقط
+      // فلترة بيانات اليوم المحدد
       final todaysReadings = _cachedHistory.where((element) {
         return element.date.year == _currentSelectedDate.year &&
             element.date.month == _currentSelectedDate.month &&
@@ -146,78 +132,61 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
 
       if (todaysReadings.isEmpty) {
         displayData = HealthDataModel(
-          heartRate: 0,
-          sugar: 0,
-          systolic: 0,
-          diastolic: 0,
-          weight: 0,
-          date: _currentSelectedDate,
-        );
+            heartRate: 0, sugar: 0, systolic: 0, diastolic: 0, weight: 0, date: _currentSelectedDate);
       } else {
-        // 2. تجميع البيانات (Aggregation)
-        // سنقوم بالمرور على جميع قراءات اليوم ونأخذ أحدث قيمة غير صفرية لكل حقل
-        
-        // ترتيب القراءات من القديم للحديث (مهم جداً)
+        // ترتيب من القديم للحديث للدمج الصحيح
         todaysReadings.sort((a, b) => a.date.compareTo(b.date));
 
+        // متغيرات لتجميع أحدث القيم
         double lastHeartRate = 0;
         int lastSugar = 0;
         int lastSystolic = 0;
         int lastDiastolic = 0;
         double lastWeight = 0;
-        
-        // Loop ذكي لتحديث القيم
+
+        // ✅ Loop يمر على كل القراءات ويحدث القيم إذا كانت أكبر من صفر
         for (var reading in todaysReadings) {
           if (reading.heartRate > 0) lastHeartRate = reading.heartRate;
-          if (reading.sugar > 0) lastSugar = reading.sugar;
+          if (reading.sugar > 0) lastSugar = reading.sugar; // هنا سيحفظ الـ 101 ولن يصفرها لأن القراءات اللاحقة لا تحتوي على مفتاح sugar أصلاً
           if (reading.systolic > 0) {
-             lastSystolic = reading.systolic;
-             lastDiastolic = reading.diastolic; // الضغط يؤخذ كزوج دائماً
+            lastSystolic = reading.systolic;
+            lastDiastolic = reading.diastolic;
           }
           if (reading.weight > 0) lastWeight = reading.weight;
         }
 
-        // 3. إنشاء الموديل النهائي المدمج
         displayData = HealthDataModel(
           heartRate: lastHeartRate,
           sugar: lastSugar,
           systolic: lastSystolic,
           diastolic: lastDiastolic,
           weight: lastWeight,
-          date: todaysReadings.last.date, // تاريخ آخر تحديث أيًّا كان
+          date: todaysReadings.last.date,
         );
         
-        print("✅ Final Merged Data: Sugar=$lastSugar, HR=$lastHeartRate");
+        print("📊 Dashboard Data: Sugar=$lastSugar, HR=$lastHeartRate");
       }
     } catch (e) {
-      print("Error processing dashboard data: $e");
+      print("Error: $e");
       displayData = HealthDataModel(
-        heartRate: 0, 
-        sugar: 0, 
-        systolic: 0, 
-        diastolic: 0, 
-        weight: 0, 
-        date: _currentSelectedDate
-      );
+          heartRate: 0, sugar: 0, systolic: 0, diastolic: 0, weight: 0, date: _currentSelectedDate);
     }
 
-    // حساب التاسكات (لا تغيير)
+    // حساب التاسكات (بدون تغيير)
     final int totalTasks = _cachedTasks.length;
     final int completedCount = _cachedTasks.where((t) => t.isCompleted).length;
     double percentage = totalTasks > 0 ? completedCount / totalTasks : 0.0;
 
-    emit(
-      HealthDashboardLoaded(
-        latestData: displayData,
-        historyData: _cachedHistory,
-        commitmentPercentage: percentage,
-        totalTasks: totalTasks,
-        completedTasks: completedCount,
-        selectedDate: _currentSelectedDate,
-        isWeekly: _isWeeklyView,
-        userName: _userName,
-      ),
-    );
+    emit(HealthDashboardLoaded(
+      latestData: displayData,
+      historyData: _cachedHistory,
+      commitmentPercentage: percentage,
+      totalTasks: totalTasks,
+      completedTasks: completedCount,
+      selectedDate: _currentSelectedDate,
+      isWeekly: _isWeeklyView,
+      userName: _userName,
+    ));
   }
   @override
   Future<void> close() {

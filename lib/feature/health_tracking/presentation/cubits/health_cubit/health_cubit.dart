@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:health/health.dart';
+import 'package:health_compass/core/cache/shared_pref_helper.dart';
 import 'package:health_compass/feature/auth/data/model/PatientModel.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/user_cubit.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/user_state.dart';
@@ -177,6 +178,11 @@ class HealthCubit extends Cubit<HealthState> {
   }
 
   Future<void> fetchHealthData() async {
+bool isWatchEnabled = await SharedPrefHelper.getBool('health_data_source');
+    if (!isWatchEnabled) {
+      print("🛑 Watch Sync is OFF. Skipping auto-fetch.");
+      return; 
+    }
     final userState = userCubit.state;
     if (userState is! UserLoaded || userState.userModel is! PatientModel) {
       return;
@@ -336,38 +342,40 @@ class HealthCubit extends Cubit<HealthState> {
     required double weight,
   }) async {
     final uid = _auth.currentUser?.uid;
-    print("☁️ [Cubit] 6. بدأت عملية الرفع للمستخدم: $uid"); // Log 7
+    print("☁️ [Cubit] 6. بدأت عملية الرفع للمستخدم: $uid");
 
-    if (uid == null) {
-      print("❌ [Cubit] خطأ: UID غير موجود (null)!");
-      return;
-    }
+    if (uid == null) return;
 
     try {
-      if (heartRate == 0 && bloodGlucose == 0 && systolic == 0) {
-        print("⚠️ [Cubit] تم إلغاء الرفع لأن جميع القيم أصفار");
+      // ✅ التغيير الجذري: نستخدم Map ديناميكية
+      final Map<String, dynamic> data = {
+        'timestamp': FieldValue.serverTimestamp(),
+      };
+
+      // ✅ نضيف القيم فقط إذا كانت حقيقية (أكبر من صفر)
+      if (heartRate > 0) data['heartRate'] = heartRate;
+      if (systolic > 0) data['systolic'] = systolic;
+      if (diastolic > 0) data['diastolic'] = diastolic;
+      if (bloodGlucose > 0) data['bloodGlucose'] = bloodGlucose;
+      if (weight > 0) data['weight'] = weight;
+
+      // إذا كانت الـ Map تحتوي فقط على التوقيت، لا نرفع شيئاً!
+      if (data.length <= 1) {
+        print("⚠️ [Cubit] تم تجاهل الرفع لأن جميع القيم أصفار");
         return;
       }
 
-      print("⏳ [Cubit] جاري الكتابة في المسار: users/$uid/health_readings"); // Log 8
-      
+      print("⏳ [Cubit] جاري رفع البيانات الصالحة فقط: $data");
+
       await _firestore
           .collection('users')
           .doc(uid)
           .collection('health_readings')
-          .add({
-        'heartRate': heartRate,
-        'systolic': systolic,
-        'diastolic': diastolic,
-        'bloodGlucose': bloodGlucose,
-        'weight': weight,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-      
-      print("✅ [Cubit] 7. تمت عملية الرفع بنجاح تام! (Success)"); // Log 9
-      
+          .add(data);
+
+      print("✅ [Cubit] 7. تمت عملية الرفع بنجاح!");
     } catch (e) {
-      print("❌ [Cubit] 7. فشل الرفع لفايربيس! السبب: $e"); // Log 10
+      print("❌ [Cubit] فشل الرفع: $e");
     }
   }
 
