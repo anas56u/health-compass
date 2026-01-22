@@ -4,9 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/user_cubit.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/user_state.dart';
+import 'package:health_compass/feature/doctor/home/pages/doctor_profile_page.dart'; // تأكد من صحة المسار
 import '../../../../../core/cache/shared_pref_helper.dart';
 import '../../../../../core/routes/routes.dart';
-
 
 class DoctorHeader extends StatelessWidget {
   const DoctorHeader({super.key});
@@ -20,7 +20,7 @@ class DoctorHeader extends StatelessWidget {
 
         if (state is UserLoaded) {
           doctorName = state.userModel.fullName;
-          if (state.userModel.profileImage != null && 
+          if (state.userModel.profileImage != null &&
               state.userModel.profileImage!.isNotEmpty) {
             profileImage = state.userModel.profileImage;
           }
@@ -46,35 +46,64 @@ class DoctorHeader extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // ✅ زر تسجيل الخروج (بدل زر القائمة القديم)
+                    // زر تسجيل الخروج
                     IconButton(
                       onPressed: () => _showLogoutDialog(context),
                       icon: const Icon(
-                        Icons.logout_rounded, 
-                        color: Colors.white, 
-                        size: 28
+                        Icons.logout_rounded,
+                        color: Colors.white,
+                        size: 28,
                       ),
                       tooltip: "تسجيل الخروج",
                     ),
-                    
-                    Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: CircleAvatar(
-                        radius: 22,
-                        backgroundColor: Colors.white,
-                        backgroundImage: profileImage != null
-                            ? NetworkImage(profileImage)
-                            : const AssetImage('assets/images/logo.jpeg') as ImageProvider,
+
+                    // زر الملف الشخصي (صورة + أيقونة)
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const DoctorProfilePage(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: Stack(
+                          alignment: Alignment.bottomRight,
+                          children: [
+                            CircleAvatar(
+                              radius: 24,
+                              backgroundColor: Colors.white,
+                              backgroundImage: profileImage != null
+                                  ? NetworkImage(profileImage)
+                                  : const AssetImage('assets/images/logo.jpeg')
+                                        as ImageProvider,
+                            ),
+                            // إضافة أيقونة ملف شخصي صغيرة في زاوية الصورة
+                            Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF0D9488),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: 10,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 20),
-                
                 Text(
                   'مرحباً بك د. $doctorName',
                   style: GoogleFonts.tajawal(
@@ -84,9 +113,7 @@ class DoctorHeader extends StatelessWidget {
                   ),
                   textAlign: TextAlign.right,
                 ),
-                
                 const SizedBox(height: 8),
-                
                 Text(
                   'تابع تقدم الحالة الصحية للمرضى',
                   style: GoogleFonts.tajawal(
@@ -103,11 +130,11 @@ class DoctorHeader extends StatelessWidget {
     );
   }
 
-void _showLogoutDialog(BuildContext context) {
+  void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
-      barrierDismissible: false, // منع إغلاق النافذة بالضغط خارجها أثناء التحميل
-      builder: (dialogContext) => AlertDialog( // نستخدم dialogContext لتجنب مشاكل الـ context
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
@@ -125,7 +152,7 @@ void _showLogoutDialog(BuildContext context) {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext), // إغلاق الديالوج
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               "إلغاء",
               style: GoogleFonts.tajawal(color: Colors.grey),
@@ -141,7 +168,6 @@ void _showLogoutDialog(BuildContext context) {
             ),
             onPressed: () async {
               try {
-                // 1. إظهار مؤشر تحميل لإخبار المستخدم أن هناك عملية تجري
                 showDialog(
                   context: context,
                   barrierDismissible: false,
@@ -150,28 +176,17 @@ void _showLogoutDialog(BuildContext context) {
                   ),
                 );
 
-                // 2. تسجيل الخروج من Firebase (مهم جداً!)
-                await FirebaseAuth.instance.signOut(); //
+                await FirebaseAuth.instance.signOut();
 
-                // 3. مسح البيانات من Cubit
                 if (context.mounted) {
-                  context.read<UserCubit>().clearUserData(); //
+                  context.read<UserCubit>().clearUserData();
                 }
 
-                // 4. مسح البيانات المحلية
-                // ملاحظة: دالة clearLoginData تقوم بالفعل بمسح is_logged_in و uid
-                // فلا داعي لتكرار استدعاء removeData لنفس المفاتيح بعدها
-                await SharedPrefHelper.clearLoginData(); //
-                
-                // مسح أي بيانات إضافية إن وجدت
+                await SharedPrefHelper.clearLoginData();
                 await SharedPrefHelper.removeData("user_type");
 
-                // 5. التوجيه لصفحة تسجيل الدخول
                 if (context.mounted) {
-                  // إغلاق مؤشر التحميل والديالوغ السابق
-                  Navigator.of(context).popUntil((route) => route.isFirst); 
-                  
-                  // الانتقال لصفحة الدخول ومسح كل الصفحات السابقة
+                  Navigator.of(context).popUntil((route) => route.isFirst);
                   Navigator.pushNamedAndRemoveUntil(
                     context,
                     AppRoutes.login,
@@ -179,9 +194,8 @@ void _showLogoutDialog(BuildContext context) {
                   );
                 }
               } catch (e) {
-                // في حال حدوث خطأ، قم بإغلاق مؤشر التحميل وأظهر رسالة
                 if (context.mounted) {
-                  Navigator.pop(context); // إغلاق الـ Loading
+                  Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('حدث خطأ أثناء الخروج: $e')),
                   );

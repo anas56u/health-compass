@@ -60,13 +60,17 @@ class _DoctorHomePageState extends State<DoctorHomePage> {
                       return const Center(
                         child: Padding(
                           padding: EdgeInsets.all(50.0),
-                          child: CircularProgressIndicator(color: Color(0xFF0D9488)),
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF0D9488),
+                          ),
                         ),
                       );
                     }
 
                     if (state is DoctorHomeFailure) {
-                      return Center(child: Text("حدث خطأ: ${state.errorMessage}"));
+                      return Center(
+                        child: Text("حدث خطأ: ${state.errorMessage}"),
+                      );
                     }
 
                     if (state is DoctorHomeSuccess) {
@@ -91,7 +95,7 @@ class _DoctorHomePageState extends State<DoctorHomePage> {
                               ),
                             ],
                           ),
-                          
+
                           const SizedBox(height: 30),
 
                           // العنوان الجديد
@@ -122,10 +126,13 @@ class _DoctorHomePageState extends State<DoctorHomePage> {
                                     itemCount: patientsWithIssues.length,
                                     itemBuilder: (context, index) {
                                       final patient = patientsWithIssues[index];
-                                      final String name = patient['name'] ?? 'بدون اسم';
+                                      final String name =
+                                          patient['name'] ?? 'بدون اسم';
                                       final String? image = patient['image'];
                                       // جلبنا اسم المرض الآخر هنا
-                                      final String specificDisease = patient['specific_disease'] ?? 'غير محدد';
+                                      final String specificDisease =
+                                          patient['specific_disease'] ??
+                                          'غير محدد';
 
                                       return Container(
                                         width: 160, // زدنا العرض (كان 110)
@@ -133,40 +140,59 @@ class _DoctorHomePageState extends State<DoctorHomePage> {
                                         padding: const EdgeInsets.all(12),
                                         decoration: BoxDecoration(
                                           color: Colors.white,
-                                          borderRadius: BorderRadius.circular(20), // زوايا أنعم
-                                          border: Border.all(color: Colors.grey.withOpacity(0.1)),
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ), // زوايا أنعم
+                                          border: Border.all(
+                                            color: Colors.grey.withOpacity(0.1),
+                                          ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.grey.withOpacity(0.08),
+                                              color: Colors.grey.withOpacity(
+                                                0.08,
+                                              ),
                                               blurRadius: 10,
                                               offset: const Offset(0, 4),
                                             ),
                                           ],
                                         ),
                                         child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
                                             // الصورة (بدون نقطة خضراء)
                                             CircleAvatar(
                                               radius: 35, // كبرنا الصورة قليلاً
-                                              backgroundColor: const Color(0xFF0D9488).withOpacity(0.1),
-                                              backgroundImage: (image != null && image.isNotEmpty)
+                                              backgroundColor: const Color(
+                                                0xFF0D9488,
+                                              ).withOpacity(0.1),
+                                              backgroundImage:
+                                                  (image != null &&
+                                                      image.isNotEmpty)
                                                   ? NetworkImage(image)
                                                   : null,
-                                              child: (image == null || image.isEmpty)
+                                              child:
+                                                  (image == null ||
+                                                      image.isEmpty)
                                                   ? Text(
-                                                      name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                                      name.isNotEmpty
+                                                          ? name[0]
+                                                                .toUpperCase()
+                                                          : '?',
                                                       style: const TextStyle(
                                                         fontSize: 24,
-                                                        fontWeight: FontWeight.bold,
-                                                        color: Color(0xFF0D9488),
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: Color(
+                                                          0xFF0D9488,
+                                                        ),
                                                       ),
                                                     )
                                                   : null,
                                             ),
-                                            
+
                                             const SizedBox(height: 12),
-                                            
+
                                             // الاسم
                                             Text(
                                               name,
@@ -178,16 +204,22 @@ class _DoctorHomePageState extends State<DoctorHomePage> {
                                               ),
                                               textAlign: TextAlign.center,
                                             ),
-                                            
+
                                             const SizedBox(height: 6),
-                                            
+
                                             // نوع المرض الآخر
                                             Container(
                                               width: double.infinity,
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 4,
+                                                  ),
                                               decoration: BoxDecoration(
-                                                color: Colors.orange.withOpacity(0.1),
-                                                borderRadius: BorderRadius.circular(8),
+                                                color: Colors.orange
+                                                    .withOpacity(0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
                                               ),
                                               child: Text(
                                                 specificDisease,
