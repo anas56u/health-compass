@@ -71,10 +71,10 @@ class FamilyCubit extends Cubit<FamilyState> {
       // ✅ تم الإصلاح: استخدام _repo بدلاً من familyRepository
       // ملاحظة: تأكد أن دالة getPatientVitals موجودة في الـ Repo، وإلا استخدم getRecentVitals
       // سأفترض هنا أنك تريد استخدام getRecentVitals لأنها المستخدمة سابقاً، أو قم بتعديل الاسم في الـ Repo
-      
+
       // الخيار الأرجح بناءً على كودك السابق:
-      final vitals = await _repo.getRecentVitals(patientId); 
-      
+      final vitals = await _repo.getRecentVitals(patientId);
+
       // إذا كانت getPatientVitals تعيد Either (fold)، استخدم الكود التالي بدلاً من السطر أعلاه:
       /* final vitalsResult = await _repo.getPatientVitals(patientId);
       vitalsResult.fold(...) 
@@ -85,10 +85,10 @@ class FamilyCubit extends Cubit<FamilyState> {
         (p) => p['id'] == patientId,
         orElse: () => {
           'id': patientId,
-          'name': 'أنا', 
+          'name': 'أنا',
           'relation': 'Self',
-          'age': '--', 
-          'gender': '--' 
+          'age': '--',
+          'gender': '--',
         },
       );
 
@@ -96,13 +96,14 @@ class FamilyCubit extends Cubit<FamilyState> {
       _cachedCurrentProfile = profile;
 
       // 3. إرسال الحالة
-      emit(FamilyDashboardLoaded(
-        currentVitals: vitals, // أو vitals من الـ fold
-        allPatients: _cachedPatients,       
-        selectedPatientId: patientId,       
-        currentProfile: profile,            
-      ));
-
+      emit(
+        FamilyDashboardLoaded(
+          currentVitals: vitals, // أو vitals من الـ fold
+          allPatients: _cachedPatients,
+          selectedPatientId: patientId,
+          currentProfile: profile,
+        ),
+      );
     } catch (e) {
       print("Error in selectPatient: $e");
       emit(FamilyError(e.toString()));
@@ -126,7 +127,7 @@ class FamilyCubit extends Cubit<FamilyState> {
         heartRate: heartRate,
       );
       _safeEmit(FamilyOperationSuccess("تم تسجيل القراءة بنجاح"));
-      _emitDashboard(); 
+      _emitDashboard();
     } catch (e) {
       _safeEmit(FamilyOperationError("حدث خطأ أثناء حفظ القراءة"));
       _emitDashboard();

@@ -12,9 +12,10 @@ class PdfService {
   static const PdfColor primaryColor = PdfColor.fromInt(0xFF0D9488);
   static final ArabicReshaper _reshaper = ArabicReshaper();
 
-  // معالجة النصوص العربية فقط (مثل اسم خالد)
+  // ✅ دالة معالجة النصوص العربية لضمان ظهورها بشكل صحيح في الـ PDF
   static String _fixArabic(String text) {
     if (text.isEmpty) return "";
+    // إذا كان النص يحتوي على حروف عربية، نقوم بإعادة تشكيله وعكسه للمكتبة
     if (RegExp(r'[\u0600-\u06FF]').hasMatch(text)) {
       String reshaped = _reshaper.reshape(text);
       return reshaped.split('').reversed.join();
@@ -24,10 +25,11 @@ class PdfService {
 
   static Future<void> generateMedicalReport(
     HealthDataModel data,
-    String userName,
+    String userName, // ✅ استلام اسم المستخدم الممرر من الـ Dashboard
   ) async {
     final pdf = pw.Document();
 
+    // تحميل خط يدعم العربية (تأكد من وجود الملف في Assets)
     final fontData = await rootBundle.load('assets/Fonts/Cairo-Regular.ttf');
     final ttf = pw.Font.ttf(fontData);
 
@@ -39,7 +41,7 @@ class PdfService {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // الهيدر
+              // ترويسة التقرير
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
@@ -60,7 +62,7 @@ class PdfService {
               pw.Divider(thickness: 1.5, color: primaryColor),
               pw.SizedBox(height: 15),
 
-              // بيانات المستخدم (الاسم بالعربي)
+              // ✅ عرض اسم المريض (userName) المعالج عربياً
               pw.Container(
                 padding: const pw.EdgeInsets.all(10),
                 decoration: const pw.BoxDecoration(color: PdfColors.grey100),
@@ -78,7 +80,7 @@ class PdfService {
                           ),
                         ),
                         pw.Text(
-                          _fixArabic(userName),
+                          _fixArabic(userName), // ✅ هنا يتم عرض الاسم
                           style: pw.TextStyle(
                             fontSize: 13,
                             fontWeight: pw.FontWeight.bold,
@@ -95,7 +97,7 @@ class PdfService {
               ),
               pw.SizedBox(height: 20),
 
-              // جدول النتائج الطبية
+              // جدول البيانات الحيوية
               pw.Table(
                 border: pw.TableBorder.all(
                   color: PdfColors.grey300,
@@ -126,7 +128,7 @@ class PdfService {
               pw.Center(
                 child: pw.Text(
                   _fixArabic(
-                    "هذا التقرير صادر إلكترونياً ولا يعتد به للتشخيص الطبي الرسمي",
+                    "هذا التقرير صادر إلكترونياً من تطبيق بوصلة الصحة",
                   ),
                   style: const pw.TextStyle(
                     fontSize: 7,
@@ -140,12 +142,14 @@ class PdfService {
       ),
     );
 
-    // الحفظ والفتح المباشر (Download & Open)
+    // عملية الحفظ والفتح
     final dir = await getApplicationDocumentsDirectory();
-    final file = File("${dir.path}/Medical_Report.pdf");
+    final file = File(
+      "${dir.path}/Medical_Report_${userName.replaceAll(' ', '_')}.pdf",
+    );
     await file.writeAsBytes(await pdf.save());
 
-    // فتح الملف فوراً
+    // فتح الملف تلقائياً بعد الحفظ
     await OpenFile.open(file.path);
   }
 

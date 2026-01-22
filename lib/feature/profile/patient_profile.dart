@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart'; // لضمان التجاوب
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:health_compass/core/cache/shared_pref_helper.dart';
 import 'package:health_compass/core/routes/routes.dart';
 import 'package:health_compass/feature/AboutApp.dart';
@@ -23,11 +23,6 @@ class PatientProfilePage extends StatefulWidget {
 class _PatientProfilePageState extends State<PatientProfilePage> {
   static const primaryTurquoise = Color(0xFF169086);
   static const lightCardBg = Color(0xFFF5F7FA);
-
-  @override
-  void initState() {
-    super.initState();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,8 +52,8 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
                     padding: EdgeInsets.symmetric(
-                      horizontal: 22.w,
-                      vertical: 30.h,
+                      horizontal: 20.w,
+                      vertical: 25.h,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,34 +80,20 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
                           icon: Icons.info_outline_rounded,
                           title: "عن التطبيق",
                           subtitle: "تعرف على مشروع بوصلة الصحة",
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const AboutAppScreen(),
-                            ),
-                          ),
+                          onTap: () => _navigateTo(const AboutAppScreen()),
                         ),
                         _buildActionTile(
                           icon: Icons.security_outlined,
                           title: "سياسة الخصوصية",
                           subtitle: "كيف نحمي بياناتك وصلاحياتك",
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const PrivacyPolicyScreen(),
-                            ),
-                          ),
+                          onTap: () => _navigateTo(const PrivacyPolicyScreen()),
                         ),
                         _buildActionTile(
                           icon: Icons.support_agent_rounded,
                           title: "تواصل معنا",
                           subtitle: "فريق الدعم الفني جاهز لمساعدتك",
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ContactSupportScreen(),
-                            ),
-                          ),
+                          onTap: () =>
+                              _navigateTo(const ContactSupportScreen()),
                         ),
                         SizedBox(height: 25.h),
                         _buildSectionLabel("إدارة الحساب"),
@@ -135,6 +116,8 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
       ),
     );
   }
+
+  // --- Widgets ---
 
   AppBar _buildAppBar() {
     return AppBar(
@@ -170,8 +153,9 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
         if (state is UserLoaded) {
           name = state.userModel.fullName;
           email = state.userModel.email;
-          if (state.userModel.profileImage?.isNotEmpty ?? false)
+          if (state.userModel.profileImage?.isNotEmpty ?? false) {
             image = state.userModel.profileImage!;
+          }
         }
 
         return Padding(
@@ -227,12 +211,13 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
         String year = "...";
         if (state is UserLoaded && state.userModel is PatientModel) {
           final p = state.userModel as PatientModel;
-          disease = p.diseaseType; // هنا قد يحتوي النص على "السكري, الضغط"
+          disease = p.diseaseType;
           year = p.diagnosisYear ?? "غير محدد";
         }
+
         return Container(
           width: double.infinity,
-          padding: EdgeInsets.all(20.r),
+          padding: EdgeInsets.all(16.r),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(25.r),
@@ -248,18 +233,21 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
             child: Row(
               children: [
                 Expanded(
+                  flex: 3, // مساحة أكبر للأمراض
                   child: _buildSummaryItem(
                     "نوع التشخيص",
                     disease,
                     Icons.healing_outlined,
+                    isDiseaseList: true,
                   ),
                 ),
                 VerticalDivider(
                   color: Colors.grey[100],
                   thickness: 1,
-                  width: 30.w,
+                  width: 25.w,
                 ),
                 Expanded(
+                  flex: 2,
                   child: _buildSummaryItem(
                     "سنة الإصابة",
                     year,
@@ -274,7 +262,17 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
     );
   }
 
-  Widget _buildSummaryItem(String label, String value, IconData icon) {
+  Widget _buildSummaryItem(
+    String label,
+    String value,
+    IconData icon, {
+    bool isDiseaseList = false,
+  }) {
+    // معالجة نص الأمراض لتحويله إلى قائمة
+    List<String> items = isDiseaseList
+        ? value.split(RegExp(r'[,،]')).map((e) => e.trim()).toList()
+        : [value];
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -284,18 +282,23 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
           label,
           style: GoogleFonts.tajawal(fontSize: 11.sp, color: Colors.grey[500]),
         ),
-        SizedBox(height: 5.h),
-        Text(
-          value,
-          textAlign: TextAlign.center,
-          style: GoogleFonts.tajawal(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.bold,
-            color: primaryTurquoise,
-          ),
-          maxLines:
-              2, // للسماح بعرض الأمراض المتعددة في سطرين بدلاً من الـ Overflow
-          overflow: TextOverflow.ellipsis,
+        SizedBox(height: 8.h),
+        // استخدام Wrap هنا هو السر في منع الـ Overflow
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 4.w,
+          runSpacing: 4.h,
+          children: items.map((text) {
+            return Text(
+              text + (isDiseaseList && text != items.last ? "،" : ""),
+              textAlign: TextAlign.center,
+              style: GoogleFonts.tajawal(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.bold,
+                color: primaryTurquoise,
+              ),
+            );
+          }).toList(),
         ),
       ],
     );
@@ -323,7 +326,7 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
       ),
       child: ListTile(
         onTap: onTap,
-        contentPadding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 5.h),
+        contentPadding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 4.h),
         leading: Container(
           padding: EdgeInsets.all(10.r),
           decoration: BoxDecoration(
@@ -353,7 +356,7 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
         trailing: Icon(
           Icons.arrow_forward_ios_rounded,
           size: 12.sp,
-          color: isDestructive ? Colors.red[200] : Colors.grey[300],
+          color: Colors.grey[300],
         ),
       ),
     );
@@ -419,6 +422,12 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
         ),
       ),
     );
+  }
+
+  // --- Logic & Navigation ---
+
+  void _navigateTo(Widget screen) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
   }
 
   void _showVitalsSheet() {

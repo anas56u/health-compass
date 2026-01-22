@@ -243,16 +243,43 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen>
         ),
       ),
       actions: [
-        IconButton(
-          icon: const CircleAvatar(
-            backgroundColor: Colors.white24,
-            child: Icon(Icons.picture_as_pdf_rounded, color: Colors.white),
-          ),
-          onPressed: () async {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("جاري إنشاء التقرير...")),
+        // ✅ تغليف الزر بـ BlocBuilder للوصول إلى بيانات الحالة (State)
+        BlocBuilder<HealthDashboardCubit, HealthDashboardState>(
+          builder: (context, state) {
+            return IconButton(
+              icon: const CircleAvatar(
+                backgroundColor: Colors.white24,
+                child: Icon(Icons.picture_as_pdf_rounded, color: Colors.white),
+              ),
+              onPressed: () async {
+                // ✅ التحقق من أن البيانات محملة بنجاح
+                if (state is HealthDashboardLoaded) {
+                  try {
+                    // إظهار تنبيه بسيط للمستخدم
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("جاري إنشاء التقرير...")),
+                    );
+
+                    // ✅ إرسال البيانات والاسم الكامل المتاح في الـ state إلى الخدمة
+                    await PdfService.generateMedicalReport(
+                      state.latestData,
+                      state
+                          .userName, // هذا المتغير يحتوي على الاسم المجلوب من Firestore
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text("❌ حدث خطأ: $e")));
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("يرجى الانتظار حتى اكتمال تحميل البيانات"),
+                    ),
+                  );
+                }
+              },
             );
-            await PdfService.generateMedicalReport(data, userName);
           },
         ),
         const SizedBox(width: 8),
