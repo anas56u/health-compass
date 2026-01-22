@@ -92,7 +92,6 @@ class FamilyRepository {
 
     if (linkedIds.isEmpty) return [];
 
-    // جلب جميع الوثائق بالتوازي لتحسين الأداء
     final futures = linkedIds.map(
       (id) => _firestore.collection('users').doc(id).get(),
     );
@@ -135,20 +134,26 @@ class FamilyRepository {
         .get();
 
     return snapshot.docs.map((doc) {
-      return VitalModel.fromMap(doc.data(), doc.id);
+      return VitalModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
     }).toList();
   }
 
+  // ✅ تم إصلاح الدالة لاستخدام MedicationModel.fromFirestore
   Stream<List<MedicationModel>> getPatientMedications(String patientId) {
     return _firestore
         .collection('users')
         .doc(patientId)
         .collection('medications')
-        .orderBy('created_at', descending: true)
+        .orderBy(
+          'createdAt',
+          descending: true,
+        ) // تم تغيير الحقل ليتوافق مع الموديل
         .snapshots()
         .map((snapshot) {
           return snapshot.docs.map((doc) {
-            return MedicationModel.fromMap(doc.data(), doc.id);
+            return MedicationModel.fromFirestore(
+              doc,
+            ); // ✅ استخدام fromFirestore
           }).toList();
         });
   }
@@ -162,7 +167,10 @@ class FamilyRepository {
         .snapshots()
         .map((snapshot) {
           return snapshot.docs.map((doc) {
-            return VitalModel.fromMap(doc.data(), doc.id);
+            return VitalModel.fromMap(
+              doc.data() as Map<String, dynamic>,
+              doc.id,
+            );
           }).toList();
         });
   }
@@ -173,7 +181,7 @@ class FamilyRepository {
     required String patientId,
     double? sugar,
     String? pressure,
-  double? heartRate,
+    double? heartRate,
   }) async {
     final batch = _firestore.batch();
     final String timeKey = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
@@ -211,7 +219,6 @@ class FamilyRepository {
         'date': FieldValue.serverTimestamp(),
       });
     }
-
 
     await batch.commit();
   }

@@ -17,7 +17,7 @@ class ChatCubit extends Cubit<ChatState> {
   late ChatSession _chatSession;
 
   // 🔑 ضع مفتاحك هنا
-  final String _apiKey = 'AIzaSyAf3C00S4oZ17IdGH-yzQ0VcnCBiTYXnag';
+  final String _apiKey = 'AIzaSyAG1wBiKBhyhWrYmqdXu2L955_MM2CTNws';
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

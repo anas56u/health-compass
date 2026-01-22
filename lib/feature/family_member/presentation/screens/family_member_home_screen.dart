@@ -66,7 +66,7 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
           body: SafeArea(
             child: BlocBuilder<FamilyCubit, FamilyState>(
               builder: (context, state) {
-                if (state is FamilyLoading || state is FamilyProfileLoaded) {
+                if (state is FamilyLoading) {
                   return Center(
                     child: CircularProgressIndicator(color: primaryColor),
                   );
@@ -75,7 +75,6 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
                 } else if (state is FamilyError) {
                   return _buildErrorState(state.message);
                 }
-                // الحالة عندما لا يكون هناك مرضى مرتبطون
                 return _buildNoLinkedPatientState();
               },
             ),
@@ -225,10 +224,11 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
             ),
           ],
           onChanged: (val) {
-            if (val == "add_new")
+            if (val == "add_new") {
               Navigator.pushNamed(context, AppRoutes.linkPatient);
-            else if (val != null)
+            } else if (val != null) {
               context.read<FamilyCubit>().selectPatient(val);
+            }
           },
         ),
       ),
@@ -376,7 +376,7 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
         return ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: snapshot.data!.take(3).length,
+          itemCount: snapshot.data!.length > 3 ? 3 : snapshot.data!.length,
           separatorBuilder: (_, __) => SizedBox(height: 10.h),
           itemBuilder: (context, index) => _buildMedCard(snapshot.data![index]),
         );
@@ -401,7 +401,7 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
           SizedBox(width: 15.w),
           Expanded(
             child: Text(
-              med.name,
+              med.medicationName, // ✅ تم التغيير من med.name ليتوافق مع الموديل الجديد
               style: GoogleFonts.tajawal(
                 fontWeight: FontWeight.bold,
                 fontSize: 13.sp,
@@ -489,7 +489,6 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
     );
   }
 
-  // واجهة "لا يوجد مرضى مرتبطون" المحسنة بأزرار واضحة
   Widget _buildNoLinkedPatientState() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 30.w),
@@ -522,8 +521,6 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
             textAlign: TextAlign.center,
           ),
           SizedBox(height: 40.h),
-
-          // زر الانتقال لصفحة الربط
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -549,8 +546,6 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
             ),
           ),
           SizedBox(height: 16.h),
-
-          // زر الانتقال للملف الشخصي
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(

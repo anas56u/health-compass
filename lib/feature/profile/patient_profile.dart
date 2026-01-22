@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart'; // لضمان التجاوب
 import 'package:health_compass/core/cache/shared_pref_helper.dart';
 import 'package:health_compass/core/routes/routes.dart';
 import 'package:health_compass/feature/AboutApp.dart';
@@ -22,17 +23,10 @@ class PatientProfilePage extends StatefulWidget {
 class _PatientProfilePageState extends State<PatientProfilePage> {
   static const primaryTurquoise = Color(0xFF169086);
   static const lightCardBg = Color(0xFFF5F7FA);
+
   @override
   void initState() {
     super.initState();
-    _loadSourcePreference(); // تحميل التفضيل عند الفتح
-  } 
-bool isWatchSource = true;
-  Future<void> _loadSourcePreference() async {
-    bool savedSource = await SharedPrefHelper.getHealthSource();
-    setState(() {
-      isWatchSource = savedSource;
-    });
   }
 
   @override
@@ -48,10 +42,6 @@ bool isWatchSource = true;
             Expanded(
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 22,
-                  vertical: 30,
-                ),
                 decoration: const BoxDecoration(
                   color: lightCardBg,
                   borderRadius: BorderRadius.only(
@@ -59,73 +49,83 @@ bool isWatchSource = true;
                     topRight: Radius.circular(35),
                   ),
                 ),
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHealthSummaryCard(),
-                      const SizedBox(height: 30),
-                      _buildSectionLabel("الخدمات الصحية"),
-                      _buildActionTile(
-                        icon: Icons.add_chart_rounded,
-                        title: "إضافة قراءة يدوية",
-                        subtitle: "سجل العلامات الحيوية الآن",
-                        onTap: _showVitalsSheet,
-                      ),
-                      _buildActionTile(
-                        icon: Icons.timer_outlined,
-                        title: "أوقات الصيام",
-                        subtitle: "إدارة وتنظيم ساعات الصيام",
-                        onTap: () => _showFastingBottomSheet(context),
-                      ),
-                      _buildSourceToggle(),
-                      const SizedBox(height: 25),
-                      _buildSectionLabel("عن التطبيق والدعم"),
-                      _buildActionTile(
-                        icon: Icons.info_outline_rounded,
-                        title: "عن التطبيق",
-                        subtitle: "تعرف على مشروع بوصلة الصحة",
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AboutAppScreen(),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(35),
+                    topRight: Radius.circular(35),
+                  ),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 22.w,
+                      vertical: 30.h,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHealthSummaryCard(),
+                        SizedBox(height: 25.h),
+                        _buildSectionLabel("الخدمات الصحية"),
+                        _buildActionTile(
+                          icon: Icons.add_chart_rounded,
+                          title: "إضافة قراءة يدوية",
+                          subtitle: "سجل العلامات الحيوية الآن",
+                          onTap: _showVitalsSheet,
+                        ),
+                        _buildActionTile(
+                          icon: Icons.timer_outlined,
+                          title: "أوقات الصيام",
+                          subtitle: "إدارة وتنظيم ساعات الصيام",
+                          onTap: () => _showFastingBottomSheet(context),
+                        ),
+                        _buildSourceToggle(),
+                        SizedBox(height: 25.h),
+                        _buildSectionLabel("الدعم والخصوصية"),
+                        _buildActionTile(
+                          icon: Icons.info_outline_rounded,
+                          title: "عن التطبيق",
+                          subtitle: "تعرف على مشروع بوصلة الصحة",
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AboutAppScreen(),
+                            ),
                           ),
                         ),
-                      ),
-                      _buildActionTile(
-                        icon: Icons.security_outlined,
-                        title: "سياسة الخصوصية",
-                        subtitle: "كيف نحمي بياناتك وصلاحياتك",
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const PrivacyPolicyScreen(),
+                        _buildActionTile(
+                          icon: Icons.security_outlined,
+                          title: "سياسة الخصوصية",
+                          subtitle: "كيف نحمي بياناتك وصلاحياتك",
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const PrivacyPolicyScreen(),
+                            ),
                           ),
                         ),
-                      ),
-                      _buildActionTile(
-                        icon: Icons.support_agent_rounded,
-                        title: "تواصل معنا",
-                        subtitle: "فريق الدعم الفني جاهز لمساعدتك",
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ContactSupportScreen(),
+                        _buildActionTile(
+                          icon: Icons.support_agent_rounded,
+                          title: "تواصل معنا",
+                          subtitle: "فريق الدعم الفني جاهز لمساعدتك",
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ContactSupportScreen(),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 25),
-                      _buildSectionLabel("إدارة الحساب"),
-                      _buildActionTile(
-                        icon: Icons.logout_rounded,
-                        title: "تسجيل الخروج",
-                        subtitle: "الخروج الآمن من الحساب",
-                        isDestructive: true,
-                        onTap: _onLogoutPressed,
-                      ),
-                      const SizedBox(height: 30),
-                    ],
+                        SizedBox(height: 25.h),
+                        _buildSectionLabel("إدارة الحساب"),
+                        _buildActionTile(
+                          icon: Icons.logout_rounded,
+                          title: "تسجيل الخروج",
+                          subtitle: "الخروج الآمن من الحساب",
+                          isDestructive: true,
+                          onTap: _onLogoutPressed,
+                        ),
+                        SizedBox(height: 20.h),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -146,72 +146,17 @@ bool isWatchSource = true;
         style: GoogleFonts.tajawal(
           color: Colors.white,
           fontWeight: FontWeight.bold,
-          fontSize: 18,
+          fontSize: 18.sp,
         ),
       ),
       leading: IconButton(
-        icon: const Icon(
+        icon: Icon(
           Icons.arrow_back_ios_new_rounded,
           color: Colors.white,
-          size: 20,
+          size: 20.sp,
         ),
         onPressed: () => Navigator.maybePop(context),
       ),
-    );
-  }
-  Widget _buildSourceToggle() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.grey[200],
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            _buildToggleItem("ساعة ذكية", true),
-            _buildToggleItem("قراءة يدوية", false),
-          ],
-        ),
-      ),
-    );
-  }
- Widget _buildToggleItem(String title, bool isWatch) {
-    // نستمع أيضاً هنا لتغيير لون الزر عند الضغط
-    return ValueListenableBuilder<bool>(
-      valueListenable: SharedPrefHelper.healthSourceNotifier,
-      builder: (context, currentSource, child) {
-        bool isSelected = currentSource == isWatch;
-        
-        return Expanded(
-          child: GestureDetector(
-            onTap: () async {
-              // ✅ فقط نحفظ القيمة، والـ Notifier سيحدث الكارد في الصفحة الأخرى والزر في هذه الصفحة
-              await SharedPrefHelper.saveHealthSource(isWatch);
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF169086) : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: isSelected
-                    ? [BoxShadow(color: Colors.black12, blurRadius: 4)]
-                    : [],
-              ),
-              child: Text(
-                title,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.tajawal(
-                  color: isSelected ? Colors.white : Colors.grey[600],
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -230,20 +175,18 @@ bool isWatchSource = true;
         }
 
         return Padding(
-          padding: const EdgeInsets.all(25),
+          padding: EdgeInsets.symmetric(horizontal: 25.w, vertical: 20.h),
           child: Row(
             children: [
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white24, width: 3),
-                ),
+              CircleAvatar(
+                radius: 38.r,
+                backgroundColor: Colors.white24,
                 child: CircleAvatar(
-                  radius: 38,
+                  radius: 35.r,
                   backgroundImage: NetworkImage(image),
                 ),
               ),
-              const SizedBox(width: 18),
+              SizedBox(width: 15.w),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -252,17 +195,20 @@ bool isWatchSource = true;
                       name,
                       style: GoogleFonts.tajawal(
                         fontWeight: FontWeight.bold,
-                        fontSize: 20,
+                        fontSize: 18.sp,
                         color: Colors.white,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
                     Text(
                       email,
                       style: GoogleFonts.tajawal(
-                        fontSize: 13,
+                        fontSize: 12.sp,
                         color: Colors.white70,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -281,14 +227,15 @@ bool isWatchSource = true;
         String year = "...";
         if (state is UserLoaded && state.userModel is PatientModel) {
           final p = state.userModel as PatientModel;
-          disease = p.diseaseType;
+          disease = p.diseaseType; // هنا قد يحتوي النص على "السكري, الضغط"
           year = p.diagnosisYear ?? "غير محدد";
         }
         return Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
+          width: double.infinity,
+          padding: EdgeInsets.all(20.r),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(25),
+            borderRadius: BorderRadius.circular(25.r),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.04),
@@ -297,17 +244,30 @@ bool isWatchSource = true;
               ),
             ],
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildSummaryItem("نوع التشخيص", disease, Icons.healing_outlined),
-              Container(width: 1, height: 40, color: Colors.grey[100]),
-              _buildSummaryItem(
-                "سنة الإصابة",
-                year,
-                Icons.calendar_today_outlined,
-              ),
-            ],
+          child: IntrinsicHeight(
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildSummaryItem(
+                    "نوع التشخيص",
+                    disease,
+                    Icons.healing_outlined,
+                  ),
+                ),
+                VerticalDivider(
+                  color: Colors.grey[100],
+                  thickness: 1,
+                  width: 30.w,
+                ),
+                Expanded(
+                  child: _buildSummaryItem(
+                    "سنة الإصابة",
+                    year,
+                    Icons.calendar_today_outlined,
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -316,37 +276,28 @@ bool isWatchSource = true;
 
   Widget _buildSummaryItem(String label, String value, IconData icon) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 18, color: Colors.grey[400]),
-        const SizedBox(height: 8),
+        Icon(icon, size: 18.sp, color: Colors.grey[400]),
+        SizedBox(height: 5.h),
         Text(
           label,
-          style: GoogleFonts.tajawal(fontSize: 11, color: Colors.grey[500]),
+          style: GoogleFonts.tajawal(fontSize: 11.sp, color: Colors.grey[500]),
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: 5.h),
         Text(
           value,
+          textAlign: TextAlign.center,
           style: GoogleFonts.tajawal(
-            fontSize: 15,
+            fontSize: 14.sp,
             fontWeight: FontWeight.bold,
             color: primaryTurquoise,
           ),
+          maxLines:
+              2, // للسماح بعرض الأمراض المتعددة في سطرين بدلاً من الـ Overflow
+          overflow: TextOverflow.ellipsis,
         ),
       ],
-    );
-  }
-
-  Widget _buildSectionLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8, bottom: 15),
-      child: Text(
-        text,
-        style: GoogleFonts.tajawal(
-          fontSize: 16,
-          fontWeight: FontWeight.w800,
-          color: Colors.black87,
-        ),
-      ),
     );
   }
 
@@ -358,10 +309,10 @@ bool isWatchSource = true;
     bool isDestructive = false,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: 12.h),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.02),
@@ -372,37 +323,99 @@ bool isWatchSource = true;
       ),
       child: ListTile(
         onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+        contentPadding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 5.h),
         leading: Container(
-          padding: const EdgeInsets.all(10),
+          padding: EdgeInsets.all(10.r),
           decoration: BoxDecoration(
             color: isDestructive
                 ? Colors.red[50]
                 : primaryTurquoise.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(14.r),
           ),
           child: Icon(
             icon,
             color: isDestructive ? Colors.red : primaryTurquoise,
-            size: 24,
+            size: 22.sp,
           ),
         ),
         title: Text(
           title,
           style: GoogleFonts.tajawal(
-            fontSize: 14,
+            fontSize: 14.sp,
             fontWeight: FontWeight.bold,
             color: isDestructive ? Colors.red : Colors.black87,
           ),
         ),
         subtitle: Text(
           subtitle,
-          style: GoogleFonts.tajawal(fontSize: 11, color: Colors.grey[500]),
+          style: GoogleFonts.tajawal(fontSize: 11.sp, color: Colors.grey[500]),
         ),
         trailing: Icon(
           Icons.arrow_forward_ios_rounded,
-          size: 14,
+          size: 12.sp,
           color: isDestructive ? Colors.red[200] : Colors.grey[300],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSourceToggle() {
+    return ValueListenableBuilder<bool>(
+      valueListenable: SharedPrefHelper.healthSourceNotifier,
+      builder: (context, currentSource, child) {
+        return Container(
+          margin: EdgeInsets.symmetric(vertical: 10.h),
+          padding: EdgeInsets.all(5.r),
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+            borderRadius: BorderRadius.circular(15.r),
+          ),
+          child: Row(
+            children: [
+              _buildToggleItem("ساعة ذكية", true, currentSource),
+              _buildToggleItem("قراءة يدوية", false, currentSource),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildToggleItem(String title, bool isWatch, bool currentSelected) {
+    bool isSelected = currentSelected == isWatch;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () async => await SharedPrefHelper.saveHealthSource(isWatch),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: EdgeInsets.symmetric(vertical: 10.h),
+          decoration: BoxDecoration(
+            color: isSelected ? primaryTurquoise : Colors.transparent,
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.tajawal(
+              color: isSelected ? Colors.white : Colors.grey[600],
+              fontWeight: FontWeight.bold,
+              fontSize: 13.sp,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel(String text) {
+    return Padding(
+      padding: EdgeInsets.only(right: 8.w, bottom: 12.h),
+      child: Text(
+        text,
+        style: GoogleFonts.tajawal(
+          fontSize: 15.sp,
+          fontWeight: FontWeight.w800,
+          color: Colors.black87,
         ),
       ),
     );
@@ -424,7 +437,9 @@ bool isWatchSource = true;
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.r),
+        ),
         title: Text(
           'تسجيل الخروج',
           style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
@@ -472,40 +487,43 @@ bool isWatchSource = true;
     TimeOfDay selectedTime = savedStartTime ?? TimeOfDay.now();
     int selectedDuration = savedDuration;
 
-    if (!mounted) return;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30.r)),
       ),
       builder: (context) => StatefulBuilder(
         builder: (context, setSheetState) {
           final endTime = _calculateEndTime(selectedTime, selectedDuration);
           return Padding(
-            padding: const EdgeInsets.all(25),
+            padding: EdgeInsets.fromLTRB(
+              25.w,
+              25.h,
+              25.w,
+              MediaQuery.of(context).viewInsets.bottom + 25.h,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   'تتبع ساعات الصيام',
                   style: GoogleFonts.tajawal(
-                    fontSize: 20,
+                    fontSize: 18.sp,
                     fontWeight: FontWeight.bold,
                     color: primaryTurquoise,
                   ),
                 ),
-                const SizedBox(height: 25),
+                SizedBox(height: 20.h),
                 ListTile(
                   tileColor: lightCardBg,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
+                    borderRadius: BorderRadius.circular(15.r),
                   ),
                   leading: const Icon(Icons.access_time, color: Colors.orange),
                   title: Text(
                     'بدأت الصيام الساعة',
-                    style: GoogleFonts.tajawal(),
+                    style: GoogleFonts.tajawal(fontSize: 13.sp),
                   ),
                   trailing: Text(
                     selectedTime.format(context),
@@ -523,20 +541,7 @@ bool isWatchSource = true;
                       setSheetState(() => selectedTime = picked);
                   },
                 ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'مدة الصيام:',
-                      style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      '$selectedDuration ساعات',
-                      style: GoogleFonts.tajawal(color: primaryTurquoise),
-                    ),
-                  ],
-                ),
+                SizedBox(height: 20.h),
                 Slider(
                   value: selectedDuration.toDouble(),
                   min: 6,
@@ -547,19 +552,19 @@ bool isWatchSource = true;
                       setSheetState(() => selectedDuration = v.toInt()),
                 ),
                 Text(
-                  'سينتهي صيامك عند: ${endTime.format(context)}',
+                  'مدة الصيام: $selectedDuration ساعة (تنتهي عند ${endTime.format(context)})',
                   style: GoogleFonts.tajawal(
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[700],
+                    fontSize: 12.sp,
                   ),
                 ),
-                const SizedBox(height: 25),
+                SizedBox(height: 25.h),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryTurquoise,
-                    minimumSize: const Size(double.infinity, 50),
+                    minimumSize: Size(double.infinity, 50.h),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
+                      borderRadius: BorderRadius.circular(15.r),
                     ),
                   ),
                   onPressed: () async {

@@ -26,13 +26,16 @@ class MedicationScreen extends StatelessWidget {
         if (state is FamilyOperationSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(state.message),
+              content: Text(state.message, style: GoogleFonts.tajawal()),
               backgroundColor: Colors.green,
             ),
           );
         } else if (state is FamilyOperationError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(state.message, style: GoogleFonts.tajawal()),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       },
@@ -56,8 +59,7 @@ class MedicationScreen extends StatelessWidget {
                 )
               : null,
           body: StreamBuilder<List<MedicationModel>>(
-            // لا يزال استخدام StreamBuilder هنا مقبولاً لأنه متصل بـ Repo مباشرة
-            // ولكن الآن الحذف يتم عبر الـ Cubit
+            // الاستماع المباشر لقائمة أدوية المريض من الـ Repository
             stream: FamilyRepository().getPatientMedications(userId),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -86,12 +88,23 @@ class MedicationScreen extends StatelessWidget {
                   if (!snapshot.hasData || snapshot.data!.isEmpty)
                     SliverFillRemaining(
                       child: Center(
-                        child: Text(
-                          "لا توجد أدوية مسجلة حالياً",
-                          style: GoogleFonts.tajawal(
-                            fontSize: 16,
-                            color: Colors.grey,
-                          ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.medication_outlined,
+                              size: 64,
+                              color: Colors.grey[300],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              "لا توجد أدوية مسجلة حالياً",
+                              style: GoogleFonts.tajawal(
+                                fontSize: 16,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     )
@@ -123,11 +136,16 @@ class MedicationScreen extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Row(
         children: [
+          // أيقونة الدواء
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -141,28 +159,37 @@ class MedicationScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 15),
+          // بيانات الدواء (الاسم والجرعة)
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  med.name,
+                  // تم التعديل لاستخدام medicationName من الموديل الجديد
+                  med.medicationName,
                   style: GoogleFonts.tajawal(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    color: Colors.black87,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "${med.dose} • ${med.times.isNotEmpty ? med.times.first : '--:--'}",
+                  // تم التعديل لاستخدام dosage و time من الموديل الجديد
+                  "${med.dosage} • ${med.time} ${med.period}",
                   style: GoogleFonts.tajawal(
-                    fontSize: 12,
-                    color: Colors.grey[500],
+                    fontSize: 13,
+                    color: Colors.grey[600],
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
+          // زر الحذف (يظهر فقط لمن لديه صلاحية التعديل)
           if (canEdit) ...[
             IconButton(
               icon: const Icon(
@@ -183,12 +210,15 @@ class MedicationScreen extends StatelessWidget {
       builder: (ctx) => Directionality(
         textDirection: TextDirection.rtl,
         child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Text(
             "حذف الدواء؟",
             style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
           ),
           content: Text(
-            "هل أنت متأكد من حذف '${med.name}'؟ لا يمكن التراجع عن هذا الإجراء.",
+            "هل أنت متأكد من حذف '${med.medicationName}'؟ لا يمكن التراجع عن هذا الإجراء.",
             style: GoogleFonts.tajawal(),
           ),
           actions: [
@@ -199,13 +229,22 @@ class MedicationScreen extends StatelessWidget {
                 style: GoogleFonts.tajawal(color: Colors.grey),
               ),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () {
                 Navigator.pop(ctx);
-                // Call Cubit
-                context.read<FamilyCubit>().deleteMedication(userId, med.id!);
+                // استدعاء دالة الحذف من الكيوبيت لضمان تحديث واجهة المريض أيضاً
+                context.read<FamilyCubit>().deleteMedication(userId, med.id);
               },
-              child: Text("حذف", style: GoogleFonts.tajawal(color: Colors.red)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                "حذف",
+                style: GoogleFonts.tajawal(color: Colors.white),
+              ),
             ),
           ],
         ),
