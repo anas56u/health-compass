@@ -114,13 +114,13 @@ class _AddVitalsSheetState extends State<AddVitalsSheet> {
     );
   }
 
-  void _onSavePressed() {
+ void _onSavePressed() {
+    print("🔘 [UI] 1. تم ضغط زر الحفظ في AddVitalsSheet"); // Log 1
+
     if (_formKey.currentState!.validate()) {
-      // 1. استخراج القيم
       final sugar = double.tryParse(_sugarController.text);
       final heartRate = double.tryParse(_heartRateController.text);
       
-      // تحليل نص الضغط (مثلاً "120/80")
       int? systolic;
       int? diastolic;
       final pressureText = _pressureController.text;
@@ -132,26 +132,12 @@ class _AddVitalsSheetState extends State<AddVitalsSheet> {
           diastolic = int.tryParse(parts[1].trim());
         }
       } else if (pressureText.isNotEmpty) {
-        // في حال أدخل المستخدم رقم واحد فقط نعتبره الانقباضي
         systolic = int.tryParse(pressureText.trim());
       }
 
-      // التأكد أننا لا نرسل بيانات فارغة تماماً
-      if (sugar == null && pressureText.isEmpty && heartRate == null) {
-        return; 
-      }
+      // Log 2: طباعة القيم للتأكد أنها ليست null
+      print("📝 [UI] 2. القيم المستخرجة -> سكر: $sugar, قلب: $heartRate, ضغط: $systolic/$diastolic");
 
-      // 2. إرسال البيانات للحفظ في قاعدة البيانات (كما كان سابقاً)
-      context.read<FamilyCubit>().addVital(
-        patientId: widget.patientId,
-        sugar: sugar,
-        pressure: pressureText,
-        heartRate: heartRate,
-      ); 
-
-      // 3. ✅ فحص الطوارئ (الإضافة الجديدة)
-      // نرسل البيانات لـ HealthCubit ليفحصها ويطلق الإنذار إذا لزم الأمر
-      // نستخدم listen: false أو read لأننا داخل دالة
       context.read<HealthCubit>().checkManualReadings(
         heartRate: heartRate,
         systolic: systolic,
@@ -159,10 +145,33 @@ class _AddVitalsSheetState extends State<AddVitalsSheet> {
         bloodGlucose: sugar,
       );
 
+      final currentUser = FirebaseAuth.instance.currentUser;
+      // Log 3: مقارنة الآيديز
+      print("👤 [UI] 3. المستخدم الحالي: ${currentUser?.uid} | المريض المستهدف: ${widget.patientId}");
+
+      if (currentUser != null && widget.patientId == currentUser.uid) {
+         print("🚀 [UI] 4. تطابق الهوية -> جاري استدعاء HealthCubit..."); // Log 4
+         context.read<HealthCubit>().saveManualReadingsToFirestore(
+           heartRate: heartRate,
+           systolic: systolic,
+           diastolic: diastolic,
+           bloodGlucose: sugar,
+         );
+         context.read<FamilyCubit>().addVital(
+          patientId: widget.patientId,
+          sugar: sugar,
+          pressure: pressureText,
+          heartRate: heartRate,
+        );
+      } else {
+        
+      }
+
       Navigator.pop(context);
+    } else {
+      print("⚠️ [UI] فشل التحقق من صحة الفورم (Validation Failed)");
     }
   }
-
   Widget _buildField({
     required TextEditingController controller,
     required String label,

@@ -133,28 +133,77 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
         });
   }
 
-  void _emitUpdatedState() {
+ void _emitUpdatedState() {
     HealthDataModel displayData;
+
     try {
-      displayData = _cachedHistory.firstWhere((element) {
+      // 1. فلترة بيانات اليوم المختار فقط
+      final todaysReadings = _cachedHistory.where((element) {
         return element.date.year == _currentSelectedDate.year &&
             element.date.month == _currentSelectedDate.month &&
             element.date.day == _currentSelectedDate.day;
-      });
+      }).toList();
+
+      if (todaysReadings.isEmpty) {
+        displayData = HealthDataModel(
+          heartRate: 0,
+          sugar: 0,
+          systolic: 0,
+          diastolic: 0,
+          weight: 0,
+          date: _currentSelectedDate,
+        );
+      } else {
+        // 2. تجميع البيانات (Aggregation)
+        // سنقوم بالمرور على جميع قراءات اليوم ونأخذ أحدث قيمة غير صفرية لكل حقل
+        
+        // ترتيب القراءات من القديم للحديث (مهم جداً)
+        todaysReadings.sort((a, b) => a.date.compareTo(b.date));
+
+        double lastHeartRate = 0;
+        int lastSugar = 0;
+        int lastSystolic = 0;
+        int lastDiastolic = 0;
+        double lastWeight = 0;
+        
+        // Loop ذكي لتحديث القيم
+        for (var reading in todaysReadings) {
+          if (reading.heartRate > 0) lastHeartRate = reading.heartRate;
+          if (reading.sugar > 0) lastSugar = reading.sugar;
+          if (reading.systolic > 0) {
+             lastSystolic = reading.systolic;
+             lastDiastolic = reading.diastolic; // الضغط يؤخذ كزوج دائماً
+          }
+          if (reading.weight > 0) lastWeight = reading.weight;
+        }
+
+        // 3. إنشاء الموديل النهائي المدمج
+        displayData = HealthDataModel(
+          heartRate: lastHeartRate,
+          sugar: lastSugar,
+          systolic: lastSystolic,
+          diastolic: lastDiastolic,
+          weight: lastWeight,
+          date: todaysReadings.last.date, // تاريخ آخر تحديث أيًّا كان
+        );
+        
+        print("✅ Final Merged Data: Sugar=$lastSugar, HR=$lastHeartRate");
+      }
     } catch (e) {
+      print("Error processing dashboard data: $e");
       displayData = HealthDataModel(
-        heartRate: 0,
-        sugar: 0,
-        systolic: 0,
-        diastolic: 0,
-        weight: 0,
-        date: _currentSelectedDate,
+        heartRate: 0, 
+        sugar: 0, 
+        systolic: 0, 
+        diastolic: 0, 
+        weight: 0, 
+        date: _currentSelectedDate
       );
     }
 
+    // حساب التاسكات (لا تغيير)
     final int totalTasks = _cachedTasks.length;
     final int completedCount = _cachedTasks.where((t) => t.isCompleted).length;
-
     double percentage = totalTasks > 0 ? completedCount / totalTasks : 0.0;
 
     emit(
@@ -170,7 +219,6 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
       ),
     );
   }
-
   @override
   Future<void> close() {
     _healthSubscription?.cancel();
