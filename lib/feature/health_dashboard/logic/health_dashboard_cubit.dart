@@ -76,7 +76,7 @@ class HealthDashboardCubit extends Cubit<HealthDashboardState> {
         .collection('users')
         .doc(uid)
         .collection('health_readings')
-        .orderBy('date', descending: true)
+       .orderBy('timestamp', descending: true)
         .limit(limit * 2)
         .snapshots()
         .listen((snapshot) {
