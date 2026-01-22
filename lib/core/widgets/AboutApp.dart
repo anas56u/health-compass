@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:health_compass/feature/ContactSupportScreen.dart';
-import 'package:health_compass/feature/PrivacyPolicyScreen.dart';
+import 'package:health_compass/core/widgets/ContactSupportScreen.dart';
+import 'package:health_compass/core/widgets/PrivacyPolicyScreen.dart';
 
 class AboutAppScreen extends StatelessWidget {
   const AboutAppScreen({super.key});

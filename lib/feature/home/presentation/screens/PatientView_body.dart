@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:health_compass/core/cache/shared_pref_helper.dart';
-import 'package:health_compass/core/widgets/Accessibility_facilities.dart';
+import 'package:health_compass/feature/home/presentation/screens/widgets/Accessibility_facilities.dart';
 import 'package:health_compass/core/widgets/EmergencyScreen.dart'; //
-import 'package:health_compass/core/widgets/WeeklyChallenge.dart';
 import 'package:health_compass/core/widgets/bottom_nav_bar.dart';
-import 'package:health_compass/core/widgets/daily_tasks.dart';
+import 'package:health_compass/feature/home/presentation/screens/widgets/daily_tasks.dart';
 import 'package:health_compass/core/widgets/fasting_card.dart';
-import 'package:health_compass/core/widgets/header_patientview.dart';
+import 'package:health_compass/feature/home/presentation/screens/widgets/header_patientview.dart';
 import 'package:health_compass/feature/achievements/preesntation/cubits/hometask_cubit.dart';
 import 'package:health_compass/feature/achievements/preesntation/cubits/hometask_state.dart';
 import 'package:health_compass/feature/achievements/preesntation/screens/achievements_page.dart';

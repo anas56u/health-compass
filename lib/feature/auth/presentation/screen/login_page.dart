@@ -9,7 +9,7 @@ import 'package:health_compass/core/widgets/custom_text.dart';
 import 'package:health_compass/feature/auth/di/auth_di.dart';
 import 'package:health_compass/feature/auth/presentation/cubit/cubit/login_cubit.dart';
 import 'package:health_compass/feature/doctor/doctor_main_screen.dart';
-import 'package:health_compass/feature/home/presentation/PatientView_body.dart';
+import 'package:health_compass/feature/home/presentation/screens/PatientView_body.dart';
 import 'package:health_compass/feature/auth/presentation/screen/signup_page.dart';
 import 'package:health_compass/core/widgets/custom_textfild.dart';
 

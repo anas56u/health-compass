@@ -20,9 +20,9 @@ import 'package:health_compass/feature/doctor/home/pages/doctor_home_page.dart';
 import 'package:health_compass/feature/family_invite/family_invite.dart';
 import 'package:health_compass/feature/family_member/logic/family_cubit.dart';
 import 'package:health_compass/feature/health_dashboard/ui/screens/health_dashboard_screen.dart';
-import 'package:health_compass/feature/home/presentation/PatientView_body.dart';
+import 'package:health_compass/feature/home/presentation/screens/PatientView_body.dart';
 import 'package:health_compass/feature/achievements/preesntation/screens/achievements_page.dart';
-import 'package:health_compass/feature/profile/patient_profile.dart';
+import 'package:health_compass/feature/home/presentation/screens/patient_profile.dart';
 
 import 'package:health_compass/feature/family_member/data/family_repository.dart';
 import 'package:health_compass/feature/family_member/presentation/screens/family_member_home_screen.dart';

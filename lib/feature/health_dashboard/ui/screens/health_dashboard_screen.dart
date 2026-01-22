@@ -7,7 +7,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:health_compass/feature/health_dashboard/models/health_data_model.dart';
 import 'package:health_compass/feature/health_dashboard/logic/health_dashboard_cubit.dart';
-import 'package:health_compass/feature/home/presentation/PatientView_body.dart';
+import 'package:health_compass/feature/home/presentation/screens/PatientView_body.dart';
 import 'package:pdf/pdf.dart';
 import 'package:health_compass/core/services/pdf_service.dart';
 

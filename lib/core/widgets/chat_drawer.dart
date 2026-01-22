@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:health_compass/feature/AboutApp.dart';
+import 'package:health_compass/core/widgets/AboutApp.dart';
 import 'package:health_compass/feature/chatbot/data/logic/cubit/chat_cubit.dart';
 import 'package:health_compass/feature/chatbot/ui/screens/chat_history_screen.dart';
 

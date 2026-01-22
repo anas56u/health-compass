@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 // تأكد من المسارات الصحيحة للويدجتس الخاصة بك
-import 'package:health_compass/core/widgets/AchievementsHeader_Card.dart';
-import 'package:health_compass/core/widgets/AvailableChallengesList.dart';
-import 'package:health_compass/core/widgets/CompletedChallenges.dart';
+import 'package:health_compass/feature/achievements/preesntation/widgets/AchievementsHeader_Card.dart';
+import 'package:health_compass/feature/achievements/preesntation/widgets/AvailableChallengesList.dart';
+import 'package:health_compass/feature/achievements/preesntation/widgets/CompletedChallenges.dart';
 import 'package:health_compass/core/widgets/Custom_Clipper.dart';
-import 'package:health_compass/core/widgets/RewardsSection.dart';
+import 'package:health_compass/feature/achievements/preesntation/widgets/RewardsSection.dart';
 import 'package:health_compass/feature/achievements/preesntation/cubits/achievements_cubit.dart';
 import 'package:health_compass/feature/achievements/preesntation/cubits/achievements_state.dart';
 

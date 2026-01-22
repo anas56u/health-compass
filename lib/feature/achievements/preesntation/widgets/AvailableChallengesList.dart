@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:health_compass/core/widgets/ChallengeCard.dart';
+import 'package:health_compass/feature/achievements/preesntation/widgets/ChallengeCard.dart';
 // تأكد أن المسار صحيح للنموذج الذي أنشأناه سابقاً
 import 'package:health_compass/feature/achievements/data/model/challenge_model.dart';
 
