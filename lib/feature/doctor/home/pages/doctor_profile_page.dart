@@ -120,7 +120,7 @@ class DoctorProfilePage extends StatelessWidget {
             },
           ),
           _buildSettingsTile(
-            title: "عن النظام",
+            title: "عن التطبيق",
             subtitle: "الشروط والأحكام المهنية",
             icon: Icons.info_outline_rounded,
             color: Colors.indigoAccent,
