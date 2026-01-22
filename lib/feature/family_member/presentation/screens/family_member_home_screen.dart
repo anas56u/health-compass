@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:health_compass/core/routes/routes.dart';
+import 'package:health_compass/core/models/vital_model.dart';
+import 'package:health_compass/core/models/medication_model.dart';
 import 'package:health_compass/feature/chatbot/ui/screens/chat_bot_screen.dart';
 import 'package:health_compass/feature/family_member/logic/family_cubit.dart';
 import 'package:health_compass/feature/family_member/logic/family_state.dart';
@@ -83,7 +85,156 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
     );
   }
 
-  // --- تحديث الـ AppBar لإضافة زر البروفايل ---
+  Widget _buildDashboardContent(
+    BuildContext context,
+    FamilyDashboardLoaded state,
+  ) {
+    return RefreshIndicator(
+      onRefresh: () async {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null)
+          await context.read<FamilyCubit>().initFamilyHome(user.uid);
+      },
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          _buildModernAppBar(state),
+          SliverPadding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _buildDynamicHeader(state.currentProfile['name'] ?? 'المريض'),
+                SizedBox(height: 15.h),
+                // ✅ إضافة بطاقة الحالة الصحية
+                _buildPatientStatusCard(state.currentProfile),
+                SizedBox(height: 25.h),
+                _buildSectionHeader(
+                  "آخر القراءات الحيوية",
+                  Icons.analytics_outlined,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => VitalsHistoryScreen(
+                        patientId: state.selectedPatientId,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 12.h),
+                // ✅ إضافة شبكة القراءات (النبض، السكر، الضغط)
+                _buildVitalsGrid(state.currentVitals),
+                SizedBox(height: 25.h),
+                _buildSectionHeader(
+                  "الأدوية المجدولة",
+                  Icons.medication_outlined,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MedicationScreen(
+                        canEdit: _userPermission == 'interactive',
+                        userId: state.selectedPatientId,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 12.h),
+                _buildRealMedicationList(state.selectedPatientId),
+                SizedBox(height: 80.h),
+              ]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ ويدجت عرض العلامات الحيوية في شبكة
+  Widget _buildVitalsGrid(List<VitalModel> vitals) {
+    if (vitals.isEmpty) return _buildEmptyState("لا توجد قراءات مسجلة اليوم");
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12.w,
+        mainAxisSpacing: 12.h,
+        childAspectRatio: 1.6,
+      ),
+      itemCount: vitals.length,
+      itemBuilder: (context, index) {
+        final vital = vitals[index];
+        return Container(
+          padding: EdgeInsets.all(12.w),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15.r),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                vital.type,
+                style: TextStyle(fontSize: 11.sp, color: Colors.grey[600]),
+              ),
+              SizedBox(height: 5.h),
+              FittedBox(
+                child: Text(
+                  "${vital.value} ${vital.unit}",
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ✅ بطاقة الحالة الصحية العلوية
+  Widget _buildPatientStatusCard(Map<String, dynamic> profile) {
+    return Container(
+      padding: EdgeInsets.all(15.w),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: [primaryColor, secondaryColor]),
+        borderRadius: BorderRadius.circular(15.r),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.check_circle_outline, color: Colors.white, size: 30.sp),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "حالة ${profile['name'] ?? 'المريض'} مستقرة",
+                  style: GoogleFonts.tajawal(
+                    color: Colors.white,
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  "تم التحديث الآن",
+                  style: TextStyle(color: Colors.white70, fontSize: 11.sp),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- شريط التطبيق العلوي ---
   Widget _buildModernAppBar(FamilyDashboardLoaded state) {
     return SliverAppBar(
       backgroundColor: Colors.white,
@@ -103,7 +254,6 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
         child: _buildPatientSelector(state),
       ),
       actions: [
-        // ✅ زر الملف الشخصي (البروفايل)
         _buildAppBarAction(Icons.account_circle_outlined, primaryColor, () {
           Navigator.push(
             context,
@@ -127,102 +277,10 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
             ),
           );
         }),
-        SizedBox(width: 5.w),
       ],
     );
   }
 
-  // --- واجهة عند عدم وجود مريض مع إضافة زر البروفايل ---
-  Widget _buildNoLinkedPatientState() {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(20.w),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.people_outline_rounded,
-              size: 80.sp,
-              color: primaryColor.withOpacity(0.2),
-            ),
-            SizedBox(height: 20.h),
-            Text(
-              "لم تقم بربط أي مريض",
-              style: GoogleFonts.tajawal(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 30.h),
-            ElevatedButton.icon(
-              onPressed: () =>
-                  Navigator.pushNamed(context, AppRoutes.linkPatient),
-              icon: const Icon(Icons.link, color: Colors.white),
-              label: const Text(
-                "ربط مريض الآن",
-                style: TextStyle(color: Colors.white),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor,
-                minimumSize: Size(double.infinity, 45.h),
-              ),
-            ),
-            SizedBox(height: 15.h),
-            // ✅ زر إضافي للبروفايل هنا لسهولة الوصول
-            OutlinedButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const FamilyProfileScreen()),
-              ),
-              icon: Icon(Icons.person_outline, color: primaryColor),
-              label: Text("ملفي الشخصي", style: TextStyle(color: primaryColor)),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: primaryColor),
-                minimumSize: Size(double.infinity, 45.h),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // المكونات المساعدة الأخرى (نفس الكود السابق مع إصلاح الـ Overflow)
-  Widget _buildAppBarAction(IconData icon, Color color, VoidCallback onTap) =>
-      IconButton(
-        icon: Icon(icon, color: color, size: 24.sp),
-        onPressed: onTap,
-      );
-
-  Widget _buildDashboardContent(
-    BuildContext context,
-    FamilyDashboardLoaded state,
-  ) {
-    return RefreshIndicator(
-      onRefresh: () async {
-        final user = FirebaseAuth.instance.currentUser;
-        if (user != null)
-          await context.read<FamilyCubit>().initFamilyHome(user.uid);
-      },
-      child: CustomScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: [
-          _buildModernAppBar(state),
-          SliverPadding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                _buildDynamicHeader(state.currentProfile['name'] ?? 'المريض'),
-                // ... باقي المحتوى كما هو في الكود السابق
-              ]),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // (يتم إكمال باقي الـ widgets مثل _buildPatientSelector و _buildDynamicHeader كما في الكود السابق)
   Widget _buildPatientSelector(FamilyDashboardLoaded state) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
@@ -259,6 +317,57 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
     );
   }
 
+  Widget _buildRealMedicationList(String patientId) {
+    return StreamBuilder<List<MedicationModel>>(
+      stream: FamilyRepository().getPatientMedications(patientId),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty)
+          return _buildEmptyState("لا توجد أدوية");
+        return ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: snapshot.data!.length > 3 ? 3 : snapshot.data!.length,
+          separatorBuilder: (_, __) => SizedBox(height: 10.h),
+          itemBuilder: (context, index) => _buildMedCard(snapshot.data![index]),
+        );
+      },
+    );
+  }
+
+  Widget _buildMedCard(MedicationModel med) {
+    return Container(
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.medication_liquid_outlined,
+            color: primaryColor,
+            size: 24.sp,
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Text(
+              med.medicationName,
+              style: GoogleFonts.tajawal(
+                fontWeight: FontWeight.bold,
+                fontSize: 13.sp,
+              ),
+            ),
+          ),
+          Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 12.sp,
+            color: Colors.grey[300],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDynamicHeader(String name) => Padding(
     padding: EdgeInsets.symmetric(vertical: 10.h),
     child: Text(
@@ -270,6 +379,27 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
       ),
     ),
   );
+
+  Widget _buildSectionHeader(String title, IconData icon, VoidCallback onTap) {
+    return Row(
+      children: [
+        Icon(icon, color: secondaryColor, size: 20.sp),
+        SizedBox(width: 6.w),
+        Text(
+          title,
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
+        ),
+        const Spacer(),
+        TextButton(
+          onPressed: onTap,
+          child: Text(
+            "عرض الكل",
+            style: TextStyle(color: primaryColor, fontSize: 12.sp),
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildAnimatedFAB() {
     return BlocBuilder<FamilyCubit, FamilyState>(
@@ -295,15 +425,54 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
     );
   }
 
-  void _showCustomSnackBar(BuildContext context, String msg, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
+  Widget _buildNoLinkedPatientState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.people_outline_rounded,
+            size: 80.sp,
+            color: primaryColor.withOpacity(0.2),
+          ),
+          SizedBox(height: 20.h),
+          Text(
+            "لم تقم بربط أي مريض",
+            style: GoogleFonts.tajawal(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 30.h),
+          ElevatedButton(
+            onPressed: () =>
+                Navigator.pushNamed(context, AppRoutes.linkPatient),
+            style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+            child: const Text(
+              "ربط مريض الآن",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
       ),
     );
   }
+
+  void _showCustomSnackBar(BuildContext context, String msg, Color color) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
+  }
+
+  Widget _buildEmptyState(String msg) => Center(
+    child: Padding(
+      padding: EdgeInsets.all(20.h),
+      child: Text(
+        msg,
+        style: GoogleFonts.tajawal(color: Colors.grey[400], fontSize: 11.sp),
+      ),
+    ),
+  );
 
   Widget _buildErrorState(String msg) => Center(child: Text(msg));
 
@@ -312,5 +481,11 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
         context: context,
         isScrollControlled: true,
         builder: (_) => AddVitalsSheet(patientId: pid),
+      );
+
+  Widget _buildAppBarAction(IconData icon, Color color, VoidCallback onTap) =>
+      IconButton(
+        icon: Icon(icon, color: color, size: 24.sp),
+        onPressed: onTap,
       );
 }
