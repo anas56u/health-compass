@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-// تأكد من المسارات الصحيحة للويدجتس الخاصة بك
 import 'package:health_compass/feature/achievements/preesntation/widgets/AchievementsHeader_Card.dart';
 import 'package:health_compass/feature/achievements/preesntation/widgets/AvailableChallengesList.dart';
 import 'package:health_compass/feature/achievements/preesntation/widgets/CompletedChallenges.dart';

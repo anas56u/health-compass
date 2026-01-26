@@ -57,6 +57,13 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
           }
           if (state is FamilyLinkSuccess) {
             final user = FirebaseAuth.instance.currentUser;
+            if (user != null) {
+              // نستخدم الـ Cubit لتحميل البيانات من جديد
+              context.read<FamilyCubit>().initFamilyHome(user.uid);
+            }
+          }
+          if (state is FamilyLinkSuccess) {
+            final user = FirebaseAuth.instance.currentUser;
             if (user != null)
               context.read<FamilyCubit>().initFamilyHome(user.uid);
           }
@@ -445,8 +452,13 @@ class _FamilyMemberHomeScreenState extends State<FamilyMemberHomeScreen> {
           ),
           SizedBox(height: 30.h),
           ElevatedButton(
-            onPressed: () =>
-                Navigator.pushNamed(context, AppRoutes.linkPatient),
+            onPressed: () async{
+              Navigator.pushNamed(context, AppRoutes.linkPatient);
+              final user = FirebaseAuth.instance.currentUser;
+    if (user != null && mounted) {
+      context.read<FamilyCubit>().initFamilyHome(user.uid);
+    }
+            },
             style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
             child: const Text(
               "ربط مريض الآن",

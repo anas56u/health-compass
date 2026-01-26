@@ -2,10 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:health_compass/core/widgets/doctor_link_guard.dart';
+import 'package:health_compass/feature/auth/data/model/PatientModel.dart';
 import 'package:health_compass/feature/auth/data/model/masseag_model.dart';
 import 'package:health_compass/feature/auth/data/model/user_model.dart';
 // استدعاء الريبو والمودل
-import 'package:health_compass/feature/chat/repo/chat_repo.dart'; 
+import 'package:health_compass/feature/chat/repo/chat_repo.dart';
+import 'package:health_compass/feature/doctor/home/pages/patient_deatels.dart'; 
 
 class ChatScreen extends StatefulWidget {
   final UserModel otherUser; 
@@ -77,6 +79,18 @@ class _ChatScreenState extends State<ChatScreen> {
               icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
               onPressed: () => Navigator.pop(context),
             ),
+            actions: [if (widget.otherUser.userType == 'patient') 
+      IconButton(
+        icon: const Icon(Icons.info_outline, color: Colors.white),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PatientDetailsScreen(patient: widget.otherUser as PatientModel),
+            ),
+          );
+        },
+      ),],
           ),
           body: Column(
             children: [
