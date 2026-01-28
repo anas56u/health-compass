@@ -16,18 +16,16 @@ class ChatCubit extends Cubit<ChatState> {
   late final GenerativeModel _model;
   late ChatSession _chatSession;
 
-  // 🔑 ضع مفتاحك هنا
-  final String _apiKey = 'AIzaSyAG1wBiKBhyhWrYmqdXu2L955_MM2CTNws';
+  final String _apiKey = 'Put Your API Key Here';
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   String? currentSessionId;
-  StreamSubscription? _messagesSubscription; // 2. متغير لحفظ الاشتراك الحالي
-
+  StreamSubscription? _messagesSubscription;
   void _initModel() {
     _model = GenerativeModel(
-      model: 'gemini-3-flash-preview',
+      model: 'Model Name',
       apiKey: _apiKey,
       systemInstruction: Content.system("""
 أنت "دليل"، مساعد طبي أردني ذكي.
@@ -45,7 +43,7 @@ class ChatCubit extends Cubit<ChatState> {
   }
 
   void startNewChat() {
-    _messagesSubscription?.cancel(); // إلغاء أي استماع سابق
+    _messagesSubscription?.cancel();
     currentSessionId = const Uuid().v4();
     _chatSession = _model.startChat();
 
@@ -76,7 +74,6 @@ class ChatCubit extends Cubit<ChatState> {
   }
 
   void loadSession(String sessionId) {
-    // ✅ 3. إلغاء الاشتراك السابق قبل بدء واحد جديد لمنع تداخل الرسائل
     _messagesSubscription?.cancel();
 
     currentSessionId = sessionId;
@@ -85,7 +82,6 @@ class ChatCubit extends Cubit<ChatState> {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    // ✅ حفظ الاشتراك في المتغير
     _messagesSubscription = _firestore
         .collection('users')
         .doc(user.uid)
@@ -98,9 +94,6 @@ class ChatCubit extends Cubit<ChatState> {
           final messages = snapshot.docs
               .map((doc) => ChatMessageModel.fromMap(doc.data()))
               .toList();
-
-          // ملاحظة: هنا نبدأ جلسة جديدة مع الذكاء الاصطناعي (ذاكرة نظيفة)
-          // لكن نعرض الرسائل القديمة للمستخدم
           _chatSession = _model.startChat();
 
           emit(state.copyWith(messages: messages, status: ChatStatus.success));
@@ -119,7 +112,6 @@ class ChatCubit extends Cubit<ChatState> {
       timestamp: DateTime.now(),
     );
 
-    // تحديث الواجهة (Optimistic UI)
     emit(
       state.copyWith(
         messages: [...state.messages, userMessage],
@@ -128,11 +120,9 @@ class ChatCubit extends Cubit<ChatState> {
     );
 
     try {
-      // 1. الحفظ في Firebase
       await _saveMessageToFirebase(userMessage);
       await _updateSessionInfo(text);
 
-      // 2. الإرسال لـ Gemini
       final response = await _chatSession.sendMessage(Content.text(text));
       final botText = response.text ?? "عذراً، لم أفهم.";
 
@@ -142,11 +132,9 @@ class ChatCubit extends Cubit<ChatState> {
         timestamp: DateTime.now(),
       );
 
-      // 3. حفظ الرد
       await _saveMessageToFirebase(botMessage);
       await _updateSessionInfo(botText);
 
-      // التحديث في الواجهة
       emit(
         state.copyWith(
           messages: [...state.messages, botMessage],
@@ -185,7 +173,6 @@ class ChatCubit extends Cubit<ChatState> {
         }, SetOptions(merge: true));
   }
 
-  // ✅ دالة لإغلاق الاشتراك عند تدمير الكيوبت
   @override
   Future<void> close() {
     _messagesSubscription?.cancel();
