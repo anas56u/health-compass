@@ -1,4 +1,4 @@
-import 'dart:async'; // 1. استيراد هذه المكتبة للتعامل مع الاشتراكات
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -16,16 +16,17 @@ class ChatCubit extends Cubit<ChatState> {
   late final GenerativeModel _model;
   late ChatSession _chatSession;
 
-  final String _apiKey = 'Put Your API Key Here';
+  final String _apiKey = '';
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   String? currentSessionId;
   StreamSubscription? _messagesSubscription;
+
   void _initModel() {
     _model = GenerativeModel(
-      model: 'Model Name',
+      model: 'gemini-1.5-flash',
       apiKey: _apiKey,
       systemInstruction: Content.system("""
 أنت "دليل"، مساعد طبي أردني ذكي.
@@ -94,7 +95,15 @@ class ChatCubit extends Cubit<ChatState> {
           final messages = snapshot.docs
               .map((doc) => ChatMessageModel.fromMap(doc.data()))
               .toList();
-          _chatSession = _model.startChat();
+
+          final history = messages.map((m) {
+            return Content(
+              m.isBot ? 'model' : 'user', 
+              [TextPart(m.text)]
+            );
+          }).toList();
+
+          _chatSession = _model.startChat(history: history);
 
           emit(state.copyWith(messages: messages, status: ChatStatus.success));
         });
@@ -150,27 +159,31 @@ class ChatCubit extends Cubit<ChatState> {
 
   Future<void> _saveMessageToFirebase(ChatMessageModel msg) async {
     final user = _auth.currentUser;
-    await _firestore
-        .collection('users')
-        .doc(user!.uid)
-        .collection('sessions')
-        .doc(currentSessionId)
-        .collection('messages')
-        .add(msg.toMap());
+    if (user != null && currentSessionId != null) {
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('sessions')
+          .doc(currentSessionId)
+          .collection('messages')
+          .add(msg.toMap());
+    }
   }
 
   Future<void> _updateSessionInfo(String lastMsg) async {
     final user = _auth.currentUser;
-    await _firestore
-        .collection('users')
-        .doc(user!.uid)
-        .collection('sessions')
-        .doc(currentSessionId)
-        .set({
-          'sessionId': currentSessionId,
-          'preview': lastMsg,
-          'lastMessageTime': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+    if (user != null && currentSessionId != null) {
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('sessions')
+          .doc(currentSessionId)
+          .set({
+            'sessionId': currentSessionId,
+            'preview': lastMsg,
+            'lastMessageTime': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+    }
   }
 
   @override
